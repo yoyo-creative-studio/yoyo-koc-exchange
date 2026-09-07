@@ -2697,11 +2697,6 @@ function renderShowcaseSubmissions() {
 }
 
 async function approveShowcase(id, uid) {
-  if (!confirmDanger('通过该 showcase 并给 +1 分？', [
-    'UID: ' + uid,
-    '每人每期最多 1 次 showcase +1',
-    '将写入 point_logs (+1)，并把该提交标记为 scored'
-  ])) return;
   try {
     // 管理端再防一次重复加分:同 UID 同 period 已有 scored showcase 就不再写 point_logs。
     var dupRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/submissions?uid=eq.' + encodeURIComponent(uid) + '&period=eq.' + encodeURIComponent(currentPeriod) + '&submission_type=eq.showcase&status=eq.scored&select=id&limit=1');
