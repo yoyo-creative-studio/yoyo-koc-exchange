@@ -385,9 +385,9 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
     </div>
     <div id="community-milestone" class="community-milestone" aria-live="polite">
       <div class="community-milestone-head"><span class="community-milestone-title">🌍 COMMUNITY MILESTONE</span><span id="community-milestone-count" class="community-milestone-count">— / 300</span></div>
-      <div id="community-milestone-copy" class="community-milestone-copy">We are working toward 300 active creators together. Unlock two different reward types for each redemption period.</div>
+      <div id="community-milestone-copy" class="community-milestone-copy">At 300 active creators, everyone can choose two different reward types during each redemption period.</div>
       <div class="community-milestone-track"><div id="community-milestone-fill" class="community-milestone-fill" style="width:0%"></div></div>
-      <div class="community-milestone-foot"><span id="community-milestone-status">Loading community progress...</span><span class="community-milestone-refer">🎁 Refer a friend</span></div>
+      <div class="community-milestone-foot"><span id="community-milestone-status">Community benefit unlock progress</span><span class="community-milestone-refer">🎁 Invite a friend</span></div>
     </div>
     <!-- Redeem Tab -->
     <div id="creator-tab-redeem" class="tab-content">
@@ -1367,10 +1367,10 @@ async function loadCommunityMilestone() {
     var reached = count >= target;
     countEl.textContent = count + ' / ' + target;
     fillEl.style.width = Math.min(100, Math.round(count / target * 100)) + '%';
-    statusEl.textContent = reached ? '🎉 Milestone reached · Two reward types unlocked' : 'Help us reach 300 active creators together';
+    statusEl.textContent = reached ? '🎉 Two reward types unlocked for everyone' : 'Reward flexibility unlocks at 300 creators';
     if (reached) {
       var copy = document.getElementById('community-milestone-copy');
-      if (copy) copy.textContent = 'Thank you for building the community with us. Two different reward types are unlocked for each redemption period.';
+      if (copy) copy.textContent = '🎉 You can now choose two different reward types during each redemption period.';
     }
   } catch (error) {
     countEl.textContent = '— / 300';
