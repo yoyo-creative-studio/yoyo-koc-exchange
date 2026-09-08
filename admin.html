@@ -2377,6 +2377,23 @@ function updateAgentRulesFromConfig() {
 }
 
 // ===== MOCHI DISCORD BOT FUNCTIONS =====
+function splitDiscordMessage(message, maxLength) {
+  var limit = maxLength || 1950;
+  var text = String(message || '').trim();
+  if (!text) return [];
+  var chunks = [];
+  while (text.length > limit) {
+    var cut = text.lastIndexOf('\n\n', limit);
+    if (cut < Math.floor(limit * 0.55)) cut = text.lastIndexOf('\n', limit);
+    if (cut < Math.floor(limit * 0.55)) cut = text.lastIndexOf(' ', limit);
+    if (cut < 1) cut = limit;
+    chunks.push(text.slice(0, cut).trim());
+    text = text.slice(cut).trim();
+  }
+  if (text) chunks.push(text);
+  return chunks;
+}
+
 // Send a DM to a user by their Discord username (resolves member first)
 async function sendMochiDM(discordUsername, message, discordId, guildId) {
   if (!discordUsername && !discordId) return { ok: false, reason: '缺少 Discord 用户' };
@@ -2423,10 +2440,14 @@ async function sendMochiDM(discordUsername, message, discordId, guildId) {
     var verifyData = await discordProxyFetch('check_member', { guild_id: guildId || DISCORD_GUILD_ID, user_id: member.id }, MOCHI_TOKEN);
     var verifiedMember = verifyData && verifyData.data && verifyData.data.member;
     if (!verifyData.ok || !verifiedMember) return { ok: false, reason: (verifyData && (verifyData.error || (verifyData.data && verifyData.data.error))) || '用户不在目标 Discord 服务器中' };
-    // Step 2: 通过 Edge Function 发送私信
-    var dmData = await discordProxyFetch('send_dm', { user_id: member.id, message: message, guild_id: guildId || DISCORD_GUILD_ID }, MOCHI_TOKEN);
-    if (!dmData.ok) return { ok: false, reason: dmData.error || '发送失败' };
-    return { ok: true, reason: '' };
+    // Step 2: Discord limits message content to 2000 characters. Split long personalized notices safely.
+    var chunks = splitDiscordMessage(message, 1950);
+    for (var chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+      var dmData = await discordProxyFetch('send_dm', { user_id: member.id, message: chunks[chunkIndex], guild_id: guildId || DISCORD_GUILD_ID }, MOCHI_TOKEN);
+      if (!dmData.ok) return { ok: false, reason: '第 ' + (chunkIndex + 1) + '/' + chunks.length + ' 段失败: ' + (dmData.error || '发送失败') };
+      if (chunkIndex < chunks.length - 1) await new Promise(function(resolve) { setTimeout(resolve, 1200); });
+    }
+    return { ok: true, reason: '', chunks: chunks.length };
     // Audit log for DMs is handled by confirmBroadcast
   } catch(e) {
     console.error('sendMochiDM error:', e);
