@@ -1097,7 +1097,8 @@ function renderCreatorTierPath(tier) {
     { key:'platinum', icon:'💎', name:'Platinum' }
   ];
   var newRules = String(currentPeriod || '') >= '2026-09';
-  var ruleText = newRules ? 'From September 2026: Gold = 20+ content points for 2 consecutive months · Platinum = 40+ content points for 3 consecutive months' : 'August 2026 and earlier: Gold = over 5 points for 2 consecutive months · Platinum = over 5 points for 3 consecutive months';
+  var ruleText = 'Current tier requirements: Gold = 20+ pure content points for 2 consecutive months · Platinum = 40+ pure content points for 3 consecutive months';
+  if (!newRules) ruleText += ' · Historical months are settled under the previous rule';
   root.innerHTML = '<div class="tier-path tier-path-tier-' + normalized + '"><span class="tier-path-stars">✦  ✧  ✦</span><div class="tier-path-title">YOUR CREATOR TIER · TIERS ONLY MOVE UP</div><div class="tier-path-list">' + steps.map(function(step, index) {
     var state = index <= currentRank ? ' reached' : '';
     if (step.key === normalized) state += ' current';
@@ -2146,11 +2147,11 @@ function renderMonthView(ym, months, byMonth, ptLogs, container, countEl, period
     html += '<div class="submission-stat-note">' + (newbieDone ? 'Completed. Your +2 bonus has been added.' : (baseContentScore >= 5 ? 'Goal reached. Bonus will be added during settlement.' : (5 - baseContentScore) + ' more base points needed for the +2 bonus.')) + '</div></div>';
   }
 
-  var tierRuleText = ym >= '2026-09' ? 'Gold requires 20+ pure content points for 2 consecutive months under the current rules.' : 'Gold requires more than 5 points for 2 consecutive months under the previous rules.';
+  var tierRuleText = 'Gold requires 20+ pure content points for 2 consecutive months under the current rules.';
   if (currentTier === 'certified') {
     html += '<div class="submission-progress-card"><div class="submission-progress-row"><span>⭐ Gold Creator Progress</span><span>' + baseContentScore + ' scored base pts</span></div><div class="submission-stat-note">Pending submissions show 0 until monthly review is completed. This does not remove or reset your available point balance. ' + tierRuleText + ' Bonuses and carry-over do not count.</div></div>';
   } else if (currentTier === 'gold') {
-    var platinumRuleText = ym >= '2026-09' ? 'Platinum requires 40+ pure content points for 3 consecutive months under the current rules.' : 'Platinum requires more than 5 points for 3 consecutive months under the previous rules.';
+    var platinumRuleText = 'Platinum requires 40+ pure content points for 3 consecutive months under the current rules.';
     html += '<div class="submission-progress-card"><div class="submission-progress-row"><span>💎 Platinum Creator Progress</span><span>' + baseContentScore + ' scored base pts</span></div><div class="submission-stat-note">Pending submissions show 0 until monthly review is completed. This does not remove or reset your available point balance. ' + platinumRuleText + ' Bonuses and carry-over do not count.</div></div>';
   }
 
