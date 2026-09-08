@@ -2085,12 +2085,22 @@ function renderMonthView(ym, months, byMonth, ptLogs, container, countEl, period
   var rankingId = 'monthly-ranking-' + Date.now();
   html += '<div id="' + rankingId + '" class="submission-ranking-card"><div><div class="submission-ranking-title">🏆 ' + esc(monthLabel) + ' Point Ranking</div><div class="submission-ranking-note">Loading ranking...</div></div><strong>...</strong></div>';
   (function(uid, month, elementId) {
-    supabaseFetch(SUPABASE_URL + '/rest/v1/point_logs?period=eq.' + encodeURIComponent(month) + '&select=uid,change,source')
-      .then(function(response) { return response.ok ? response.json() : []; })
-      .then(function(logs) {
+    Promise.all([
+      supabaseFetch(SUPABASE_URL + '/rest/v1/submissions?period=eq.' + encodeURIComponent(month) + '&select=uid'),
+      supabaseFetch(SUPABASE_URL + '/rest/v1/point_logs?period=eq.' + encodeURIComponent(month) + '&select=uid,change,source')
+    ])
+      .then(function(responses) {
+        return Promise.all(responses.map(function(response) { return response.ok ? response.json() : []; }));
+      })
+      .then(function(results) {
+        var submitters = {};
+        (results[0] || []).forEach(function(submission) {
+          if (submission.uid) submitters[String(submission.uid)] = true;
+        });
+        var logs = results[1] || [];
         var pointsByUid = {};
         (logs || []).forEach(function(log) {
-          if (Number(log.change) > 0 && log.source !== 'redemption') pointsByUid[log.uid] = (pointsByUid[log.uid] || 0) + Number(log.change);
+          if (submitters[String(log.uid)] && Number(log.change) > 0 && log.source !== 'redemption') pointsByUid[log.uid] = (pointsByUid[log.uid] || 0) + Number(log.change);
         });
         var ranked = Object.keys(pointsByUid).map(function(key) { return { uid: key, points: pointsByUid[key] }; }).filter(function(row) { return row.points > 0; }).sort(function(a, b) { return b.points - a.points || a.uid.localeCompare(b.uid); });
         var rank = ranked.findIndex(function(row) { return String(row.uid) === String(uid); });
@@ -2099,10 +2109,10 @@ function renderMonthView(ym, months, byMonth, ptLogs, container, countEl, period
         var note = card.querySelector('.submission-ranking-note');
         var value = card.querySelector('strong');
         if (rank < 0) {
-          if (note) note.textContent = 'No points recorded for this month · ' + ranked.length + ' creators ranked';
+          if (note) note.textContent = 'No points recorded for this month · ' + Object.keys(submitters).length + ' creators submitted';
           if (value) value.textContent = '—';
         } else {
-          if (note) note.textContent = 'Based on positive points recorded this month · ' + ranked.length + ' creators ranked';
+          if (note) note.textContent = 'Based on submitted creators with positive points · ' + Object.keys(submitters).length + ' creators submitted';
           if (value) value.textContent = '#' + (rank + 1);
         }
       }).catch(function() {
