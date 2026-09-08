@@ -4123,13 +4123,10 @@ function buildMochiCsvTargets(text) {
     if (!name && !key && !msg) return;
     var k = findKocByCsvKey(key);
     var sendName = (k && k.discord_name) || name;
-    var hasCurrentScored = !!(k && (allSubmissions || []).some(function(s) {
-      return String(s.uid || '') === String(k.uid || '') && s.status === 'scored' && getRowPeriod(s) === currentPeriod;
-    }));
     var dedupe = ((k && k.uid) || key || sendName).toLowerCase();
     if (seen[dedupe]) return; seen[dedupe] = true;
-    var reason = !k ? '未匹配 KOC' : hasCurrentScored ? currentPeriod + ' 已评分' : currentPeriod + ' 无已评分记录';
-    out.push({ discord_name: sendName, csv_name: name, uid: (k && k.uid) || key, account_id: (k && k.account_id) || '', message: msg, matched: !!k, eligible: hasCurrentScored, checked: false, reason: reason, username: '', global_name: '', discord_id: '', guild_id: DISCORD_GUILD_ID });
+    var reason = !k ? '未匹配 KOC' : 'CSV 结算结果，可发送';
+    out.push({ discord_name: sendName, csv_name: name, uid: (k && k.uid) || key, account_id: (k && k.account_id) || '', message: msg, matched: !!k, eligible: !!k, checked: false, reason: reason, username: '', global_name: '', discord_id: '', guild_id: DISCORD_GUILD_ID });
   });
   return out;
 }
@@ -4142,7 +4139,7 @@ function previewMochiCsvBroadcast() {
   var matched = mochiCsvTargets.filter(function(t){return t.matched;}).length;
   var eligible = mochiCsvTargets.filter(function(t){return t.eligible;}).length;
   var sum = document.getElementById('mochi-csv-summary');
-  if (sum) sum.textContent = '已解析 ' + mochiCsvTargets.length + ' 行，可发送 ' + eligible + '，无当前月评分/未匹配 ' + (mochiCsvTargets.length - eligible);
+  if (sum) sum.textContent = '已解析 ' + mochiCsvTargets.length + ' 行，可发送 ' + eligible + '，未匹配 KOC ' + (mochiCsvTargets.length - eligible);
   var list = document.getElementById('broadcast-target-list');
   var count = document.getElementById('broadcast-target-count');
   if (count) count.textContent = mochiCsvTargets.length + ' 行（逐条文案）';
