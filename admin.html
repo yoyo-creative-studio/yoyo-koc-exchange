@@ -4148,7 +4148,7 @@ function previewMochiCsvBroadcast() {
   if (count) count.textContent = mochiCsvTargets.length + ' 行（逐条文案）';
   if (list) list.innerHTML = mochiCsvTargets.map(function(t, i) {
     var prev = (t.message || '').slice(0, 80) + ((t.message || '').length > 80 ? '…' : '');
-    return '<div style="display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:5px;padding:5px 4px;font-size:12px;align-items:start;' + (t.eligible ? '' : 'opacity:.55;') + '"><input type="checkbox" class="mochi-csv-cb" data-index="' + i + '"' + (t.eligible ? '' : ' disabled') + '><span style="min-width:0;"><b>' + esc(t.discord_name || t.csv_name || '(空)') + '</b> <span style="color:#999;">' + esc(t.uid || '') + '</span><br><span style="font-size:11px;color:#666;">' + esc(prev) + '</span></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;"><span style="font-size:11px;color:' + (t.eligible ? '#2e7d32' : '#c62828') + ';">' + esc(t.reason) + '</span><button type="button" class="btn btn-sm btn-outline" style="padding:2px 6px;font-size:10px;white-space:nowrap;" onclick="showMochiCsvMessage(' + i + ')">查看全文</button></span></div>';
+    return '<div style="display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:5px;padding:5px 4px;font-size:12px;align-items:start;' + (t.eligible ? '' : 'opacity:.55;') + '"><input type="checkbox" class="mochi-csv-cb" data-index="' + i + '" onchange="mochiCsvTargets[' + i + '].checked=this.checked; syncMochiCsvSelectAll()"' + (t.checked ? ' checked' : '') + (t.eligible ? '' : ' disabled') + '><span style="min-width:0;"><b>' + esc(t.discord_name || t.csv_name || '(空)') + '</b> <span style="color:#999;">' + esc(t.uid || '') + '</span><br><span style="font-size:11px;color:#666;">' + esc(prev) + '</span></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;"><span style="font-size:11px;color:' + (t.eligible ? '#2e7d32' : '#c62828') + ';">' + esc(t.reason) + '</span><button type="button" class="btn btn-sm btn-outline" style="padding:2px 6px;font-size:10px;white-space:nowrap;" onclick="showMochiCsvMessage(' + i + ')">查看全文</button></span></div>';
   }).join('') || '<div style="padding:6px;color:#999;">没有可发送行</div>';
   var editor = document.getElementById('broadcast-msg-editor');
   if (editor) {
@@ -4456,8 +4456,27 @@ function syncBroadcastSelectAll() {
 
 function toggleSelectAll() {
   var checked = document.getElementById('broadcast-select-all').checked;
+  if (mochiBroadcastType === 'csv') {
+    mochiCsvTargets.forEach(function(t) { if (t.eligible) t.checked = checked; });
+    document.querySelectorAll('.mochi-csv-cb:not(:disabled)').forEach(function(cb) { cb.checked = checked; });
+    var csvCount = mochiCsvTargets.filter(function(t) { return t.checked; }).length;
+    document.getElementById('broadcast-target-count').textContent = mochiCsvTargets.length + ' 行（已选 ' + csvCount + ' 行）';
+    return;
+  }
   (window._bcTargets || []).forEach(function(t) { t.checked = checked; });
   filterBroadcastList();
+}
+
+function syncMochiCsvSelectAll() {
+  var selectAll = document.getElementById('broadcast-select-all');
+  var eligible = mochiCsvTargets.filter(function(t) { return t.eligible; });
+  var checked = eligible.filter(function(t) { return t.checked; }).length;
+  if (selectAll) {
+    selectAll.checked = eligible.length > 0 && checked === eligible.length;
+    selectAll.indeterminate = checked > 0 && checked < eligible.length;
+  }
+  var count = document.getElementById('broadcast-target-count');
+  if (count) count.textContent = mochiCsvTargets.length + ' 行（已选 ' + checked + ' 行）';
 }
 
 function addBroadcastTarget() {
