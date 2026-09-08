@@ -2412,11 +2412,17 @@ async function sendMochiDM(discordUsername, message, discordId, guildId) {
         if (!n) return '';
         return n.replace(/[^\w\- ]/g, '').trim().toLowerCase();
       }
-      var targetNorm = norm(discordUsername);
+      var rawTarget = String(discordUsername || '');
+      var targetAliases = [rawTarget];
+      var userHint = rawTarget.match(/\(\s*user\s*:\s*([^\)]+)\)/i);
+      if (userHint) targetAliases.push(userHint[1]);
+      rawTarget.split('/').forEach(function(alias) { targetAliases.push(alias); });
+      var targetNorms = targetAliases.map(norm).filter(Boolean).filter(function(value, index, list) { return list.indexOf(value) === index; });
 
       // Try exact match first (username, nick, global_name)
       members.forEach(function(m) {
-        if (norm(m.username) === targetNorm || norm(m.nick) === targetNorm || norm(m.global_name) === targetNorm) {
+        var memberNames = [norm(m.username), norm(m.nick), norm(m.global_name)].filter(Boolean);
+        if (targetNorms.some(function(target) { return memberNames.indexOf(target) >= 0; })) {
           member = m;
         }
       });
@@ -2426,7 +2432,9 @@ async function sendMochiDM(discordUsername, message, discordId, guildId) {
           var un = norm(m.username);
           var nick = norm(m.nick);
           var gn = norm(m.global_name);
-          if ((un && un.indexOf(targetNorm) >= 0) || (nick && nick.indexOf(targetNorm) >= 0) || (gn && gn.indexOf(targetNorm) >= 0)) {
+          if (targetNorms.some(function(target) {
+            return target.length >= 3 && ((un && un.indexOf(target) >= 0) || (nick && nick.indexOf(target) >= 0) || (gn && gn.indexOf(target) >= 0));
+          })) {
             member = m;
           }
         });
