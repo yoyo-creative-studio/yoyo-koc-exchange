@@ -217,6 +217,7 @@ serve(async (req) => {
       // 扫描 Bot 在指定时间后发送的系统私信，只读，不删除
       case "scan_recent_dms": {
         const since = new Date(data?.since || Date.now() - 6 * 60 * 60 * 1000);
+        const targetGuildId = String(data?.guild_id || "").trim();
         if (Number.isNaN(since.getTime())) {
           return new Response(JSON.stringify({ ok: false, error: "无效的扫描起始时间" }), { status: 400, headers });
         }
@@ -232,8 +233,14 @@ serve(async (req) => {
           return new Response(JSON.stringify({ ok: false, error: `获取 Bot 服务器列表失败: ${guildRes.status} ${guildBody}` }), { status: guildRes.status, headers });
         }
         const guilds = JSON.parse(guildBody);
+        const scanGuilds = targetGuildId
+          ? guilds.filter((guild: any) => String(guild.id) === targetGuildId)
+          : guilds;
+        if (targetGuildId && scanGuilds.length === 0) {
+          return new Response(JSON.stringify({ ok: false, error: "MochiBot 不在指定 Discord 服务器中" }), { status: 403, headers });
+        }
         const memberMap = new Map<string, any>();
-        for (const guild of guilds) {
+        for (const guild of scanGuilds) {
           const memberRes = await fetch(`${DISCORD_API}/guilds/${guild.id}/members?limit=1000`, { headers: authHeaders });
           if (!memberRes.ok) continue;
           for (const member of await memberRes.json()) {
@@ -269,6 +276,7 @@ serve(async (req) => {
                 username: user.username,
                 timestamp: message.timestamp,
                 preview: content.slice(0, 120),
+                fingerprint: content.trim().replace(/\s+/g, " ").toLowerCase(),
               });
             }
           }

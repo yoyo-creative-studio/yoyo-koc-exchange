@@ -1613,6 +1613,22 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
       <div style="font-size:10px;color:#999;margin-top:6px;">不会补发给开启前已经在群里的人，也不检查是否注册。需要先保存 Bot Token；仅在管理后台页面保持打开时运行。</div>
     </div>
 
+    <div style="background:#fff8fb;border:1px solid #e8bfd3;border-radius:10px;padding:10px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <div><div style="font-size:13px;font-weight:700;color:#8d3c68;">↩ MochiBot 消息撤回中心</div><div style="font-size:10px;color:var(--text-light);margin-top:2px;">只扫描 MochiBot 已发送的系统私信，不会发送新消息。</div></div>
+        <div style="display:flex;gap:5px;align-items:center;">
+          <select id="mochi-recall-hours" style="width:auto;margin:0;padding:5px 7px;font-size:11px;"><option value="1">最近 1 小时</option><option value="6" selected>最近 6 小时</option><option value="12">最近 12 小时</option><option value="24">最近 24 小时</option></select>
+          <button class="btn btn-sm btn-outline" id="btn-scan-mochi-dms" onclick="scanMochiMessagesForRecall()">🔎 扫描</button>
+        </div>
+      </div>
+      <div id="mochi-recall-panel" style="display:none;margin-top:8px;">
+        <div style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:6px;"><button class="btn btn-sm" style="background:#f3e5f5;color:#6a1b9a;" onclick="selectMochiDuplicateCopies()">选择重复副本</button><button class="btn btn-sm btn-outline" onclick="toggleAllMochiRecall(true)">全选</button><button class="btn btn-sm btn-outline" onclick="toggleAllMochiRecall(false)">清空选择</button><span id="mochi-recall-summary" style="font-size:10px;color:var(--text-light);"></span></div>
+        <div id="mochi-recall-list" style="max-height:240px;overflow-y:auto;border:1px solid #ead3df;background:#fff;padding:5px;font-size:11px;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px;"><span id="mochi-recall-selected" style="font-size:11px;color:#8d3c68;font-weight:700;">已选 0 条</span><button class="btn btn-danger btn-sm" id="btn-delete-mochi-dms" onclick="deleteSelectedMochiMessages()" disabled>撤回所选消息</button></div>
+        <div id="mochi-recall-result" style="display:none;margin-top:7px;padding:7px;background:#f8f9ff;border:1px solid #d8dcf5;font-size:10px;line-height:1.5;white-space:pre-wrap;word-break:break-word;"></div>
+      </div>
+    </div>
+
     <div style="font-size:13px;font-weight:600;margin:4px 0 4px;">✉️ 条件私信（按条件筛选 → 预览编辑 → 确认发送）</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px;">
       <button class="btn btn-sm" style="background:#e8f5e9;color:#2e7d32;text-align:left;" onclick="previewBroadcast('welcome')">🆕 ② 条件新人欢迎 — 手动补发</button>
@@ -3179,7 +3195,7 @@ function previewScoreResult(text) {
   // ===== 合并同 uid 的提交 =====
   var mergedMap = {};
   rawResult.submissions.forEach(function(sub) {
-    var key = (sub.discord_name||'').toLowerCase().trim() || sub.uid || 'unknown';
+    var key = String(sub.uid || '').toLowerCase().trim() || (sub.discord_name||'').toLowerCase().trim() || 'unknown';
     if (!mergedMap[key]) {
       mergedMap[key] = JSON.parse(JSON.stringify(sub));
       mergedMap[key]._merged_count = 1;
@@ -3315,16 +3331,16 @@ async function confirmScoreImport() {
         var rs = matchedRaw[j];
         if (rs.id) {
           // Use the raw submission's own points, not the merged total
-          var rawPts = rs.points_earned || rs.points || 0;
-          var rawEng = rs.total_engagement || rs.engagement || 0;
-          var rawViews = rs.total_views || rs.views || 0;
+          var rawPts = rs.points_earned != null ? Number(rs.points_earned) : (rs.points != null ? Number(rs.points) : 0);
+          var rawEng = rs.total_engagement != null ? Number(rs.total_engagement) : (rs.engagement != null ? Number(rs.engagement) : 0);
+          var rawViews = rs.total_views != null ? Number(rs.total_views) : (rs.views != null ? Number(rs.views) : 0);
           var rawScoreDetails = rs.score_details || '';
           if (rawScoreDetails && typeof rawScoreDetails === 'object') rawScoreDetails = JSON.stringify(rawScoreDetails);
           var rawPayload = {
             score_details: rawScoreDetails || updatePayload.score_details,
-            total_engagement_count: rawEng || updatePayload.total_engagement_count,
-            total_view_count: rawViews || updatePayload.total_view_count,
-            points_earned: rawPts || updatePayload.points_earned,
+            total_engagement_count: rawEng,
+            total_view_count: rawViews,
+            points_earned: rawPts,
             status: 'scored',
             scored_at: new Date().toISOString()
           };
@@ -3368,7 +3384,7 @@ async function confirmScoreImport() {
               var nbMonth2 = resolveCreatorNewbieMonth(kocData[0]);
               var bonusClaimed2 = notes.indexOf('newbie_bonus:' + currentPeriod) >= 0 || notesObj2['newbie_bonus:' + currentPeriod] === true || notesObj2.newbie_bonus === currentPeriod;
               var isOld2 = notes.indexOf('old_creator') >= 0 || notesObj2.old_creator === true || notesObj2.old_creator === 'true';
-              if (!isOld2 && nbMonth2 === currentPeriod && !bonusClaimed2 && pts >= 5) {
+              if (!isOld2 && nbMonth2 === currentPeriod && !bonusClaimed2 && pts > 5) {
                 await adminRpc('add_point_log_once', {
                     p_uid: sub.uid,
                     p_change: 2,
@@ -4842,6 +4858,112 @@ function openMochiBroadcast() {
 function closeMochiModal() {
   var modal = document.getElementById('mochi-modal');
   if (modal) modal.classList.add('hidden');
+}
+
+var mochiRecallMessages = [];
+
+function markMochiRecallDuplicates(messages) {
+  var groups = {};
+  (messages || []).forEach(function(message) {
+    var key = String(message.user_id || '') + '|' + String(message.preview || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(message);
+  });
+  Object.keys(groups).forEach(function(key) {
+    groups[key].sort(function(a, b) { return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(); });
+    groups[key].forEach(function(message, index) {
+      message.is_duplicate_copy = groups[key].length > 1 && index > 0;
+      message.duplicate_group_size = groups[key].length;
+    });
+  });
+  return messages;
+}
+
+function updateMochiRecallSelection() {
+  var checked = document.querySelectorAll('.mochi-recall-checkbox:checked').length;
+  var count = document.getElementById('mochi-recall-selected');
+  var button = document.getElementById('btn-delete-mochi-dms');
+  if (count) count.textContent = '已选 ' + checked + ' 条';
+  if (button) button.disabled = checked === 0;
+}
+
+function renderMochiRecallMessages() {
+  var panel = document.getElementById('mochi-recall-panel');
+  var list = document.getElementById('mochi-recall-list');
+  var summary = document.getElementById('mochi-recall-summary');
+  if (!panel || !list) return;
+  panel.style.display = 'block';
+  var duplicateCount = mochiRecallMessages.filter(function(message) { return message.is_duplicate_copy; }).length;
+  if (summary) summary.textContent = '扫描到 ' + mochiRecallMessages.length + ' 条 · 疑似重复副本 ' + duplicateCount + ' 条';
+  if (!mochiRecallMessages.length) {
+    list.innerHTML = '<div style="padding:12px;text-align:center;color:var(--text-light);">该时间段内没有扫描到 MochiBot 系统私信</div>';
+    updateMochiRecallSelection();
+    return;
+  }
+  list.innerHTML = mochiRecallMessages.map(function(message, index) {
+    var sentAt = message.timestamp ? new Date(message.timestamp).toLocaleString() : '未知时间';
+    var badge = message.is_duplicate_copy ? '<span style="color:#c62828;font-weight:800;">疑似重复副本</span>' : (message.duplicate_group_size > 1 ? '<span style="color:#2e7d32;font-weight:700;">保留原始消息</span>' : '');
+    return '<label style="display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px;padding:7px;border-bottom:1px solid #f0dce6;cursor:pointer;"><input type="checkbox" class="mochi-recall-checkbox" data-index="' + index + '" onchange="updateMochiRecallSelection()" style="width:auto;margin-top:2px;"><span style="min-width:0;"><strong>' + esc(message.username || message.user_id || 'Unknown') + '</strong> · ' + esc(sentAt) + ' ' + badge + '<span style="display:block;margin-top:3px;color:#6f5a65;white-space:normal;word-break:break-word;">' + esc(message.preview || '') + '</span></span></label>';
+  }).join('');
+  updateMochiRecallSelection();
+}
+
+function toggleAllMochiRecall(checked) {
+  document.querySelectorAll('.mochi-recall-checkbox').forEach(function(input) { input.checked = Boolean(checked); });
+  updateMochiRecallSelection();
+}
+
+function selectMochiDuplicateCopies() {
+  document.querySelectorAll('.mochi-recall-checkbox').forEach(function(input) {
+    var message = mochiRecallMessages[Number(input.dataset.index)];
+    input.checked = Boolean(message && message.is_duplicate_copy);
+  });
+  updateMochiRecallSelection();
+}
+
+async function scanMochiMessagesForRecall() {
+  var tokenInput = document.getElementById('mochi-token-input');
+  var token = (tokenInput && tokenInput.value.trim()) || MOCHI_TOKEN || localStorage.getItem('mochi_token') || '';
+  if (!token) { showToast('请先保存 Bot Token', 'error'); return; }
+  var hours = Math.max(1, Number(document.getElementById('mochi-recall-hours').value) || 6);
+  var button = document.getElementById('btn-scan-mochi-dms');
+  var result = document.getElementById('mochi-recall-result');
+  button.disabled = true; button.textContent = '扫描中...';
+  if (result) result.style.display = 'none';
+  try {
+    var response = await discordProxyFetch('scan_recent_dms', { since: new Date(Date.now() - hours * 3600000).toISOString(), guild_id: DISCORD_GUILD_ID }, token);
+    if (!response.ok) throw new Error(response.error || '扫描失败');
+    var data = response.data || {};
+    mochiRecallMessages = markMochiRecallDuplicates((data.candidates || []).slice().sort(function(a, b) { return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(); }));
+    renderMochiRecallMessages();
+    if (result && data.failures && data.failures.length) { result.style.display = 'block'; result.textContent = '部分成员私信读取失败：' + data.failures.join('；'); }
+  } catch (error) { showToast('扫描失败：' + error.message, 'error'); }
+  finally { button.disabled = false; button.textContent = '🔎 扫描'; }
+}
+
+async function deleteSelectedMochiMessages() {
+  var selected = Array.from(document.querySelectorAll('.mochi-recall-checkbox:checked')).map(function(input) { return mochiRecallMessages[Number(input.dataset.index)]; }).filter(Boolean);
+  if (!selected.length) return;
+  if (!confirmDanger('确认撤回所选 MochiBot 私信？', ['消息数量: ' + selected.length, '涉及用户: ' + new Set(selected.map(function(message) { return message.user_id; })).size, '撤回后无法恢复，请确认只选择了重复副本。'])) return;
+  var tokenInput = document.getElementById('mochi-token-input');
+  var token = (tokenInput && tokenInput.value.trim()) || MOCHI_TOKEN || localStorage.getItem('mochi_token') || '';
+  var button = document.getElementById('btn-delete-mochi-dms');
+  var result = document.getElementById('mochi-recall-result');
+  button.disabled = true; button.textContent = '撤回中...';
+  try {
+    var response = await discordProxyFetch('delete_dm_messages', { messages: selected.map(function(message) { return { channel_id: message.channel_id, message_id: message.message_id }; }) }, token);
+    if (!response.ok) throw new Error(response.error || '撤回失败');
+    var data = response.data || {};
+    var deletedIds = new Set((data.deleted || []).map(function(message) { return String(message.channel_id) + ':' + String(message.message_id); }));
+    mochiRecallMessages = mochiRecallMessages.filter(function(message) { return !deletedIds.has(String(message.channel_id) + ':' + String(message.message_id)); });
+    renderMochiRecallMessages();
+    result.style.display = 'block';
+    result.textContent = '撤回成功 ' + (data.deleted || []).length + ' 条，失败 ' + (data.failures || []).length + ' 条' + ((data.failures || []).length ? '\n' + data.failures.map(function(item) { return item.message_id + ': ' + item.error; }).join('\n') : '');
+    showToast('已撤回 ' + (data.deleted || []).length + ' 条消息', (data.failures || []).length ? 'error' : 'success');
+    writeAuditLog('config', 'MochiBot 撤回消息 ' + (data.deleted || []).length + ' 条，失败 ' + (data.failures || []).length + ' 条');
+  } catch (error) {
+    result.style.display = 'block'; result.textContent = '撤回失败：' + error.message; showToast('撤回失败：' + error.message, 'error');
+  } finally { button.textContent = '撤回所选消息'; updateMochiRecallSelection(); }
 }
 
 function confirmMochiBroadcast() { /* deprecated - use previewBroadcast/confirmBroadcast */ }
