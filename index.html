@@ -199,6 +199,7 @@ a{color:var(--pink-dark)}
 .submission-stat-note{margin-top:4px;font-size:10px;color:var(--text-light);line-height:1.4}
 .submission-platforms{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px}
 .submission-platform-chip{padding:5px 8px;background:#fff;border:2px solid var(--line);box-shadow:2px 2px 0 var(--light);font-size:10px;font-weight:800;color:var(--text)}
+.community-milestone{margin:10px 0 14px;padding:13px 15px;background:linear-gradient(110deg,#fff0f7,#f1e7ff);border:3px solid #d79ac0;box-shadow:4px 4px 0 rgba(123,31,162,.16)}.community-milestone-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.community-milestone-title{color:#76218f;font-size:12px;font-weight:950;letter-spacing:.2px}.community-milestone-count{flex:none;color:#7b1fa2;font-size:18px;font-weight:950}.community-milestone-copy{margin-top:4px;color:#806875;font-size:10px;line-height:1.45}.community-milestone-track{height:9px;margin-top:9px;background:#fff;border:2px solid #d79ac0;overflow:hidden}.community-milestone-fill{height:100%;background:linear-gradient(90deg,#ff78ae,#a968d4,#7b5be7);transition:width .4s ease}.community-milestone-foot{display:flex;justify-content:space-between;gap:8px;margin-top:5px;color:#806875;font-size:9px}.community-milestone-refer{color:#ad1457;font-weight:800}
 .submission-progress-card{margin:12px 0;padding:13px;background:var(--paper-2);border:3px solid var(--line);box-shadow:4px 4px 0 var(--purple)}
 .submission-ranking-card{position:relative;display:flex;align-items:center;justify-content:space-between;gap:14px;margin:14px 0;padding:14px 16px;background:linear-gradient(112deg,#fff0f7 0%,#f6eaff 52%,#eee8ff 100%);border:3px solid #c58bdd;box-shadow:5px 5px 0 rgba(106,61,232,.22);overflow:hidden}.submission-ranking-card:before{content:'✦  ✧  ✦';position:absolute;right:78px;top:7px;color:rgba(156,93,213,.35);font-size:12px;letter-spacing:5px;pointer-events:none}.submission-ranking-card>div{min-width:0}.submission-ranking-title{color:#76218f;font-size:13px;font-weight:950;letter-spacing:.2px}.submission-ranking-note{margin-top:5px;color:#806875;font-size:10px;line-height:1.4}.submission-ranking-card>strong{display:flex;align-items:center;justify-content:center;flex:none;min-width:60px;height:52px;padding:0 8px;color:#7b1fa2;font-size:25px;line-height:1;background:rgba(255,255,255,.72);border:2px solid #d6a7e5;box-shadow:3px 3px 0 rgba(123,31,162,.16);clip-path:polygon(50% 0,61% 10%,76% 7%,84% 20%,98% 26%,94% 42%,100% 56%,89% 67%,87% 83%,70% 84%,58% 100%,46% 90%,30% 96%,22% 81%,7% 75%,11% 59%,0 46%,10% 33%,8% 17%,25% 14%,37% 2%)}
 .submission-progress-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;font-weight:800}
@@ -381,6 +382,12 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <span id="display-user" style="font-size:13px;font-weight:600;"></span>
+    </div>
+    <div id="community-milestone" class="community-milestone" aria-live="polite">
+      <div class="community-milestone-head"><span class="community-milestone-title">🌍 COMMUNITY MILESTONE</span><span id="community-milestone-count" class="community-milestone-count">— / 300</span></div>
+      <div id="community-milestone-copy" class="community-milestone-copy">We are working toward 300 active creators together. Unlock two different reward types for each redemption period.</div>
+      <div class="community-milestone-track"><div id="community-milestone-fill" class="community-milestone-fill" style="width:0%"></div></div>
+      <div class="community-milestone-foot"><span id="community-milestone-status">Loading community progress...</span><span class="community-milestone-refer">🎁 Refer a friend</span></div>
     </div>
     <!-- Redeem Tab -->
     <div id="creator-tab-redeem" class="tab-content">
@@ -1267,6 +1274,7 @@ function initSubmitTab() {
 }
 
 function showDashboard() {
+  loadCommunityMilestone();
   // Check the single newcomer month used by registration and settlement.
   setTimeout(function() {
     if (!currentUser) return;
@@ -1341,6 +1349,33 @@ function showDashboard() {
   setTimeout(function() { switchCreatorTab('submit'); }, 50);
   renderOptions();
   loadOrders();
+}
+
+async function loadCommunityMilestone() {
+  var countEl = document.getElementById('community-milestone-count');
+  var fillEl = document.getElementById('community-milestone-fill');
+  var statusEl = document.getElementById('community-milestone-status');
+  if (!countEl || !fillEl || !statusEl) return;
+  try {
+    var response = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?status=eq.active&uid=not.eq.__config__&select=uid');
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    var rows = await response.json() || [];
+    var unique = {};
+    rows.forEach(function(row) { if (row.uid) unique[String(row.uid)] = true; });
+    var count = Object.keys(unique).length;
+    var target = 300;
+    var reached = count >= target;
+    countEl.textContent = count + ' / ' + target;
+    fillEl.style.width = Math.min(100, Math.round(count / target * 100)) + '%';
+    statusEl.textContent = reached ? '🎉 Milestone reached · Two reward types unlocked' : 'Help us reach 300 active creators together';
+    if (reached) {
+      var copy = document.getElementById('community-milestone-copy');
+      if (copy) copy.textContent = 'Thank you for building the community with us. Two different reward types are unlocked for each redemption period.';
+    }
+  } catch (error) {
+    countEl.textContent = '— / 300';
+    statusEl.textContent = 'Community progress temporarily unavailable';
+  }
 }
 
 function renderOptions() {
