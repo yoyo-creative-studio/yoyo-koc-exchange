@@ -76,6 +76,54 @@ serve(async (req) => {
       return json({ ok: true, fulfillments: fulfillments || [] });
     }
 
+    if (action === "creator_tier_progress") {
+      const uid = String(data.uid || "").trim();
+      const accountId = String(data.account_id || "").trim();
+      const requestedPeriod = String(data.period || getBusinessPeriod(new Date())).trim();
+      if (!uid || !/^\d{19}$/.test(accountId) || !/^\d{4}-\d{2}$/.test(requestedPeriod)) {
+        return json({ ok: false, error: "Valid creator credentials and period are required" }, 400);
+      }
+      const { data: creator } = await db.from("kocs").select("uid,tier").eq("uid", uid).eq("account_id", accountId).eq("status", "active").maybeSingle();
+      if (!creator) return json({ ok: false, error: "Creator credentials do not match" }, 403);
+      const { data: scores, error } = await db.from("creator_monthly_tier_scores")
+        .select("period,historical_final_score,content_raw_points,content_capped_points")
+        .eq("uid", uid).order("period", { ascending: true });
+      if (error) return json({ ok: false, error: error.message }, 400);
+      const isLegacy = requestedPeriod < "2026-09";
+      const ruleVersion = isLegacy ? "legacy-through-2026-08" : "content-from-2026-09";
+      const nextTier = creator.tier === "platinum" ? null : (creator.tier === "gold" ? "platinum" : "gold");
+      const requiredMonths = nextTier === "platinum" ? 3 : 2;
+      const threshold = nextTier === "platinum" ? (isLegacy ? 5 : 40) : (isLegacy ? 5 : 20);
+      const inclusive = !isLegacy;
+      const scoreField = isLegacy ? "historical_final_score" : "content_capped_points";
+      const byPeriod = new Map((scores || []).map((row) => [String(row.period), row]));
+      let cursor = requestedPeriod;
+      let consecutiveMonths = 0;
+      while (!isLegacy || cursor >= "2026-09") {
+        const value = Number((byPeriod.get(cursor) as Record<string, unknown> | undefined)?.[scoreField]);
+        if (!Number.isFinite(value) || (inclusive ? value < threshold : value <= threshold)) break;
+        consecutiveMonths += 1;
+        const [yearText, monthText] = cursor.split("-");
+        let year = Number(yearText), month = Number(monthText) - 1;
+        if (month < 1) { year -= 1; month = 12; }
+        cursor = `${year}-${String(month).padStart(2, "0")}`;
+      }
+      const currentScore = byPeriod.get(requestedPeriod);
+      return json({ ok: true, progress: {
+        current_tier: creator.tier || "certified",
+        next_tier: nextTier,
+        rule_version: ruleVersion,
+        period: requestedPeriod,
+        consecutive_months: Math.min(consecutiveMonths, requiredMonths),
+        required_months: requiredMonths,
+        threshold,
+        inclusive,
+        current_content_capped_points: Number(currentScore?.content_capped_points || 0),
+        months_remaining: nextTier ? Math.max(0, requiredMonths - consecutiveMonths) : 0,
+        excluded_rewards: ["New Creator Bonus", "Showcase Bonus", "MochiBones", "Referral Reward", "Carry-over Balance", "Redemption refunds", "Manual balance adjustments", "Continuous Creation rewards"],
+      }});
+    }
+
     if (action === "submit") {
       const application = {
         discord_name: String(data.discord_name || "").trim(),
@@ -134,6 +182,8 @@ serve(async (req) => {
         "publish_campaign_period",
         "add_point_log_once",
         "ship_redemption_order",
+        "preview_legacy_tier_upgrades",
+        "apply_legacy_tier_upgrade_preview",
       ]);
       if (!allowedRpcNames.has(rpcName)) return json({ ok: false, error: "Admin operation is not allowed" }, 400);
       const { data: rpcResult, error: rpcError } = await db.rpc(rpcName, data.params || {});

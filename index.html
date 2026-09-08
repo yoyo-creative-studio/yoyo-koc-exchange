@@ -200,6 +200,7 @@ a{color:var(--pink-dark)}
 .submission-platforms{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 14px}
 .submission-platform-chip{padding:5px 8px;background:#fff;border:2px solid var(--line);box-shadow:2px 2px 0 var(--light);font-size:10px;font-weight:800;color:var(--text)}
 .submission-progress-card{margin:12px 0;padding:13px;background:var(--paper-2);border:3px solid var(--line);box-shadow:4px 4px 0 var(--purple)}
+.submission-ranking-card{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0;padding:12px 14px;background:linear-gradient(135deg,#f3e5f5,#e8eaf6);border:2px solid #ce93d8;box-shadow:4px 4px 0 rgba(106,61,232,.18)}.submission-ranking-title{color:#6a1b9a;font-size:12px;font-weight:900}.submission-ranking-note{margin-top:3px;color:var(--text-light);font-size:10px}.submission-ranking-card>strong{color:#7b1fa2;font-size:30px;line-height:1}
 .submission-progress-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;font-weight:800}
 .submission-progress-track{height:10px;margin-top:9px;background:#fff;border:2px solid var(--line);overflow:hidden}
 .submission-progress-fill{height:100%;background:linear-gradient(90deg,var(--hot),var(--purple))}
@@ -1095,12 +1096,14 @@ function renderCreatorTierPath(tier) {
     { key:'gold', icon:'⭐', name:'Gold' },
     { key:'platinum', icon:'💎', name:'Platinum' }
   ];
+  var newRules = String(currentPeriod || '') >= '2026-09';
+  var ruleText = newRules ? 'From September 2026: Gold = 20+ content points for 2 consecutive months · Platinum = 40+ content points for 3 consecutive months' : 'August 2026 and earlier: Gold = over 5 points for 2 consecutive months · Platinum = over 5 points for 3 consecutive months';
   root.innerHTML = '<div class="tier-path tier-path-tier-' + normalized + '"><span class="tier-path-stars">✦  ✧  ✦</span><div class="tier-path-title">YOUR CREATOR TIER · TIERS ONLY MOVE UP</div><div class="tier-path-list">' + steps.map(function(step, index) {
     var state = index <= currentRank ? ' reached' : '';
     if (step.key === normalized) state += ' current';
     var arrow = index < steps.length - 1 ? '<span class="tier-path-arrow">›</span>' : '';
     return '<div class="tier-step tier-step-' + step.key + state + '"><span class="tier-step-icon">' + step.icon + '</span><strong class="tier-step-name">' + step.name + '</strong></div>' + arrow;
-  }).join('') + '</div><div class="tier-path-rule">Gold: 2 consecutive months · Platinum: 3 consecutive months · 5+ base points each month</div></div>';
+  }).join('') + '</div><div class="tier-path-rule">' + ruleText + '<br>Bonuses and carry-over balance do not count toward tier progression.</div></div>';
 }
 async function login() {
   // Load current period from config before login
@@ -2079,6 +2082,35 @@ function renderMonthView(ym, months, byMonth, ptLogs, container, countEl, period
   html += '<div style="margin-top:4px;font-size:11px;color:var(--text-light);">' + scoredCount + ' scored · ' + pendingCount + ' pending' + (rejectedCount ? ' · ' + rejectedCount + ' rejected' : '') + '</div></div>';
   html += '<div style="font-size:11px;color:var(--text-light);text-align:right;">Base score comes from scored work only.<br>Bonuses and carry-over do not affect creator tiers.</div></div>';
 
+  var rankingId = 'monthly-ranking-' + Date.now();
+  html += '<div id="' + rankingId + '" class="submission-ranking-card"><div><div class="submission-ranking-title">🏆 ' + esc(monthLabel) + ' Point Ranking</div><div class="submission-ranking-note">Loading ranking...</div></div><strong>...</strong></div>';
+  (function(uid, month, elementId) {
+    supabaseFetch(SUPABASE_URL + '/rest/v1/point_logs?period=eq.' + encodeURIComponent(month) + '&select=uid,change,source')
+      .then(function(response) { return response.ok ? response.json() : []; })
+      .then(function(logs) {
+        var pointsByUid = {};
+        (logs || []).forEach(function(log) {
+          if (Number(log.change) > 0 && log.source !== 'redemption') pointsByUid[log.uid] = (pointsByUid[log.uid] || 0) + Number(log.change);
+        });
+        var ranked = Object.keys(pointsByUid).map(function(key) { return { uid: key, points: pointsByUid[key] }; }).filter(function(row) { return row.points > 0; }).sort(function(a, b) { return b.points - a.points || a.uid.localeCompare(b.uid); });
+        var rank = ranked.findIndex(function(row) { return String(row.uid) === String(uid); });
+        var card = document.getElementById(elementId);
+        if (!card) return;
+        var note = card.querySelector('.submission-ranking-note');
+        var value = card.querySelector('strong');
+        if (rank < 0) {
+          if (note) note.textContent = 'No points recorded for this month · ' + ranked.length + ' creators ranked';
+          if (value) value.textContent = '—';
+        } else {
+          if (note) note.textContent = 'Based on positive points recorded this month · ' + ranked.length + ' creators ranked';
+          if (value) value.textContent = '#' + (rank + 1);
+        }
+      }).catch(function() {
+        var card = document.getElementById(elementId);
+        if (card) { var note = card.querySelector('.submission-ranking-note'); if (note) note.textContent = 'Ranking temporarily unavailable'; }
+      });
+  })(currentUser.uid, ym, rankingId);
+
   html += '<div class="submission-summary-grid">';
   html += '<div class="submission-stat-card"><div class="submission-stat-label">Valid Work Links</div><div class="submission-stat-value">' + totalLinks + '</div><div class="submission-stat-note">Unique links from non-rejected work</div></div>';
   html += '<div class="submission-stat-card"><div class="submission-stat-label">Submission Batches</div><div class="submission-stat-value">' + validWorkSubs.length + '</div><div class="submission-stat-note">Work entries submitted this month</div></div>';
@@ -2104,10 +2136,12 @@ function renderMonthView(ym, months, byMonth, ptLogs, container, countEl, period
     html += '<div class="submission-stat-note">' + (newbieDone ? 'Completed. Your +2 bonus has been added.' : (baseContentScore >= 5 ? 'Goal reached. Bonus will be added during settlement.' : (5 - baseContentScore) + ' more base points needed for the +2 bonus.')) + '</div></div>';
   }
 
+  var tierRuleText = ym >= '2026-09' ? 'Gold requires 20+ pure content points for 2 consecutive months under the current rules.' : 'Gold requires more than 5 points for 2 consecutive months under the previous rules.';
   if (currentTier === 'certified') {
-    html += '<div class="submission-progress-card"><div class="submission-progress-row"><span>⭐ Gold Creator Progress</span><span>' + baseContentScore + ' scored base pts</span></div><div class="submission-stat-note">Pending submissions show 0 until monthly review is completed. This does not remove or reset your available point balance. Gold requires 5+ scored base points for 2 consecutive months.</div></div>';
+    html += '<div class="submission-progress-card"><div class="submission-progress-row"><span>⭐ Gold Creator Progress</span><span>' + baseContentScore + ' scored base pts</span></div><div class="submission-stat-note">Pending submissions show 0 until monthly review is completed. This does not remove or reset your available point balance. ' + tierRuleText + ' Bonuses and carry-over do not count.</div></div>';
   } else if (currentTier === 'gold') {
-    html += '<div class="submission-progress-card"><div class="submission-progress-row"><span>💎 Platinum Creator Progress</span><span>' + baseContentScore + ' scored base pts</span></div><div class="submission-stat-note">Pending submissions show 0 until monthly review is completed. This does not remove or reset your available point balance. Platinum requires 5+ scored base points for 3 consecutive months.</div></div>';
+    var platinumRuleText = ym >= '2026-09' ? 'Platinum requires 40+ pure content points for 3 consecutive months under the current rules.' : 'Platinum requires more than 5 points for 3 consecutive months under the previous rules.';
+    html += '<div class="submission-progress-card"><div class="submission-progress-row"><span>💎 Platinum Creator Progress</span><span>' + baseContentScore + ' scored base pts</span></div><div class="submission-stat-note">Pending submissions show 0 until monthly review is completed. This does not remove or reset your available point balance. ' + platinumRuleText + ' Bonuses and carry-over do not count.</div></div>';
   }
 
   if (!subs.length) {

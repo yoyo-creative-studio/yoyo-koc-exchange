@@ -1,6 +1,8 @@
 {
   "scripts": {
-    "check:syntax": "node scripts/check-html-js.js admin.html index.html"
+    "check:syntax": "node scripts/check-html-js.js admin.html index.html",
+    "test:tier-rules": "node scripts/test-tier-rules.js",
+    "test": "npm run check:syntax && npm run test:tier-rules"
   },
   "dependencies": {
     "acorn": "^8.17.0"

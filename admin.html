@@ -1163,7 +1163,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
         <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
           <span>⭐ 创作者等级管理</span>
           <div style="display:flex;gap:6px;">
-            <button class="btn btn-success btn-sm" onclick="autoUpgradeTiers()">🔄 一键自动升级</button>
+            <button class="btn btn-success btn-sm" onclick="previewLegacyTierUpgrades()">生成截至 8 月升级预览</button>
             <button class="btn btn-sm" style="background:#5865F2;color:white;" onclick="syncTiersFromDiscord()">💬 从 Discord 同步</button>
           </div>
         </div>
@@ -1171,6 +1171,14 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
           <span id="tier-stat-platinum">💎 铂金创作官: --</span>
           <span id="tier-stat-gold">🟡 金级创作官: --</span>
           <span id="tier-stat-new">✅ 认证创作官: --</span>
+        </div>
+        <div id="tier-upgrade-preview" style="display:none;margin:12px 0;padding:12px;border:2px solid #f0b429;background:#fffaf0;">
+          <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap;">
+            <strong>2026-08 旧规则升级预览（不会自动写入）</strong>
+            <button id="tier-preview-apply" class="btn btn-primary btn-sm" onclick="applyLegacyTierUpgradePreview()" disabled>运营确认后应用此批次</button>
+          </div>
+          <div id="tier-preview-summary" style="margin-top:6px;font-size:12px;"></div>
+          <div id="tier-preview-list" style="margin-top:8px;max-height:260px;overflow:auto;"></div>
         </div>
         <div style="overflow-x:auto;">
           <table class="submission-table">
@@ -1671,7 +1679,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
         <button class="btn btn-sm" style="background:#f5f5f5;font-size:11px;padding:4px 6px;" onclick="addBroadcastTarget()">➕ 添加</button>
         <button class="btn btn-sm" style="background:#ffebee;font-size:11px;padding:4px 6px;color:#e74c3c;" onclick="removeBroadcastTarget()">➖ 移除勾选的</button>
       </div>
-      <label style="font-size:11px;font-weight:600;">消息内容（可编辑）:</label>
+      <label id="broadcast-msg-editor-label" style="font-size:11px;font-weight:600;">消息内容（可编辑）:</label>
       <textarea id="broadcast-msg-editor" style="width:100%;min-height:70px;border:1px solid #ddd;border-radius:6px;padding:6px;font-size:12px;margin-bottom:6px;"></textarea>
       <div style="display:flex;gap:6px;">
         <button class="btn btn-primary" style="flex:1;background:#5865F2;font-weight:700;" onclick="confirmBroadcast()">📤 确认发送</button>
@@ -1799,12 +1807,21 @@ async function approveRegistrationApplication(id) {
     'Discord: ' + application.discord_name,
     'Game UID: ' + application.uid,
     'System ID: ' + application.account_id,
-    'A pending New Creator Welcome Gift will be created automatically.'
+    'A pending New Creator Welcome Gift will be created automatically.',
+    'MochiBot will immediately send this creator 1 registration approval DM.'
   ])) return;
   try {
     await registrationReviewFetch('approve', { id: id });
-    showToast('✅ Creator application approved', 'success');
     writeAuditLog('koc', 'approved registration application #' + id + ' for ' + application.uid + ' + welcome gift');
+    var approvalTemplate = getMochiMessageTemplates().registration_approved;
+    var notificationResult = await sendMochiDM(application.discord_name, mochiSupportFooter(approvalTemplate), '', DISCORD_GUILD_ID);
+    if (notificationResult.ok) {
+      showToast('✅ 审核通过，MochiBot 已自动发送通知', 'success');
+      writeAuditLog('config', 'MochiBot sent registration approval notification to ' + application.discord_name + ' (' + application.uid + ')');
+    } else {
+      showToast('⚠️ 审核已通过，但 MochiBot 通知失败：' + notificationResult.reason, 'error');
+      writeAuditLog('config', 'MochiBot registration approval notification failed for ' + application.discord_name + ' (' + application.uid + '): ' + notificationResult.reason);
+    }
     await loadData();
     await loadRegistrationApplications();
   } catch (error) { showToast('Approval failed: ' + error.message, 'error'); }
@@ -2027,43 +2044,37 @@ async function updateKocTier(uid) {
   } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
 
-async function autoUpgradeTiers() {
-  if (!confirm('Run auto tier upgrade for all active KOCs?')) return;
-  var res = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?select=*');
-  if (!res.ok) { showToast('读取创作者失败', 'error'); return; }
-  var kocs = await res.json();
-  var monthlyPointsByUid = {};
-  try { monthlyPointsByUid = await fetchMonthlyBaseScores(currentPeriod); }
-  catch (error) { showToast(error.message, 'error'); return; }
-  var upgraded = 0, failed = 0;
-  for (var k of kocs) {
-    if (k.uid === '__config__') continue;
-    var monthlyPoints = monthlyPointsByUid[k.uid] || 0;
-    var history = [];
-    try { history = JSON.parse(k.tier_history || '[]'); } catch(e) {}
-    history = normalizeTierHistory(history).filter(function(entry) { return entry.month !== currentPeriod; });
-    history.push({ month: currentPeriod, tier: k.tier || 'certified', monthly_points: monthlyPoints });
-    history = normalizeTierHistory(history);
-    var consecutive = countConsecutiveQualifiedMonths(history, 5);
-    var calculatedTier = consecutive >= 3 ? 'platinum' : (consecutive >= 2 ? 'gold' : 'certified');
-    var currentTier = k.tier || 'certified';
-    var newTier = getTierRank(calculatedTier) > getTierRank(currentTier) ? calculatedTier : currentTier;
-    if (newTier !== currentTier) {
-      var tierResp = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + k.uid, {
-        method: 'PATCH',
-        body: JSON.stringify({ tier: newTier, tier_history: JSON.stringify(history), tier_updated_at: new Date().toISOString() })
-      });
-      if (tierResp.ok) upgraded++; else failed++;
-    } else {
-      var histResp = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + k.uid, {
-        method: 'PATCH',
-        body: JSON.stringify({ tier_history: JSON.stringify(history) })
-      });
-      if (!histResp.ok) failed++;
-    }
-  }
-  showToast('✅ Auto upgrade done! ' + upgraded + ' changed' + (failed ? '，失败 ' + failed : '') + '.', failed ? 'error' : 'success');
-  renderTiersTable();
+var pendingLegacyTierPreview = null;
+
+async function previewLegacyTierUpgrades() {
+  try {
+    var result = await adminRpc('preview_legacy_tier_upgrades', {});
+    pendingLegacyTierPreview = result;
+    var panel = document.getElementById('tier-upgrade-preview');
+    var rows = result.upgrades || [];
+    panel.style.display = 'block';
+    document.getElementById('tier-preview-summary').textContent = '批次 ' + result.batch_id + ' · 候选升级 ' + rows.length + ' 人。仅使用已确认的 6/7/8 月历史最终结算；31 人仅作人工验收参考，系统未硬编码。';
+    document.getElementById('tier-preview-list').innerHTML = rows.length ? '<table class="submission-table"><thead><tr><th>Creator</th><th>Current</th><th>Proposed</th><th>Jun</th><th>Jul</th><th>Aug</th></tr></thead><tbody>' + rows.map(function(row) {
+      return '<tr><td>' + esc(row.discord_name) + '<br><small>' + esc(row.uid) + '</small></td><td>' + esc(row.current_tier) + '</td><td><strong>' + esc(row.proposed_tier) + '</strong></td><td>' + (row.score_2026_06 == null ? '—' : row.score_2026_06) + '</td><td>' + (row.score_2026_07 == null ? '—' : row.score_2026_07) + '</td><td>' + (row.score_2026_08 == null ? '—' : row.score_2026_08) + '</td></tr>';
+    }).join('') + '</tbody></table>' : '<div style="padding:10px;">没有候选升级。</div>';
+    document.getElementById('tier-preview-apply').disabled = !rows.length;
+    showToast('升级预览已生成，尚未写入等级', 'success');
+  } catch (error) { showToast('预览失败: ' + error.message, 'error'); }
+}
+
+async function applyLegacyTierUpgradePreview() {
+  if (!pendingLegacyTierPreview) return;
+  var phrase = prompt('此操作会写入已预览的等级升级，但不会发送 MochiBot 消息。\n请输入：CONFIRM 2026-08 TIER UPGRADES');
+  if (phrase !== 'CONFIRM 2026-08 TIER UPGRADES') { showToast('确认文字不匹配，未执行', 'error'); return; }
+  try {
+    var result = await adminRpc('apply_legacy_tier_upgrade_preview', {
+      p_batch_id: pendingLegacyTierPreview.batch_id,
+      p_confirmation: phrase
+    });
+    showToast('已应用 ' + result.applied + ' 个升级' + (result.idempotent ? '（重复执行，无新增）' : ''), 'success');
+    document.getElementById('tier-preview-apply').disabled = true;
+    renderTiersTable();
+  } catch (error) { showToast('应用失败: ' + error.message, 'error'); }
 }
 
 async function syncTiersFromDiscord() {
@@ -2370,6 +2381,7 @@ function updateAgentRulesFromConfig() {
 async function sendMochiDM(discordUsername, message, discordId, guildId) {
   if (!discordUsername && !discordId) return { ok: false, reason: '缺少 Discord 用户' };
   if (!MOCHI_TOKEN) MOCHI_TOKEN = document.getElementById('mochi-token-input').value;
+  if (!MOCHI_TOKEN) return { ok: false, reason: '未保存 MochiBot Token' };
   try {
     var member = discordId ? { id: discordId } : null;
     if (!member) {
@@ -4136,11 +4148,31 @@ function previewMochiCsvBroadcast() {
   if (count) count.textContent = mochiCsvTargets.length + ' 行（逐条文案）';
   if (list) list.innerHTML = mochiCsvTargets.map(function(t, i) {
     var prev = (t.message || '').slice(0, 80) + ((t.message || '').length > 80 ? '…' : '');
-    return '<div style="display:grid;grid-template-columns:24px 1fr auto;gap:5px;padding:3px 4px;font-size:12px;align-items:start;' + (t.eligible ? '' : 'opacity:.55;') + '"><input type="checkbox" class="mochi-csv-cb" data-index="' + i + '"' + (t.eligible ? '' : ' disabled') + '><span><b>' + esc(t.discord_name || t.csv_name || '(空)') + '</b> <span style="color:#999;">' + esc(t.uid || '') + '</span><br><span style="font-size:11px;color:#666;">' + esc(prev) + '</span></span><span style="font-size:11px;color:' + (t.eligible ? '#2e7d32' : '#c62828') + ';">' + esc(t.reason) + '</span></div>';
+    return '<div style="display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:5px;padding:5px 4px;font-size:12px;align-items:start;' + (t.eligible ? '' : 'opacity:.55;') + '"><input type="checkbox" class="mochi-csv-cb" data-index="' + i + '"' + (t.eligible ? '' : ' disabled') + '><span style="min-width:0;"><b>' + esc(t.discord_name || t.csv_name || '(空)') + '</b> <span style="color:#999;">' + esc(t.uid || '') + '</span><br><span style="font-size:11px;color:#666;">' + esc(prev) + '</span></span><span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;"><span style="font-size:11px;color:' + (t.eligible ? '#2e7d32' : '#c62828') + ';">' + esc(t.reason) + '</span><button type="button" class="btn btn-sm btn-outline" style="padding:2px 6px;font-size:10px;white-space:nowrap;" onclick="showMochiCsvMessage(' + i + ')">查看全文</button></span></div>';
   }).join('') || '<div style="padding:6px;color:#999;">没有可发送行</div>';
   var editor = document.getElementById('broadcast-msg-editor');
-  if (editor) editor.value = mochiCsvTargets[0] ? mochiCsvTargets[0].message : '';
+  if (editor) {
+    editor.value = mochiCsvTargets[0] ? mochiCsvTargets[0].message : '';
+    editor.readOnly = true;
+    editor.style.minHeight = '180px';
+  }
+  var editorLabel = document.getElementById('broadcast-msg-editor-label');
+  if (editorLabel) editorLabel.textContent = mochiCsvTargets[0] ? '完整话术 · ' + (mochiCsvTargets[0].discord_name || mochiCsvTargets[0].csv_name || '第 1 行') + '（CSV 原文，只读）' : '完整话术（CSV 原文，只读）';
   document.getElementById('broadcast-preview-area').style.display = 'block';
+}
+
+function showMochiCsvMessage(index) {
+  var target = mochiCsvTargets[Number(index)];
+  if (!target) return;
+  var editor = document.getElementById('broadcast-msg-editor');
+  var editorLabel = document.getElementById('broadcast-msg-editor-label');
+  if (editor) {
+    editor.value = target.message || '';
+    editor.readOnly = true;
+    editor.style.minHeight = '180px';
+    editor.scrollTop = 0;
+  }
+  if (editorLabel) editorLabel.textContent = '完整话术 · ' + (target.discord_name || target.csv_name || target.uid || '未命名') + '（CSV 原文，只读）';
 }
 
 function clearMochiCsvBroadcastState() {
@@ -4354,7 +4386,12 @@ function renderBroadcastPreview(targets, msg) {
   var checkedCount = 0;
   targets.forEach(function(t) { if (t.checked) checkedCount++; });
   document.getElementById('broadcast-target-count').textContent = targets.length + ' 人（已选 ' + checkedCount + ' 人）';
-  document.getElementById('broadcast-msg-editor').value = msg;
+  var editor = document.getElementById('broadcast-msg-editor');
+  editor.value = msg;
+  editor.readOnly = false;
+  editor.style.minHeight = '70px';
+  var editorLabel = document.getElementById('broadcast-msg-editor-label');
+  if (editorLabel) editorLabel.textContent = '消息内容（可编辑）:';
   // Store full list for filtering
   window._bcTargets = targets;
   var search = document.getElementById('broadcast-search');

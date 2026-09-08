@@ -288,6 +288,12 @@ serve(async (req) => {
       // 删除指定的 Bot 私信；调用方必须先通过 scan_recent_dms 确认精确消息 ID
       case "delete_dm_messages": {
         const messages = Array.isArray(data?.messages) ? data.messages : [];
+        const meRes = await fetch(`${DISCORD_API}/users/@me`, { headers: authHeaders });
+        const meBody = await meRes.text();
+        if (!meRes.ok) {
+          return new Response(JSON.stringify({ ok: false, error: `获取 Bot 信息失败: ${meRes.status} ${meBody}` }), { status: meRes.status, headers });
+        }
+        const botUser = JSON.parse(meBody);
         const deleted: any[] = [];
         const failures: any[] = [];
         for (const message of messages) {
@@ -295,6 +301,19 @@ serve(async (req) => {
           const messageId = String(message?.message_id || "");
           if (!/^\d+$/.test(channelId) || !/^\d+$/.test(messageId)) {
             failures.push({ channel_id: channelId, message_id: messageId, error: "无效消息 ID" });
+            continue;
+          }
+          const messageRes = await fetch(`${DISCORD_API}/channels/${channelId}/messages/${messageId}`, {
+            headers: authHeaders,
+          });
+          const messageBody = await messageRes.text();
+          if (!messageRes.ok) {
+            failures.push({ channel_id: channelId, message_id: messageId, error: `读取消息失败: ${messageRes.status} ${messageBody}` });
+            continue;
+          }
+          const existingMessage = JSON.parse(messageBody);
+          if (String(existingMessage.author?.id || "") !== String(botUser.id)) {
+            failures.push({ channel_id: channelId, message_id: messageId, error: "拒绝删除：消息不是由当前 MochiBot 发送" });
             continue;
           }
           const deleteRes = await fetch(`${DISCORD_API}/channels/${channelId}/messages/${messageId}`, {
