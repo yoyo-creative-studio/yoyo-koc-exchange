@@ -5180,11 +5180,11 @@ function toggleCC(uid, notes) {
   
   var koc = allKocs.find(function(k) { return k.uid === uid; });
   var discordName = koc ? koc.discord_name || koc.name || 'Unknown' : 'Unknown';
-  if (!confirmDanger(wasChecked ? 'Remove CC reward tag?' : 'Add CC reward tag?', [
+  if (wasChecked && !confirmDanger('Remove CC reward tag?', [
     'UID: ' + uid,
     'Creator: ' + discordName,
     'Period: ' + currentPeriod,
-    wasChecked ? 'This removes the CC tag from notes.' : 'This adds a CC tag and may create a 0-point reward order.'
+    'This removes the CC tag and its pending reward record.'
   ])) return;
 
   supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(uid), {
