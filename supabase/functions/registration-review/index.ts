@@ -66,7 +66,7 @@ serve(async (req) => {
     if (action === "creator_reward_status") {
       const uid = String(data.uid || "").trim();
       const accountId = String(data.account_id || "").trim();
-      if (!uid || !/^\d{19}$/.test(accountId)) return json({ ok: false, error: "Valid creator credentials are required" }, 400);
+      if (!uid || !/^6\d{18}$/.test(accountId)) return json({ ok: false, error: "Valid creator credentials are required" }, 400);
       const { data: creator } = await db.from("kocs").select("uid").eq("uid", uid).eq("account_id", accountId).eq("status", "active").maybeSingle();
       if (!creator) return json({ ok: false, error: "Creator credentials do not match" }, 403);
       const { data: fulfillments, error } = await db.from("reward_fulfillments")
@@ -80,7 +80,7 @@ serve(async (req) => {
       const uid = String(data.uid || "").trim();
       const accountId = String(data.account_id || "").trim();
       const requestedPeriod = String(data.period || getBusinessPeriod(new Date())).trim();
-      if (!uid || !/^\d{19}$/.test(accountId) || !/^\d{4}-\d{2}$/.test(requestedPeriod)) {
+      if (!uid || !/^6\d{18}$/.test(accountId) || !/^\d{4}-\d{2}$/.test(requestedPeriod)) {
         return json({ ok: false, error: "Valid creator credentials and period are required" }, 400);
       }
       const { data: creator } = await db.from("kocs").select("uid,tier").eq("uid", uid).eq("account_id", accountId).eq("status", "active").maybeSingle();
@@ -139,7 +139,7 @@ serve(async (req) => {
         phone: String(data.phone || "").trim(),
         notes: String(data.notes || ""),
       };
-      if (!application.discord_name || !application.uid || !/^\d{19}$/.test(application.account_id) || !application.name || !application.server) {
+      if (!application.discord_name || !application.uid || !/^6\d{18}$/.test(application.account_id) || !application.name || !application.server) {
         return json({ ok: false, error: "Required registration information is incomplete" }, 400);
       }
 
@@ -256,6 +256,7 @@ serve(async (req) => {
       const country = String(data.country || "").trim();
       const phone = String(data.phone || "").trim();
       const address = String(data.address || "").trim();
+      if (accountId && !/^6\d{18}$/.test(accountId)) return json({ ok: false, error: "Account ID must start with 6 and contain exactly 19 digits" }, 400);
       if (type === "diamonds" && (!accountId || !server)) return json({ ok: false, error: "In-game rewards require Account ID and server" }, 400);
       if (type === "gplay" && !country) return json({ ok: false, error: "Google Play records require country" }, 400);
       if (type === "merch" && (!address || !phone)) return json({ ok: false, error: "Merchandise records require address and phone" }, 400);
@@ -293,7 +294,7 @@ serve(async (req) => {
       const accountId = String(data.account || "").trim();
       const name = String(data.name || "").trim();
       const server = String(data.server || "").trim();
-      if (!uid || !discordName || !/^\d{19}$/.test(accountId) || !name || !server) return json({ ok: false, error: "Required creator information is incomplete" }, 400);
+      if (!uid || !discordName || !/^6\d{18}$/.test(accountId) || !name || !server) return json({ ok: false, error: "Required creator information is incomplete" }, 400);
       const { data: duplicates, error: duplicateError } = await db.from("kocs").select("uid,account_id").or(`uid.eq.${uid},account_id.eq.${accountId}`).limit(1);
       if (duplicateError) return json({ ok: false, error: duplicateError.message }, 400);
       if (duplicates?.length) return json({ ok: false, error: "Game UID or Account ID already exists" }, 409);

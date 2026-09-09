@@ -1125,7 +1125,7 @@ async function login() {
   const accountId = document.getElementById('input-account-id').value.trim();
   const uid = document.getElementById('input-uid').value.trim();
   if (!accountId || !uid) { showToast('Please enter both Game UID and System ID', 'error'); return; }
-  if (!/^\d{19}$/.test(accountId)) { showToast('System ID must be exactly 19 digits', 'error'); return; }
+  if (!/^6\d{18}$/.test(accountId)) { showToast('System ID must start with 6 and contain exactly 19 digits', 'error'); return; }
 
   const btn = document.getElementById('btn-login');
   btn.disabled = true; btn.textContent = 'Checking...';
@@ -1733,7 +1733,7 @@ async function registerCreator() {
 
   if (!discord) { status.textContent = '❌ Please enter your Discord username'; status.style.color = '#e74c3c'; return; }
   if (!accountId) { status.textContent = '❌ Please enter your System ID'; status.style.color = '#e74c3c'; return; }
-  if (!/^\d{19}$/.test(accountId)) { status.textContent = '❌ System ID must be exactly 19 digits'; status.style.color = '#e74c3c'; return; }
+  if (!/^6\d{18}$/.test(accountId)) { status.textContent = '❌ System ID must start with 6 and contain exactly 19 digits'; status.style.color = '#e74c3c'; return; }
   if (!gameUid) { status.textContent = '❌ Please enter your Game UID'; status.style.color = '#e74c3c'; return; }
   if (!fullname) { status.textContent = '❌ Please enter your full legal name'; status.style.color = '#e74c3c'; return; }
   if (!server) { status.textContent = '❌ Please select your server'; status.style.color = '#e74c3c'; return; }
