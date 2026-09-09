@@ -1105,7 +1105,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
             <th>UID</th>
             <th>📅 当月积分</th>
             <th style="text-align:center;width:70px;">CC ✓</th>
-            <th style="min-width:200px;">📦 当月奖励状态（只读）</th>
+            <th style="min-width:200px;">📦 当月奖励（✓ 同步完成）</th>
             <th style="width:90px;">💳 积分操作</th>
           </tr></thead>
           <tbody id="scoring-table"></tbody>
@@ -6657,6 +6657,7 @@ function renderScoringTable() {
             return '<div class="order-row" style="display:flex;align-items:center;gap:4px;margin:2px 0;font-size:12px;">' +
               '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + optName + '</span>' +
               ' <span class="badge badge-' + o.status + '">' + (o.status === 'shipped' ? '\u2705 ' : '\u23F3 ') + o.status + '</span> ' +
+              (o.status === 'pending' ? '<span class="btn btn-success btn-sm" onclick="shipOrder(event,' + o.id + ')" title="标记完成并同步到对应奖励模块" style="padding:1px 6px;font-size:11px;cursor:pointer;">\u2713</span>' : '') +
             '</div>';
           }).join('') +
           (orders.length > 10 ? '<div style="font-size:11px;color:var(--text-light);">+' + (orders.length-10) + ' more</div>' : '') +
