@@ -1363,8 +1363,8 @@ Bonuses and carry-over do not count. Existing tiers only move up.</textarea>
 
         <div style="background:#f1fff4;border:2px solid #81c784;border-radius:14px;padding:14px;margin-bottom:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
-            <div style="font-size:14px;font-weight:800;color:#2e7d32;">📸 周边晒图审核 <span id="showcase-sub-count" style="font-size:12px;font-weight:600;color:#558b2f;"></span></div>
-            <div style="font-size:11px;color:#558b2f;">通过后为该创作者本月增加 +1 分</div>
+            <div style="font-size:14px;font-weight:800;color:#2e7d32;">✨ 创作者加分内容审核 <span id="showcase-sub-count" style="font-size:12px;font-weight:600;color:#558b2f;"></span></div>
+            <div style="font-size:11px;color:#558b2f;">9 月起：周边展示或介绍创作者项目，二选一；通过后每人每月最多 +1 分</div>
           </div>
           <div id="showcase-sub-list"><div style="color:var(--text-light);font-size:12px;padding:6px 0;">加载中...</div></div>
         </div>
@@ -2766,7 +2766,7 @@ async function rejectSubmission(id) {
   } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
 
-// ===== 官方周边 SHOWCASE 审核 (+1 分) =====
+// ===== 创作者加分内容审核 (+1 分) =====
 function renderShowcaseSubmissions() {
   var listEl = document.getElementById('showcase-sub-list');
   var cntEl = document.getElementById('showcase-sub-count');
@@ -2777,7 +2777,7 @@ function renderShowcaseSubmissions() {
   var pending = list.filter(function(s) { return s.status === 'pending'; }).length;
   if (cntEl) cntEl.textContent = list.length ? '(' + pending + ' 待审 / ' + list.length + ' 总)' : '';
   if (!list.length) {
-    listEl.innerHTML = '<div style="color:var(--text-light);font-size:12px;padding:6px 0;">暂无 showcase 提交</div>';
+    listEl.innerHTML = '<div style="color:var(--text-light);font-size:12px;padding:6px 0;">暂无加分内容提交</div>';
     return;
   }
   listEl.innerHTML = list.map(function(s) {
@@ -2805,14 +2805,14 @@ async function approveShowcase(id, uid) {
     var dupRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/submissions?uid=eq.' + encodeURIComponent(uid) + '&period=eq.' + encodeURIComponent(currentPeriod) + '&submission_type=eq.showcase&status=eq.scored&select=id&limit=1');
     var dup = dupRes.ok ? await dupRes.json() : [];
     if (dup && dup.length > 0) {
-      showToast('⚠️ 该创作者本期 showcase 已经 +1，不能重复加分', 'error');
+      showToast('⚠️ 该创作者本期加分内容已经 +1，不能重复加分', 'error');
       return;
     }
     var bal = await getBalance(uid);
     var newBal = bal + 1;
     var logResp = await supabaseFetch(SUPABASE_URL + '/rest/v1/point_logs', {
       method: 'POST',
-      body: JSON.stringify({ uid: uid, change: 1, balance_after: newBal, source: 'manual', reason: '官方周边showcase', period: currentPeriod, created_by: 'admin', created_at: new Date().toISOString() })
+      body: JSON.stringify({ uid: uid, change: 1, balance_after: newBal, source: 'manual', reason: currentPeriod >= '2026-09' ? 'Creator Spotlight Bonus' : '官方周边showcase', period: currentPeriod, created_by: 'admin', created_at: new Date().toISOString() })
     });
     if (!logResp.ok) { showToast('加分失败，请重试', 'error'); return; }
     var patchResp = await supabaseFetch(SUPABASE_URL + '/rest/v1/submissions?id=eq.' + id, {
@@ -2820,8 +2820,8 @@ async function approveShowcase(id, uid) {
       body: JSON.stringify({ status: 'scored', points_earned: 1, scored_at: new Date().toISOString() })
     });
     if (!patchResp.ok) { showToast('⚠️ 已加 +1 分，但提交状态更新失败，请手动核对', 'error'); return; }
-    showToast('✅ 已通过 showcase，+1 分', 'success');
-    writeAuditLog('score', 'approve showcase #' + id + ' uid ' + uid + ' +1');
+    showToast('✅ 已通过加分内容，+1 分', 'success');
+    writeAuditLog('score', 'approve creator spotlight #' + id + ' uid ' + uid + ' +1');
     await loadSubmissions();
     if (typeof renderKocTable === 'function') renderKocTable();
   } catch(e) { showToast('Error: ' + e.message, 'error'); }

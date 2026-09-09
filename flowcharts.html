@@ -825,7 +825,7 @@
         <div class="lane-label creator-lane"><b>👩‍🎨</b>创作者端<small>Creator Portal</small></div>
         <div class="cell"><div class="step creator-step"><span class="step-no">1</span><h3>收到邀请与欢迎私信</h3><p>了解新人月、创作灵感、投稿与奖励规则，打开官方创作者门户。</p><span class="tag">MochiBot 引导</span></div></div>
         <div class="cell"><div class="step creator-step"><span class="step-no">2</span><h3>提交注册申请</h3><p>填写 Discord、19 位 Account ID、Game UID、区服及完整收货信息。</p><span class="tag">等待管理员审批</span></div></div>
-        <div class="cell"><div class="step creator-step"><span class="step-no">3</span><h3>登录并提交作品</h3><p>使用 Game UID + Account ID 登录；按当前活动月提交公开作品链接或周边晒图。</p><span class="tag">一行或多链接均可识别</span></div></div>
+        <div class="cell"><div class="step creator-step"><span class="step-no">3</span><h3>登录并提交作品</h3><p>使用 Game UID + Account ID 登录；按当前活动月提交公开作品或当月加分内容。</p><span class="tag">一行或多链接均可识别</span></div></div>
         <div class="cell"><div class="step creator-step"><span class="step-no">4</span><h3>查看 My Submissions</h3><p>按月份查看自己的链接、投稿数量和审核状态；被拒绝后可释放投稿机会。</p><span class="tag">Pending / Scored</span></div></div>
         <div class="cell"><div class="step manual-step"><span class="step-no">5</span><h3>等待当月统一算分</h3><p>外部算分 Agent 抓取互动与播放数据，生成积分结果和每人个性化通知 CSV。</p><span class="tag">人工结算环节</span></div></div>
         <div class="cell"><div class="step creator-step"><span class="step-no">6</span><h3>查看积分与等级</h3><p>结算导入后查看本月得分、历史余额、等级与新人奖励情况。</p><span class="tag">余额 = 积分流水求和</span></div></div>
@@ -836,7 +836,7 @@
         <div class="cell"><div class="step system-step"><span class="step-no">1</span><h3>识别新加入成员</h3><p>新人自动欢迎仅处理开关启用后新进入 Discord 的成员，避免追发历史成员。</p><span class="tag">欢迎通知</span></div></div>
         <div class="cell"><div class="step system-step"><span class="step-no">2</span><h3>保存为待审核</h3><p>注册资料进入 KOC 申请队列；审批前不能登录、投稿或兑换。</p><span class="tag">approval_status = pending</span></div></div>
         <div class="cell"><div class="step system-step"><span class="step-no">3</span><h3>校验投稿窗口</h3><p>读取管理端指定的当前活动月及 UTC-7 截止时间；关闭或过期即阻止提交。</p><span class="tag">月份不跟随自然月跳转</span></div></div>
-        <div class="cell"><div class="step system-step"><span class="step-no">4</span><h3>汇总链接与状态</h3><p>按创作者和月份合并投稿批次，统计链接数，并区分普通作品与周边晒图。</p><span class="tag">submissions</span></div></div>
+        <div class="cell"><div class="step system-step"><span class="step-no">4</span><h3>汇总链接与状态</h3><p>按创作者和月份合并投稿批次，统计链接数，并区分普通作品与加分内容。</p><span class="tag">submissions</span></div></div>
         <div class="cell"><div class="step system-step"><span class="step-no">5</span><h3>接收结算导入</h3><p>预览匹配 KOC 后，将确认的月度结果写入积分流水，并保留导入记录。</p><span class="tag">score_imports → point_logs</span></div></div>
         <div class="cell"><div class="step system-step"><span class="step-no">6</span><h3>实时计算余额</h3><p>所有加分与扣分统一汇总；前端不依赖手写余额，避免两端数字不一致。</p><span class="tag">SUM(point_logs.change)</span></div></div>
         <div class="cell"><div class="step system-step"><span class="step-no">7</span><h3>校验兑换条件</h3><p>检查兑换窗口、可用积分和奖励数量，成功后创建 redemption_orders。</p><span class="tag">订单待处理</span></div></div>
@@ -846,7 +846,7 @@
         <div class="cell"><div class="step admin-step"><span class="step-no">1</span><h3>设置 Bot 与欢迎规则</h3><p>配置 MochiBot Token、自动欢迎开关和统一尾注；广播发送前必须预览确认。</p><span class="tag">运营配置</span></div></div>
         <div class="cell"><div class="step admin-step"><span class="step-no">2</span><h3>审核注册申请</h3><p>核对资料后批准或拒绝；批准新注册 KOC 时生成欢迎周边，并自动私信通过通知。</p><span class="tag">KOC 信息库</span></div></div>
         <div class="cell"><div class="step admin-step"><span class="step-no">3</span><h3>配置当前活动月</h3><p>在规则配置保存月份、投稿/兑换开关与截止时间；顶部月份仅用于切换后台查看数据。</p><span class="tag">规则月份是真正入口</span></div></div>
-        <div class="cell"><div class="step admin-step"><span class="step-no">4</span><h3>审核和管理投稿</h3><p>搜索、筛选、查看链接数、勾选与删除；周边晒图单独审核，通过后可加 +1。</p><span class="tag">作品审核</span></div></div>
+        <div class="cell"><div class="step admin-step"><span class="step-no">4</span><h3>审核和管理投稿</h3><p>搜索、筛选、查看链接数、勾选与删除；当月加分内容单独审核，通过后每人最多 +1。</p><span class="tag">作品审核</span></div></div>
         <div class="cell"><div class="step admin-step"><span class="step-no">5</span><h3>导入最终积分</h3><p>上传 Agent 结果，预览 UID 匹配、积分及奖励，确认后统一应用；不在系统内自动猜分。</p><span class="tag">积分计算</span></div></div>
         <div class="cell"><div class="step admin-step"><span class="step-no">6</span><h3>发送个性化结算</h3><p>导入每人独立话术 CSV，按 UID 优先匹配 Discord，间隔发送并显示成功/失败原因。</p><span class="tag">Mochi 广播</span></div></div>
         <div class="cell"><div class="step admin-step"><span class="step-no">7</span><h3>审核兑换订单</h3><p>查看钻石、礼品卡和周边订单，核对收货与区服信息，准备实际发奖或发货。</p><span class="tag">兑换管理</span></div></div>

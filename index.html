@@ -455,15 +455,15 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
         </div>
       </div>
 
-      <!-- Official Merch Showcase (+1 pt) -->
+      <!-- Monthly Creator Spotlight Bonus (+1 pt) -->
       <div class="card" id="showcase-card">
-        <div class="card-title">📸 Official Merch Showcase <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span></div>
-        <div style="background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:10px;padding:10px;font-size:12px;margin-bottom:12px;color:#2e7d32;line-height:1.7;">
+        <div class="card-title" id="showcase-title">📸 Official Merch Showcase <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span></div>
+        <div id="showcase-description" style="background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:10px;padding:10px;font-size:12px;margin-bottom:12px;color:#2e7d32;line-height:1.7;">
           🎁 Got your official Yoyo merch? Post a photo or video showing it off and earn <strong>+1 bonus point</strong>!<br>
           <span style="font-size:11px;color:#558b2f;">Make sure the post is public, then paste the link below. Reviewed by admin. Does not count toward your 2 work submissions.</span><br>
           <span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ Maximum +1 point per month.</span>
         </div>
-        <label>🔗 Showcase Link</label>
+        <label id="showcase-link-label">🔗 Showcase Link</label>
         <input type="text" id="showcase-link" placeholder="https://... (your merch showcase post)">
         <button class="btn btn-primary" id="btn-showcase-submit" onclick="submitShowcase()" style="margin-top:8px;">📸 Submit Showcase</button>
         <div id="showcase-status" style="margin-top:8px;font-size:12px;color:var(--text-light);text-align:center;min-height:18px;"></div>
@@ -1275,6 +1275,7 @@ function initSubmitTab() {
 
 function showDashboard() {
   loadCommunityMilestone();
+  updateShowcaseCampaignCopy();
   // Check the single newcomer month used by registration and settlement.
   setTimeout(function() {
     if (!currentUser) return;
@@ -1349,6 +1350,24 @@ function showDashboard() {
   setTimeout(function() { switchCreatorTab('submit'); }, 50);
   renderOptions();
   loadOrders();
+}
+
+function updateShowcaseCampaignCopy() {
+  var isSeptemberRule = String(currentPeriod || '') >= '2026-09';
+  var title = document.getElementById('showcase-title');
+  var description = document.getElementById('showcase-description');
+  var label = document.getElementById('showcase-link-label');
+  var input = document.getElementById('showcase-link');
+  var button = document.getElementById('btn-showcase-submit');
+  if (title) title.innerHTML = isSeptemberRule
+    ? '✨ Creator Spotlight Bonus <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span>'
+    : '📸 Official Merch Showcase <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span>';
+  if (description) description.innerHTML = isSeptemberRule
+    ? 'Create one public post that either <strong>showcases your official Yoyo merch</strong> or <strong>introduces the MLT Creator Program</strong> and earn <strong>+1 bonus point</strong> after approval.<br><span style="font-size:11px;color:#558b2f;">Choose either topic. This bonus does not count toward your 2 regular work submissions.</span><br><span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ Maximum +1 point per month across both options.</span>'
+    : '🎁 Got your official Yoyo merch? Post a photo or video showing it off and earn <strong>+1 bonus point</strong>!<br><span style="font-size:11px;color:#558b2f;">Make sure the post is public, then paste the link below. Reviewed by admin. Does not count toward your 2 work submissions.</span><br><span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ Maximum +1 point per month.</span>';
+  if (label) label.textContent = isSeptemberRule ? '🔗 Bonus Post Link' : '🔗 Showcase Link';
+  if (input) input.placeholder = isSeptemberRule ? 'https://... (your merch or Creator Program post)' : 'https://... (your merch showcase post)';
+  if (button) button.textContent = isSeptemberRule ? '✨ Submit Bonus Post' : '📸 Submit Showcase';
 }
 
 async function loadCommunityMilestone() {
@@ -1983,7 +2002,7 @@ async function submitShowcase() {
     status.style.color = '#e74c3c';
   }
   btn.disabled = false;
-  btn.textContent = '📸 Submit Showcase';
+  btn.textContent = String(currentPeriod || '') >= '2026-09' ? '✨ Submit Bonus Post' : '📸 Submit Showcase';
 }
 
 
@@ -2213,11 +2232,11 @@ function renderMonthView(ym, months, byMonth, ptLogs, container, countEl, period
       var linkCount = engagementCount + viewCount;
       var dateLabel = new Date(submission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       var isShowcase = submission.submission_type === 'showcase';
-      var title = isShowcase ? '📸 Official Merch Showcase' : '🎨 Work Submission';
+      var title = isShowcase ? (getSubmissionPeriod(submission) >= '2026-09' ? '✨ Creator Spotlight Bonus' : '📸 Official Merch Showcase') : '🎨 Work Submission';
       html += '<div class="submission-record-card"><div class="submission-record-head"><div><div class="submission-record-title">' + title + '</div>';
       html += '<div class="submission-record-meta">' + esc(dateLabel) + ' · ' + linkCount + ' link' + (linkCount === 1 ? '' : 's') + (engagementCount && viewCount ? ' · ' + engagementCount + ' engagement / ' + viewCount + ' view' : '') + '</div>';
       if (status === 'scored' && !isShowcase) html += '<div class="submission-record-score">Base Content Score: +' + Number(submission.points_earned || 0) + '</div>';
-      if (status === 'scored' && isShowcase) html += '<div class="submission-record-score">Showcase Bonus: +' + Number(submission.points_earned || 1) + '</div>';
+      if (status === 'scored' && isShowcase) html += '<div class="submission-record-score">' + (getSubmissionPeriod(submission) >= '2026-09' ? 'Creator Spotlight Bonus' : 'Showcase Bonus') + ': +' + Number(submission.points_earned || 1) + '</div>';
       if (status === 'pending') html += '<div class="submission-record-meta">Waiting for monthly review and scoring.</div>';
       if (status === 'rejected') html += '<div class="submission-record-meta">This entry does not count toward your submission limit or Continuous Creation reward.</div>';
       html += '</div><span class="submission-status submission-status-' + esc(status) + '">' + statusLabel + '</span></div></div>';
