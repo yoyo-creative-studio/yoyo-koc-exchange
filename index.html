@@ -1036,7 +1036,7 @@ async function getMonthEarnedPoints(uid, period) {
 function isCarryoverPointLog(row) {
   if (!row) return false;
   var text = [row.source, row.reason, row.operation_key].join(' ').toLowerCase();
-  return /opening[\s_-]*balance|opening[\s_-]*points|期初|结转|carry[\s_-]*over/.test(text);
+  return /opening[\s_-]*balance|opening[\s_-]*points|期初|结转|carry[\s_-]*over|过去的积分|剩余积分/.test(text);
 }
 async function getCarryoverBalance(uid, period) {
   try {
