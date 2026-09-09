@@ -6829,13 +6829,6 @@ async function shipOrder(ev, id) {
     var oData = await oRes.json();
     var order = oData[0];
     if (!order) throw new Error('Order not found');
-    if (!confirmDanger('Mark redemption order as shipped?', [
-      'Order ID: #' + id,
-      'UID: ' + order.uid,
-      'Reward: ' + (order.option_name || order.option_type || ''),
-      'Points spent: ' + (order.points_spent || 0),
-      'This may insert a redemption deduction if one was not already recorded.'
-    ])) return;
     if (shipBtn) { shipBtn.disabled = true; shipBtn.textContent = '⏳'; }
 
     // Skip if already shipped
