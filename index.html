@@ -307,10 +307,6 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
       <label>Discord Username *</label>
       <input type="text" id="reg-discord" placeholder="Your Discord username" style="margin-bottom:8px;">
 
-      <label>Referrer's Discord Username <span style="font-weight:400;color:var(--text-light);">(optional)</span></label>
-      <input type="text" id="reg-referrer" placeholder="Who invited you? Enter their exact Discord username" style="margin-bottom:4px;">
-      <span style="font-size:11px;color:var(--text-light);display:block;margin-bottom:8px;">If a creator invited you, enter their exact Discord username so their referral reward can be recorded.</span>
-      
       <label>System ID (starts with 6, numbers) *</label>
       <input type="text" id="reg-account-id" placeholder="System ID (numbers starting with 6)" inputmode="numeric" style="margin-bottom:8px;">
       <span style="font-size:11px;color:var(--text-light);display:block;margin-bottom:8px;">Find it: login page → Customer Service Center → Tickets Center.</span>
@@ -391,7 +387,7 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
       <div class="community-milestone-head"><span class="community-milestone-title">🎁 UNLOCK TWO REWARD TYPES</span><span id="community-milestone-count" class="community-milestone-count">— / 300</span></div>
       <div id="community-milestone-copy" class="community-milestone-copy"><strong>Right now:</strong> choose 1 reward type per redemption.<br><strong>At 300 active creators:</strong> everyone can choose 2 different reward types per redemption.</div>
       <div class="community-milestone-track"><div id="community-milestone-fill" class="community-milestone-fill" style="width:0%"></div></div>
-      <div class="community-milestone-foot"><span id="community-milestone-status">Loading community progress...</span><span class="community-milestone-refer">Inviting a friend? Ask them to enter your Discord username when registering.</span></div>
+      <div class="community-milestone-foot"><span id="community-milestone-status">Loading community progress...</span><span class="community-milestone-refer">Inviting a friend? Ask them to enter your Discord username in the Google application form. <a href="https://forms.gle/L31PbpRUmDJZv6kX9" target="_blank" rel="noopener noreferrer" style="color:#7b1fa2;font-weight:900;">Apply Now ↗</a></span></div>
     </div>
     <!-- Redeem Tab -->
     <div id="creator-tab-redeem" class="tab-content">
@@ -464,7 +460,7 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
         <div class="card-title" id="showcase-title">✨ Showcase Bonus <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span></div>
         <div id="showcase-description" style="background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:10px;padding:10px;font-size:12px;margin-bottom:12px;color:#2e7d32;line-height:1.7;">
           <strong>Choose one:</strong><br>🎁 Showcase your official Yoyo merch.<br><strong style="display:block;text-align:center;color:#ad1457;">OR</strong>💗 Introduce the MLT Creator Program.<br><span style="font-size:11px;color:#558b2f;">You may also combine both in one public post.</span><br>
-          <span style="font-size:11px;color:#558b2f;">If a friend applies, ask them to enter your exact Discord username in the “Referrer” field during registration.</span><br>
+          <span style="font-size:11px;color:#558b2f;">Inviting a friend? Ask them to enter your Discord username in the Google application form. <a href="https://forms.gle/L31PbpRUmDJZv6kX9" target="_blank" rel="noopener noreferrer" style="color:#7b1fa2;font-weight:800;">Apply Now ↗</a></span><br>
           <span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ After approval, you receive a maximum of +1 Showcase Bonus per month.</span>
         </div>
         <label id="showcase-link-label">🔗 Bonus Post Link</label>
@@ -1363,7 +1359,7 @@ function updateShowcaseCampaignCopy() {
   var input = document.getElementById('showcase-link');
   var button = document.getElementById('btn-showcase-submit');
   if (title) title.innerHTML = '✨ Showcase Bonus <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span>';
-  if (description) description.innerHTML = '<strong>Choose one:</strong><br>🎁 Showcase your official Yoyo merch.<br><strong style="display:block;text-align:center;color:#ad1457;">OR</strong>💗 Introduce the MLT Creator Program.<br><span style="font-size:11px;color:#558b2f;">You may also combine both in one public post.</span><br><span style="font-size:11px;color:#558b2f;">If a friend applies, ask them to enter <strong>your exact Discord username</strong> in the “Referrer” field during registration. This is required for us to record your referral reward.</span><br><span style="font-size:11px;color:#558b2f;">This bonus post does not count toward your 2 regular work submissions.</span><br><span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ After approval, you receive a maximum of +1 Showcase Bonus per month.</span>';
+  if (description) description.innerHTML = '<strong>Choose one:</strong><br>🎁 Showcase your official Yoyo merch.<br><strong style="display:block;text-align:center;color:#ad1457;">OR</strong>💗 Introduce the MLT Creator Program.<br><span style="font-size:11px;color:#558b2f;">You may also combine both in one public post.</span><br><span style="font-size:11px;color:#558b2f;">Inviting a friend? Ask them to enter your Discord username in the Google application form. <a href="https://forms.gle/L31PbpRUmDJZv6kX9" target="_blank" rel="noopener noreferrer" style="color:#7b1fa2;font-weight:800;">Apply Now ↗</a></span><br><span style="font-size:11px;color:#558b2f;">This bonus post does not count toward your 2 regular work submissions.</span><br><span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ After approval, you receive a maximum of +1 Showcase Bonus per month.</span>';
   if (label) label.textContent = '🔗 Bonus Post Link';
   if (input) input.placeholder = 'https://... (your merch showcase or Creator Program post)';
   if (button) button.textContent = '✨ Submit Bonus Post';
@@ -1737,7 +1733,6 @@ function showExistingLogin() {
 }
 async function registerCreator() {
   var discord = document.getElementById('reg-discord').value.trim();
-  var referrerDiscord = document.getElementById('reg-referrer').value.trim();
   var accountId = document.getElementById('reg-account-id').value.trim();
   var gameUid = document.getElementById('reg-game-uid').value.trim();
   var fullname = document.getElementById('reg-fullname').value.trim();
@@ -1792,7 +1787,6 @@ async function registerCreator() {
       country: country,
       phone: phone
     };
-    if (referrerDiscord) notesObj.referrer_discord = referrerDiscord;
 
     var payload = {
       uid: gameUid,
