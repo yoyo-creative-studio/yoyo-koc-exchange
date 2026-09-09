@@ -463,7 +463,7 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
       <div class="card" id="showcase-card">
         <div class="card-title" id="showcase-title">✨ Creator Spotlight Bonus <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span></div>
         <div id="showcase-description" style="background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:10px;padding:10px;font-size:12px;margin-bottom:12px;color:#2e7d32;line-height:1.7;">
-          <strong>Choose ONE topic:</strong> showcase your official Yoyo merch, or introduce the MLT Creator Program to your friends. Earn <strong>+1 bonus point</strong> after approval.<br>
+          Showcase your official Yoyo merch, introduce the MLT Creator Program, or combine both in one public post. Earn <strong>+1 bonus point</strong> after approval.<br>
           <span style="font-size:11px;color:#558b2f;">If a friend applies, ask them to enter your exact Discord username in the “Referrer” field during registration.</span><br>
           <span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ Maximum +1 spotlight bonus per month across both topics.</span>
         </div>
@@ -1363,7 +1363,7 @@ function updateShowcaseCampaignCopy() {
   var input = document.getElementById('showcase-link');
   var button = document.getElementById('btn-showcase-submit');
   if (title) title.innerHTML = '✨ Creator Spotlight Bonus <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span>';
-  if (description) description.innerHTML = '<strong>Choose ONE topic:</strong> post a public showcase of your official Yoyo merch, or introduce the MLT Creator Program to your friends. Earn <strong>+1 bonus point</strong> after approval.<br><span style="font-size:11px;color:#558b2f;">If a friend applies, ask them to enter <strong>your exact Discord username</strong> in the “Referrer” field during registration. This is required for us to record your referral reward.</span><br><span style="font-size:11px;color:#558b2f;">This bonus post does not count toward your 2 regular work submissions.</span><br><span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ Maximum +1 spotlight bonus per month across both topics.</span>';
+  if (description) description.innerHTML = 'Showcase your official Yoyo merch, introduce the MLT Creator Program, or <strong>combine both in one public post</strong>. Earn <strong>+1 bonus point</strong> after approval.<br><span style="font-size:11px;color:#558b2f;">If a friend applies, ask them to enter <strong>your exact Discord username</strong> in the “Referrer” field during registration. This is required for us to record your referral reward.</span><br><span style="font-size:11px;color:#558b2f;">This bonus post does not count toward your 2 regular work submissions.</span><br><span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ Whether you choose one topic or combine both, the maximum is +1 spotlight bonus per month.</span>';
   if (label) label.textContent = '🔗 Bonus Post Link';
   if (input) input.placeholder = 'https://... (your merch showcase or Creator Program post)';
   if (button) button.textContent = '✨ Submit Bonus Post';
@@ -2003,7 +2003,7 @@ async function submitShowcase() {
     status.style.color = '#e74c3c';
   }
   btn.disabled = false;
-  btn.textContent = String(currentPeriod || '') >= '2026-09' ? '✨ Submit Bonus Post' : '📸 Submit Showcase';
+  btn.textContent = '✨ Submit Bonus Post';
 }
 
 
