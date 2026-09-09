@@ -1214,10 +1214,10 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
           <div style="grid-column:1 / -1;background:#f7f0ff;border:2px solid #c7a4e8;padding:12px;">
             <div style="font-size:13px;font-weight:800;color:#6a1b9a;margin-bottom:8px;">⭐ 当前等级规则（2026-09 起）</div>
             <div style="display:grid;grid-template-columns:repeat(4,minmax(110px,1fr));gap:8px;">
-              <div><label>Gold 月内容分</label><input type="number" id="cfg-tier-gold-threshold" value="20" min="1" max="40"></div>
-              <div><label>Gold 连续月数</label><input type="number" id="cfg-tier-gold-months" value="2" min="1" max="12"></div>
-              <div><label>Platinum 月内容分</label><input type="number" id="cfg-tier-platinum-threshold" value="40" min="1" max="100"></div>
-              <div><label>Platinum 连续月数</label><input type="number" id="cfg-tier-platinum-months" value="3" min="1" max="12"></div>
+              <div><label>Gold 月内容分</label><input type="number" id="cfg-tier-gold-threshold" value="20" min="1" max="40" oninput="syncTierDescriptionFromConfig()"></div>
+              <div><label>Gold 连续月数</label><input type="number" id="cfg-tier-gold-months" value="2" min="1" max="12" oninput="syncTierDescriptionFromConfig()"></div>
+              <div><label>Platinum 月内容分</label><input type="number" id="cfg-tier-platinum-threshold" value="40" min="1" max="100" oninput="syncTierDescriptionFromConfig()"></div>
+              <div><label>Platinum 连续月数</label><input type="number" id="cfg-tier-platinum-months" value="3" min="1" max="12" oninput="syncTierDescriptionFromConfig()"></div>
             </div>
             <div style="font-size:10px;color:#76566b;margin-top:7px;line-height:1.5;">只使用纯内容封顶分。新人奖、Showcase、MochiBones、推荐奖励、结转及人工余额调整均不计入等级进度；已有等级只升不降。</div>
           </div>
@@ -1286,8 +1286,8 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
           <span style="font-size:13px;margin-left:4px;">2 分 = </span>
           <input type="number" id="cfg-eng-80" value="80" style="width:80px;"> <span style="font-size:12px;color:var(--text-light);">engagements</span>
         </div>
-        <label>等级制度说明（显示在创作者端）</label>
-        <textarea id="cfg-tier-description" style="min-height:100px;width:100%;">Certified Creator: default approved creator tier.
+        <label>当前门户等级说明（根据上方规则自动生成）</label>
+        <textarea id="cfg-tier-description" readonly style="min-height:100px;width:100%;background:#f8f5fa;color:#5f4b58;">Certified Creator: default approved creator tier.
 Gold Creator: 20+ pure content points for 2 consecutive months.
 Platinum Creator: 40+ pure content points for 3 consecutive months.
 Bonuses and carry-over do not count. Existing tiers only move up.</textarea>
@@ -2204,7 +2204,7 @@ async function loadCampaignConfig() {
       document.getElementById('cfg-tier-gold-months').value = goldRule.months || 2;
       document.getElementById('cfg-tier-platinum-threshold').value = platinumRule.threshold || 40;
       document.getElementById('cfg-tier-platinum-months').value = platinumRule.months || 3;
-      if (rules && rules.tier_description) document.getElementById('cfg-tier-description').value = rules.tier_description;
+      syncTierDescriptionFromConfig();
       if (!window._cfgSwitches) window._cfgSwitches = {};
       window._cfgSwitches.submissions_open = cfg.submissions_open === true;
       window._cfgSwitches.redemption_open = cfg.redemption_open === true;
@@ -2216,6 +2216,20 @@ async function loadCampaignConfig() {
       setCampaignCloseTimeUi('redemption', cfg.redemption_close_at);
     }
   } catch(e) { console.error('loadCampaignConfig:', e); }
+}
+
+function syncTierDescriptionFromConfig() {
+  var goldThreshold = parseInt(document.getElementById('cfg-tier-gold-threshold').value) || 20;
+  var goldMonths = parseInt(document.getElementById('cfg-tier-gold-months').value) || 2;
+  var platinumThreshold = parseInt(document.getElementById('cfg-tier-platinum-threshold').value) || 40;
+  var platinumMonths = parseInt(document.getElementById('cfg-tier-platinum-months').value) || 3;
+  var description = 'Certified Creator: default approved creator tier.\n' +
+    'Gold Creator: ' + goldThreshold + '+ pure content points for ' + goldMonths + ' consecutive months.\n' +
+    'Platinum Creator: ' + platinumThreshold + '+ pure content points for ' + platinumMonths + ' consecutive months.\n' +
+    'Bonuses and carry-over do not count. Existing tiers only move up.';
+  var textarea = document.getElementById('cfg-tier-description');
+  if (textarea) textarea.value = description;
+  return description;
 }
 
 function isCampaignFeatureOpen(manualOpen, closeAt) {
@@ -2365,7 +2379,7 @@ async function saveCampaignConfig() {
       tiers_only_move_up: true,
       excluded_points: ['new_creator_bonus', 'showcase_bonus', 'mochibones', 'referral_reward', 'carry_over', 'manual_balance_adjustment', 'continuous_creation_reward']
     },
-    tier_description: document.getElementById('cfg-tier-description').value,
+    tier_description: syncTierDescriptionFromConfig(),
     consistent_creation_bonus: { min_posts: 15 }
   };
   try {
