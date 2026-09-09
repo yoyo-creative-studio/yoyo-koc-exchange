@@ -1211,9 +1211,15 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
             <label>月积分上限</label>
             <input type="number" id="cfg-points-cap" value="40" min="1" max="100">
           </div>
-          <div>
-            <label>等级升级门槛（月基础分）</label>
-            <input type="number" id="cfg-tier-threshold" value="5" min="1" max="20">
+          <div style="grid-column:1 / -1;background:#f7f0ff;border:2px solid #c7a4e8;padding:12px;">
+            <div style="font-size:13px;font-weight:800;color:#6a1b9a;margin-bottom:8px;">⭐ 当前等级规则（2026-09 起）</div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(110px,1fr));gap:8px;">
+              <div><label>Gold 月内容分</label><input type="number" id="cfg-tier-gold-threshold" value="20" min="1" max="40"></div>
+              <div><label>Gold 连续月数</label><input type="number" id="cfg-tier-gold-months" value="2" min="1" max="12"></div>
+              <div><label>Platinum 月内容分</label><input type="number" id="cfg-tier-platinum-threshold" value="40" min="1" max="100"></div>
+              <div><label>Platinum 连续月数</label><input type="number" id="cfg-tier-platinum-months" value="3" min="1" max="12"></div>
+            </div>
+            <div style="font-size:10px;color:#76566b;margin-top:7px;line-height:1.5;">只使用纯内容封顶分。新人奖、Showcase、MochiBones、推荐奖励、结转及人工余额调整均不计入等级进度；已有等级只升不降。</div>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
@@ -1281,10 +1287,10 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
           <input type="number" id="cfg-eng-80" value="80" style="width:80px;"> <span style="font-size:12px;color:var(--text-light);">engagements</span>
         </div>
         <label>等级制度说明（显示在创作者端）</label>
-        <textarea id="cfg-tier-description" style="min-height:100px;width:100%;">认证创作官: 默认等级，所有人进来都是
-金级创作官: 连续 2 个月达到 5 分
-铂金创作官: 连续 3 个月达到 5 分
-等级只升不降</textarea>
+        <textarea id="cfg-tier-description" style="min-height:100px;width:100%;">Certified Creator: default approved creator tier.
+Gold Creator: 20+ pure content points for 2 consecutive months.
+Platinum Creator: 40+ pure content points for 3 consecutive months.
+Bonuses and carry-over do not count. Existing tiers only move up.</textarea>
         <div class="row" style="margin-top:8px;">
           <button class="btn btn-primary btn-sm" onclick="saveCampaignConfig()">💾 保存配置</button>
           <button class="btn btn-outline btn-sm" onclick="updateAgentRulesFromConfig()">📋 同步到 Agent 模板</button>
@@ -2191,7 +2197,14 @@ async function loadCampaignConfig() {
         document.getElementById('cfg-eng-per-point').value = (rules.scoring.engagement && rules.scoring.engagement.per_point) || 40;
         document.getElementById('cfg-eng-80').value = (rules.scoring.engagement && rules.scoring.engagement['80_engagements']) || 2;
       }
-      document.getElementById('cfg-tier-threshold').value = (rules && rules.tier_upgrade_threshold) || 5;
+      var tierRules = (rules && rules.tier_rules) || {};
+      var goldRule = tierRules.gold || {};
+      var platinumRule = tierRules.platinum || {};
+      document.getElementById('cfg-tier-gold-threshold').value = goldRule.threshold || 20;
+      document.getElementById('cfg-tier-gold-months').value = goldRule.months || 2;
+      document.getElementById('cfg-tier-platinum-threshold').value = platinumRule.threshold || 40;
+      document.getElementById('cfg-tier-platinum-months').value = platinumRule.months || 3;
+      if (rules && rules.tier_description) document.getElementById('cfg-tier-description').value = rules.tier_description;
       if (!window._cfgSwitches) window._cfgSwitches = {};
       window._cfgSwitches.submissions_open = cfg.submissions_open === true;
       window._cfgSwitches.redemption_open = cfg.redemption_open === true;
@@ -2332,7 +2345,10 @@ async function toggleCampaignSwitch(field) {
 async function saveCampaignConfig() {
   var period = document.getElementById('cfg-period').value;
   var pointsCap = parseInt(document.getElementById('cfg-points-cap').value) || 40;
-  var tierThreshold = parseInt(document.getElementById('cfg-tier-threshold').value) || 5;
+  var goldThreshold = parseInt(document.getElementById('cfg-tier-gold-threshold').value) || 20;
+  var goldMonths = parseInt(document.getElementById('cfg-tier-gold-months').value) || 2;
+  var platinumThreshold = parseInt(document.getElementById('cfg-tier-platinum-threshold').value) || 40;
+  var platinumMonths = parseInt(document.getElementById('cfg-tier-platinum-months').value) || 3;
   var rules = {
     scoring: {
       tiktok: { per_point: parseInt(document.getElementById('cfg-tt-per-point').value) || 200, '400_views': parseInt(document.getElementById('cfg-tt-400').value) || 400 },
@@ -2340,7 +2356,15 @@ async function saveCampaignConfig() {
       engagement: { per_point: parseInt(document.getElementById('cfg-eng-per-point').value) || 40, '80_engagements': parseInt(document.getElementById('cfg-eng-80').value) || 80 }
     },
     points_cap: pointsCap,
-    tier_upgrade_threshold: tierThreshold,
+    tier_upgrade_threshold: goldThreshold,
+    tier_rules: {
+      effective_from: '2026-09',
+      score_source: 'content_capped_points',
+      gold: { threshold: goldThreshold, months: goldMonths, operator: '>=' },
+      platinum: { threshold: platinumThreshold, months: platinumMonths, operator: '>=' },
+      tiers_only_move_up: true,
+      excluded_points: ['new_creator_bonus', 'showcase_bonus', 'mochibones', 'referral_reward', 'carry_over', 'manual_balance_adjustment', 'continuous_creation_reward']
+    },
     tier_description: document.getElementById('cfg-tier-description').value,
     consistent_creation_bonus: { min_posts: 15 }
   };
@@ -2367,11 +2391,19 @@ function updateAgentRulesFromConfig() {
   var yt400 = document.getElementById('cfg-yt-400').value;
   var eng40 = document.getElementById('cfg-eng-per-point').value;
   var eng80 = document.getElementById('cfg-eng-80').value;
+  var goldThreshold = document.getElementById('cfg-tier-gold-threshold').value;
+  var goldMonths = document.getElementById('cfg-tier-gold-months').value;
+  var platinumThreshold = document.getElementById('cfg-tier-platinum-threshold').value;
+  var platinumMonths = document.getElementById('cfg-tier-platinum-months').value;
   var rulesText = '## Scoring Rules (Current Campaign)\n\n' +
     '### TikTok\n  ' + tt200 + ' Point = 200 views; ' + tt400 + ' Points = 400 views\n\n' +
     '### YouTube\n  ' + yt200 + ' Point = 200 views + 20s watch time; ' + yt400 + ' Points = 400 views\n\n' +
     '### Social Platforms (Pinterest/FB/IG/X/Reddit)\n  ' + eng40 + ' Point = 40 engagements; ' + eng80 + ' Points = 80 engagements\n\n' +
-    '### Monthly Cap\n  Total points capped at ' + cap + '. Below 20 = actual; 20-39 = 20; 40 = full 40.';
+    '### Monthly Cap\n  Total points capped at ' + cap + '. Below 20 = actual; 20-39 = 20; 40 = full 40.\n\n' +
+    '### Creator Tier Rules (effective from 2026-09)\n' +
+    '  Gold = ' + goldThreshold + '+ pure content points for ' + goldMonths + ' consecutive months.\n' +
+    '  Platinum = ' + platinumThreshold + '+ pure content points for ' + platinumMonths + ' consecutive months.\n' +
+    '  Bonuses, MochiBones, referral rewards, carry-over and manual balance adjustments do not count. Existing tiers only move up.';
   SCORING_RULES_TEXT = rulesText;
   showToast('✅ Agent template synced with current config!', 'success');
 }
