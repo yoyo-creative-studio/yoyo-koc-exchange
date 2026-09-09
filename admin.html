@@ -3471,7 +3471,7 @@ async function confirmScoreImport() {
               var nbMonth2 = resolveCreatorNewbieMonth(kocData[0]);
               var bonusClaimed2 = notes.indexOf('newbie_bonus:' + currentPeriod) >= 0 || notesObj2['newbie_bonus:' + currentPeriod] === true || notesObj2.newbie_bonus === currentPeriod;
               var isOld2 = notes.indexOf('old_creator') >= 0 || notesObj2.old_creator === true || notesObj2.old_creator === 'true';
-              if (!isOld2 && nbMonth2 === currentPeriod && !bonusClaimed2 && pts > 5) {
+              if (!isOld2 && nbMonth2 === currentPeriod && !bonusClaimed2 && pts >= 5) {
                 await adminRpc('add_point_log_once', {
                     p_uid: sub.uid,
                     p_change: 2,
