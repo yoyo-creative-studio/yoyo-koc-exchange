@@ -306,6 +306,10 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
       
       <label>Discord Username *</label>
       <input type="text" id="reg-discord" placeholder="Your Discord username" style="margin-bottom:8px;">
+
+      <label>Referrer's Discord Username <span style="font-weight:400;color:var(--text-light);">(optional)</span></label>
+      <input type="text" id="reg-referrer" placeholder="Who invited you? Enter their exact Discord username" style="margin-bottom:4px;">
+      <span style="font-size:11px;color:var(--text-light);display:block;margin-bottom:8px;">If a creator invited you, enter their exact Discord username so their referral reward can be recorded.</span>
       
       <label>System ID (starts with 6, numbers) *</label>
       <input type="text" id="reg-account-id" placeholder="System ID (numbers starting with 6)" inputmode="numeric" style="margin-bottom:8px;">
@@ -457,15 +461,15 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
 
       <!-- Monthly Creator Spotlight Bonus (+1 pt) -->
       <div class="card" id="showcase-card">
-        <div class="card-title" id="showcase-title">📸 Official Merch Showcase <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span></div>
+        <div class="card-title" id="showcase-title">✨ Creator Spotlight Bonus <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span></div>
         <div id="showcase-description" style="background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:10px;padding:10px;font-size:12px;margin-bottom:12px;color:#2e7d32;line-height:1.7;">
-          🎁 Got your official Yoyo merch? Post a photo or video showing it off and earn <strong>+1 bonus point</strong>!<br>
-          <span style="font-size:11px;color:#558b2f;">Make sure the post is public, then paste the link below. Reviewed by admin. Does not count toward your 2 work submissions.</span><br>
-          <span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ Maximum +1 point per month.</span>
+          <strong>Choose ONE topic:</strong> showcase your official Yoyo merch, or introduce the MLT Creator Program to your friends. Earn <strong>+1 bonus point</strong> after approval.<br>
+          <span style="font-size:11px;color:#558b2f;">If a friend applies, ask them to enter your exact Discord username in the “Referrer” field during registration.</span><br>
+          <span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ Maximum +1 spotlight bonus per month across both topics.</span>
         </div>
-        <label id="showcase-link-label">🔗 Showcase Link</label>
-        <input type="text" id="showcase-link" placeholder="https://... (your merch showcase post)">
-        <button class="btn btn-primary" id="btn-showcase-submit" onclick="submitShowcase()" style="margin-top:8px;">📸 Submit Showcase</button>
+        <label id="showcase-link-label">🔗 Bonus Post Link</label>
+        <input type="text" id="showcase-link" placeholder="https://... (your merch showcase or Creator Program post)">
+        <button class="btn btn-primary" id="btn-showcase-submit" onclick="submitShowcase()" style="margin-top:8px;">✨ Submit Bonus Post</button>
         <div id="showcase-status" style="margin-top:8px;font-size:12px;color:var(--text-light);text-align:center;min-height:18px;"></div>
       </div>
     </div>
@@ -1353,21 +1357,16 @@ function showDashboard() {
 }
 
 function updateShowcaseCampaignCopy() {
-  var isSeptemberRule = String(currentPeriod || '') >= '2026-09';
   var title = document.getElementById('showcase-title');
   var description = document.getElementById('showcase-description');
   var label = document.getElementById('showcase-link-label');
   var input = document.getElementById('showcase-link');
   var button = document.getElementById('btn-showcase-submit');
-  if (title) title.innerHTML = isSeptemberRule
-    ? '✨ Creator Spotlight Bonus <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span>'
-    : '📸 Official Merch Showcase <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span>';
-  if (description) description.innerHTML = isSeptemberRule
-    ? 'Create one public post that either <strong>showcases your official Yoyo merch</strong> or <strong>introduces the MLT Creator Program</strong> and earn <strong>+1 bonus point</strong> after approval.<br><span style="font-size:11px;color:#558b2f;">Choose either topic. This bonus does not count toward your 2 regular work submissions.</span><br><span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ Maximum +1 point per month across both options.</span>'
-    : '🎁 Got your official Yoyo merch? Post a photo or video showing it off and earn <strong>+1 bonus point</strong>!<br><span style="font-size:11px;color:#558b2f;">Make sure the post is public, then paste the link below. Reviewed by admin. Does not count toward your 2 work submissions.</span><br><span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ Maximum +1 point per month.</span>';
-  if (label) label.textContent = isSeptemberRule ? '🔗 Bonus Post Link' : '🔗 Showcase Link';
-  if (input) input.placeholder = isSeptemberRule ? 'https://... (your merch or Creator Program post)' : 'https://... (your merch showcase post)';
-  if (button) button.textContent = isSeptemberRule ? '✨ Submit Bonus Post' : '📸 Submit Showcase';
+  if (title) title.innerHTML = '✨ Creator Spotlight Bonus <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span>';
+  if (description) description.innerHTML = '<strong>Choose ONE topic:</strong> post a public showcase of your official Yoyo merch, or introduce the MLT Creator Program to your friends. Earn <strong>+1 bonus point</strong> after approval.<br><span style="font-size:11px;color:#558b2f;">If a friend applies, ask them to enter <strong>your exact Discord username</strong> in the “Referrer” field during registration. This is required for us to record your referral reward.</span><br><span style="font-size:11px;color:#558b2f;">This bonus post does not count toward your 2 regular work submissions.</span><br><span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ Maximum +1 spotlight bonus per month across both topics.</span>';
+  if (label) label.textContent = '🔗 Bonus Post Link';
+  if (input) input.placeholder = 'https://... (your merch showcase or Creator Program post)';
+  if (button) button.textContent = '✨ Submit Bonus Post';
 }
 
 async function loadCommunityMilestone() {
@@ -1738,6 +1737,7 @@ function showExistingLogin() {
 }
 async function registerCreator() {
   var discord = document.getElementById('reg-discord').value.trim();
+  var referrerDiscord = document.getElementById('reg-referrer').value.trim();
   var accountId = document.getElementById('reg-account-id').value.trim();
   var gameUid = document.getElementById('reg-game-uid').value.trim();
   var fullname = document.getElementById('reg-fullname').value.trim();
@@ -1792,6 +1792,7 @@ async function registerCreator() {
       country: country,
       phone: phone
     };
+    if (referrerDiscord) notesObj.referrer_discord = referrerDiscord;
 
     var payload = {
       uid: gameUid,
