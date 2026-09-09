@@ -7432,68 +7432,84 @@ function comparePeriodDesc(a, b) {
 }
 function buildInGameRewardRows(allHistory) {
   var kmap = getKocMap();
-  var diamondOrders = (allHistory || allOrders).filter(function(o) { return o.option_type === 'diamonds' && o.status === 'shipped' && (rewardHasDiamond(o) || rewardHasCC(o)); });
-  var ccCreators = (allKocs || []).filter(function(k) { return k.status === 'active'; });
+  var inGameOrders = (allHistory || allOrders).filter(function(o) {
+    return o.option_type === 'diamonds' && o.status === 'shipped' && (rewardHasDiamond(o) || rewardHasCC(o));
+  });
   var ccByUid = {};
-  ccCreators.forEach(function(k) {
+  (allKocs || []).filter(function(k) { return k.status === 'active'; }).forEach(function(k) {
     var matches = (k.notes || '').match(/CC:([0-9]{4}-[0-9]{2})/g) || [];
-    if (!matches.length) return;
-    var grouped = {};
     matches.forEach(function(tag) {
       var p = tag.slice(3);
-      grouped[p] = (grouped[p] || 0) + 1;
+      if (!ccByUid[k.uid]) ccByUid[k.uid] = {};
+      ccByUid[k.uid][p] = true;
     });
-    ccByUid[k.uid] = grouped;
   });
+
+  var merged = {};
+  function ensureMerged(uid, period) {
+    var key = uid + '|' + period;
+    if (!merged[key]) merged[key] = {
+      uid: uid,
+      period: period,
+      orders: [],
+      ccOrder: null,
+      diamondOrder: null,
+      hasCC: false,
+      diamondUnits: 0
+    };
+    return merged[key];
+  }
+
+  inGameOrders.forEach(function(order) {
+    var period = order.period || (order.created_at || '').substring(0, 7) || currentPeriod;
+    var item = ensureMerged(order.uid, period);
+    item.orders.push(order);
+    if (rewardHasCC(order)) {
+      item.hasCC = true;
+      if (!item.ccOrder) item.ccOrder = order;
+    }
+    if (rewardHasDiamond(order)) {
+      item.diamondUnits += getDiamondUnits(order);
+      if (!item.diamondOrder) item.diamondOrder = order;
+    }
+  });
+
+  Object.keys(ccByUid).forEach(function(uid) {
+    Object.keys(ccByUid[uid]).forEach(function(period) {
+      ensureMerged(uid, period).hasCC = true;
+    });
+  });
+
   var grouped = {};
-  diamondOrders.forEach(function(o) {
-    var period = o.period || (o.created_at || '').substring(0, 7) || currentPeriod;
+  Object.keys(merged).forEach(function(key) {
+    var item = merged[key];
+    var period = item.period;
     if (!grouped[period]) grouped[period] = { both: [], ccOnly: [], diamondOnly: [] };
-    var koc = kmap[o.uid] || {};
-    var ccCount = (ccByUid[o.uid] && ccByUid[o.uid][period]) || 0;
-    var hasCC = rewardHasCC(o) || ccCount > 0;
-    var hasDiamond = rewardHasDiamond(o);
+    var koc = kmap[item.uid] || {};
+    var hasCC = item.hasCC;
+    var hasDiamond = item.diamondUnits > 0;
+    var representativeOrder = item.diamondOrder || item.ccOrder || item.orders[0] || null;
+    var rewardParts = [];
+    if (hasCC) rewardParts.push(getCCRewardText(1));
+    if (hasDiamond) rewardParts.push('450钻石*' + item.diamondUnits);
     var row = {
-      id: o.id,
-      uid: o.uid,
+      id: representativeOrder ? representativeOrder.id : item.uid + '-' + period,
+      uid: item.uid,
       koc: koc,
-      order: o,
-      ccCount: ccCount,
+      order: representativeOrder,
+      orderIds: item.orders.map(function(order) { return order.id; }),
+      ccCount: hasCC ? 1 : 0,
       hasCC: hasCC,
       hasDiamond: hasDiamond,
-      name: getDisplayName(koc, o),
+      name: getDisplayName(koc, representativeOrder),
       server: getServerName(koc),
       accountId: getAccountId(koc),
-      reward: getInGameRewardText(ccCount, o),
+      reward: rewardParts.join('，'),
       period: period
     };
     if (hasCC && hasDiamond) grouped[period].both.push(row);
     else if (hasCC) grouped[period].ccOnly.push(row);
     else if (hasDiamond) grouped[period].diamondOnly.push(row);
-  });
-  Object.keys(ccByUid).forEach(function(uid) {
-    var koc = kmap[uid] || {};
-    var ccPeriods = ccByUid[uid];
-    Object.keys(ccPeriods).forEach(function(period) {
-      if (!grouped[period]) grouped[period] = { both: [], ccOnly: [], diamondOnly: [] };
-      var hasDiamond = diamondOrders.some(function(o) { return o.uid === uid && (o.period || (o.created_at || '').substring(0, 7) || currentPeriod) === period; });
-      if (!hasDiamond) {
-        grouped[period].ccOnly.push({
-          id: uid + '-' + period,
-          uid: uid,
-          koc: koc,
-          order: null,
-          ccCount: ccPeriods[period],
-          hasCC: true,
-          hasDiamond: false,
-          name: getDisplayName(koc, null),
-          server: getServerName(koc),
-          accountId: getAccountId(koc),
-          reward: getCCRewardText(ccPeriods[period]),
-          period: period
-        });
-      }
-    });
   });
   return grouped;
 }
