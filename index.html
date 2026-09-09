@@ -1654,6 +1654,15 @@ function switchCreatorTab(name) {
   }
 }
 
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState !== 'visible' || !currentUser) return;
+  var redeemTab = document.getElementById('creator-tab-redeem');
+  if (redeemTab && redeemTab.classList.contains('active')) {
+    refreshAvailableBalance().catch(function(error) { console.error('Balance refresh failed:', error); });
+    loadOrders();
+  }
+});
+
 // ===== SUBMIT WORKS =====
 
 // ===== REGISTRATION =====
