@@ -2816,7 +2816,7 @@ async function approveShowcase(id, uid) {
     var newBal = bal + 1;
     var logResp = await supabaseFetch(SUPABASE_URL + '/rest/v1/point_logs', {
       method: 'POST',
-      body: JSON.stringify({ uid: uid, change: 1, balance_after: newBal, source: 'manual', reason: currentPeriod >= '2026-09' ? 'Creator Spotlight Bonus' : '官方周边showcase', period: currentPeriod, created_by: 'admin', created_at: new Date().toISOString() })
+      body: JSON.stringify({ uid: uid, change: 1, balance_after: newBal, source: 'manual', reason: currentPeriod >= '2026-09' ? 'Showcase Bonus' : '官方周边showcase', period: currentPeriod, created_by: 'admin', created_at: new Date().toISOString() })
     });
     if (!logResp.ok) { showToast('加分失败，请重试', 'error'); return; }
     var patchResp = await supabaseFetch(SUPABASE_URL + '/rest/v1/submissions?id=eq.' + id, {

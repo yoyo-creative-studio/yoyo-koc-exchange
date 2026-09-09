@@ -459,13 +459,13 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
         </div>
       </div>
 
-      <!-- Monthly Creator Spotlight Bonus (+1 pt) -->
+      <!-- Monthly Showcase Bonus (+1 pt) -->
       <div class="card" id="showcase-card">
-        <div class="card-title" id="showcase-title">✨ Creator Spotlight Bonus <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span></div>
+        <div class="card-title" id="showcase-title">✨ Showcase Bonus <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span></div>
         <div id="showcase-description" style="background:#e8f5e9;border:1.5px solid #a5d6a7;border-radius:10px;padding:10px;font-size:12px;margin-bottom:12px;color:#2e7d32;line-height:1.7;">
-          Showcase your official Yoyo merch, introduce the MLT Creator Program, or combine both in one public post. Earn <strong>+1 bonus point</strong> after approval.<br>
+          <strong>Choose one:</strong><br>🎁 Showcase your official Yoyo merch.<br><strong style="display:block;text-align:center;color:#ad1457;">OR</strong>💗 Introduce the MLT Creator Program.<br><span style="font-size:11px;color:#558b2f;">You may also combine both in one public post.</span><br>
           <span style="font-size:11px;color:#558b2f;">If a friend applies, ask them to enter your exact Discord username in the “Referrer” field during registration.</span><br>
-          <span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ Maximum +1 spotlight bonus per month across both topics.</span>
+          <span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ After approval, you receive a maximum of +1 Showcase Bonus per month.</span>
         </div>
         <label id="showcase-link-label">🔗 Bonus Post Link</label>
         <input type="text" id="showcase-link" placeholder="https://... (your merch showcase or Creator Program post)">
@@ -1362,8 +1362,8 @@ function updateShowcaseCampaignCopy() {
   var label = document.getElementById('showcase-link-label');
   var input = document.getElementById('showcase-link');
   var button = document.getElementById('btn-showcase-submit');
-  if (title) title.innerHTML = '✨ Creator Spotlight Bonus <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span>';
-  if (description) description.innerHTML = 'Showcase your official Yoyo merch, introduce the MLT Creator Program, or <strong>combine both in one public post</strong>. Earn <strong>+1 bonus point</strong> after approval.<br><span style="font-size:11px;color:#558b2f;">If a friend applies, ask them to enter <strong>your exact Discord username</strong> in the “Referrer” field during registration. This is required for us to record your referral reward.</span><br><span style="font-size:11px;color:#558b2f;">This bonus post does not count toward your 2 regular work submissions.</span><br><span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ Whether you choose one topic or combine both, the maximum is +1 spotlight bonus per month.</span>';
+  if (title) title.innerHTML = '✨ Showcase Bonus <span style="background:#43b581;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px;">+1 pt</span>';
+  if (description) description.innerHTML = '<strong>Choose one:</strong><br>🎁 Showcase your official Yoyo merch.<br><strong style="display:block;text-align:center;color:#ad1457;">OR</strong>💗 Introduce the MLT Creator Program.<br><span style="font-size:11px;color:#558b2f;">You may also combine both in one public post.</span><br><span style="font-size:11px;color:#558b2f;">If a friend applies, ask them to enter <strong>your exact Discord username</strong> in the “Referrer” field during registration. This is required for us to record your referral reward.</span><br><span style="font-size:11px;color:#558b2f;">This bonus post does not count toward your 2 regular work submissions.</span><br><span style="font-size:11px;color:#d84315;font-weight:600;">⚠️ After approval, you receive a maximum of +1 Showcase Bonus per month.</span>';
   if (label) label.textContent = '🔗 Bonus Post Link';
   if (input) input.placeholder = 'https://... (your merch showcase or Creator Program post)';
   if (button) button.textContent = '✨ Submit Bonus Post';
@@ -2233,11 +2233,11 @@ function renderMonthView(ym, months, byMonth, ptLogs, container, countEl, period
       var linkCount = engagementCount + viewCount;
       var dateLabel = new Date(submission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       var isShowcase = submission.submission_type === 'showcase';
-      var title = isShowcase ? (getSubmissionPeriod(submission) >= '2026-09' ? '✨ Creator Spotlight Bonus' : '📸 Official Merch Showcase') : '🎨 Work Submission';
+      var title = isShowcase ? (getSubmissionPeriod(submission) >= '2026-09' ? '✨ Showcase Bonus' : '📸 Official Merch Showcase') : '🎨 Work Submission';
       html += '<div class="submission-record-card"><div class="submission-record-head"><div><div class="submission-record-title">' + title + '</div>';
       html += '<div class="submission-record-meta">' + esc(dateLabel) + ' · ' + linkCount + ' link' + (linkCount === 1 ? '' : 's') + (engagementCount && viewCount ? ' · ' + engagementCount + ' engagement / ' + viewCount + ' view' : '') + '</div>';
       if (status === 'scored' && !isShowcase) html += '<div class="submission-record-score">Base Content Score: +' + Number(submission.points_earned || 0) + '</div>';
-      if (status === 'scored' && isShowcase) html += '<div class="submission-record-score">' + (getSubmissionPeriod(submission) >= '2026-09' ? 'Creator Spotlight Bonus' : 'Showcase Bonus') + ': +' + Number(submission.points_earned || 1) + '</div>';
+      if (status === 'scored' && isShowcase) html += '<div class="submission-record-score">Showcase Bonus: +' + Number(submission.points_earned || 1) + '</div>';
       if (status === 'pending') html += '<div class="submission-record-meta">Waiting for monthly review and scoring.</div>';
       if (status === 'rejected') html += '<div class="submission-record-meta">This entry does not count toward your submission limit or Continuous Creation reward.</div>';
       html += '</div><span class="submission-status submission-status-' + esc(status) + '">' + statusLabel + '</span></div></div>';
