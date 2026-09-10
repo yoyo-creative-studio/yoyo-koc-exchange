@@ -1021,7 +1021,7 @@ async function getBalance(uid) {
 
 async function getPendingRedemptionTotal(uid) {
   try {
-    const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/redemption_orders?uid=eq.${encodeURIComponent(uid)}&status=eq.pending&select=points_spent`);
+    const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/redemption_orders?uid=eq.${encodeURIComponent(uid)}&status=in.(pending,processing)&select=points_spent`);
     const d = r.ok ? await r.json() : [];
     return (d || []).reduce(function(sum, row) { return sum + (Number(row.points_spent) || 0); }, 0);
   } catch(e) { return 0; }
@@ -1087,7 +1087,7 @@ async function refreshAvailableBalance() {
     if (redeemedLabel) redeemedLabel.textContent = 'Redeemed in ' + readablePeriod;
   }
   var redeemDisplay = document.getElementById('display-user-redeem');
-  if (redeemDisplay) redeemDisplay.textContent = pendingTotal > 0 ? pendingTotal + ' pts are temporarily reserved until pending orders are processed.' : 'No points are currently reserved by pending orders.';
+  if (redeemDisplay) redeemDisplay.textContent = pendingTotal > 0 ? pendingTotal + ' pts are reserved while your reward order is pending or processing.' : 'No points are currently reserved by reward orders.';
   renderOptions();
   return currentUser.points;
 }
