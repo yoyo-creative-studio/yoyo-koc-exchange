@@ -1030,13 +1030,18 @@ async function getMonthEarnedPoints(uid, period) {
   try {
     const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/point_logs?uid=eq.${encodeURIComponent(uid)}&period=eq.${encodeURIComponent(period)}&change=gt.0&select=change,source,reason,operation_key`);
     const d = r.ok ? await r.json() : [];
-    return (d || []).reduce(function(sum, row) { return isCarryoverPointLog(row) ? sum : sum + (Number(row.change) || 0); }, 0);
+    return (d || []).reduce(function(sum, row) { return (isCarryoverPointLog(row) || isBalanceRestorationPointLog(row)) ? sum : sum + (Number(row.change) || 0); }, 0);
   } catch(e) { return 0; }
 }
 function isCarryoverPointLog(row) {
   if (!row) return false;
   var text = [row.source, row.reason, row.operation_key].join(' ').toLowerCase();
   return /opening[\s_-]*balance|opening[\s_-]*points|期初|结转|carry[\s_-]*over|过去的积分|剩余积分/.test(text);
+}
+function isBalanceRestorationPointLog(row) {
+  if (!row) return false;
+  var text = [row.source, row.reason, row.operation_key].join(' ').toLowerCase();
+  return /refund|退款|退回|撤销扣分|balance restoration/.test(text);
 }
 async function getCarryoverBalance(uid, period) {
   try {
@@ -1047,7 +1052,7 @@ async function getCarryoverBalance(uid, period) {
 }
 async function getMonthRedeemedPoints(uid, period) {
   try {
-    const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/redemption_orders?uid=eq.${encodeURIComponent(uid)}&period=eq.${encodeURIComponent(period)}&status=neq.cancelled&points_spent=gt.0&select=points_spent`);
+    const r = await fetchWithTimeout(`${SUPABASE_URL}/rest/v1/redemption_orders?uid=eq.${encodeURIComponent(uid)}&period=eq.${encodeURIComponent(period)}&status=eq.shipped&points_spent=gt.0&select=points_spent`);
     const d = r.ok ? await r.json() : [];
     return (d || []).reduce(function(sum, row) { return sum + (Number(row.points_spent) || 0); }, 0);
   } catch(e) { return 0; }
