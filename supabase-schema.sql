@@ -46,7 +46,7 @@ CREATE TABLE redemption_orders (
   points_spent INTEGER NOT NULL,
   reward_amount TEXT DEFAULT '',
   contact_info TEXT DEFAULT '',       -- JSON 收货信息
-  status TEXT DEFAULT 'pending' CHECK(status IN ('pending','shipped','cancelled')),
+  status TEXT DEFAULT 'pending' CHECK(status IN ('pending','processing','shipped','cancelled')),
   admin_notes TEXT DEFAULT '',
   period TEXT DEFAULT '',
   request_id TEXT,

@@ -6749,7 +6749,7 @@ function renderScoringTable() {
             return '<div class="order-row" style="display:flex;align-items:center;gap:4px;margin:2px 0;font-size:12px;">' +
               '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + optName + '</span>' +
               ' <span class="badge badge-' + o.status + '">' + (o.status === 'shipped' ? '\u2705 ' : '\u23F3 ') + o.status + '</span> ' +
-              (o.status === 'pending' ? '<span class="btn btn-success btn-sm" onclick="shipOrder(event,' + o.id + ')" title="标记完成并同步到对应奖励模块" style="padding:1px 6px;font-size:11px;cursor:pointer;">\u2713</span>' : '') +
+              (o.status === 'pending' ? '<span class="btn btn-success btn-sm" onclick="shipOrder(event,' + o.id + ')" title="分配到对应奖励模块，不扣积分" style="padding:1px 6px;font-size:11px;cursor:pointer;">分配</span>' : '') +
             '</div>';
           }).join('') +
           (orders.length > 10 ? '<div style="font-size:11px;color:var(--text-light);">+' + (orders.length-10) + ' more</div>' : '') +
@@ -6923,13 +6923,13 @@ async function shipOrder(ev, id) {
     if (!order) throw new Error('Order not found');
     if (shipBtn) { shipBtn.disabled = true; shipBtn.textContent = '⏳'; }
 
-    // Skip if already shipped
-    if (order.status === 'shipped') { showToast('Already shipped', 'info'); return; }
+    if (order.status === 'shipped') { showToast('该订单已经完成发放', 'info'); return; }
+    if (order.status === 'processing') { showToast('该订单已经进入奖励发放模块', 'info'); return; }
 
-    await adminRpc('ship_redemption_order', { p_order_id: id });
+    await adminRpc('queue_redemption_order', { p_order_id: id });
 
-    showToast('\u2705 Shipped' + (order.points_spent > 0 ? ' + pts deducted' : ''), 'success');
-    writeAuditLog('diamond', 'ship order #' + id + ' uid ' + order.uid + ' points ' + (order.points_spent || 0));
+    showToast('✅ 已分配到对应奖励模块，暂未扣积分', 'success');
+    writeAuditLog('reward', 'queue order #' + id + ' uid ' + order.uid + ' without point deduction');
     loadData();
   } catch (e) { showToast('Error: ' + e.message, 'error'); }
   finally {
@@ -7479,7 +7479,7 @@ function comparePeriodDesc(a, b) {
 function buildInGameRewardRows(allHistory) {
   var kmap = getKocMap();
   var inGameOrders = (allHistory || allOrders).filter(function(o) {
-    return o.option_type === 'diamonds' && o.status === 'shipped' && (rewardHasDiamond(o) || rewardHasCC(o));
+    return o.option_type === 'diamonds' && (o.status === 'processing' || o.status === 'shipped') && (rewardHasDiamond(o) || rewardHasCC(o));
   });
   var ccByUid = {};
   (allKocs || []).filter(function(k) { return k.status === 'active'; }).forEach(function(k) {
@@ -7794,7 +7794,7 @@ async function deleteSelectedRewardOrders(type) {
 
 function renderMerchTab(keepToolbar) {
   var kmap = getKocMap();
-  var sourceOrders = allOrders.filter(function(o) { return o.option_type === 'merch' && o.status === 'shipped'; }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
+  var sourceOrders = allOrders.filter(function(o) { return o.option_type === 'merch' && (o.status === 'processing' || o.status === 'shipped'); }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
   if (!keepToolbar) renderRewardLedgerToolbar('merch', sourceOrders);
   var orders = filterRewardLedgerRows('merch', sourceOrders);
   document.getElementById('merch-count').textContent = '📅 长期台账 (' + orders.length + ' orders)';
@@ -7880,7 +7880,7 @@ function renderDiamondTab(keepToolbar) {
 
 function renderGplayTab(keepToolbar) {
   var kmap = getKocMap();
-  var sourceOrders = allOrders.filter(function(o) { return o.option_type === 'gplay' && o.status === 'shipped'; }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
+  var sourceOrders = allOrders.filter(function(o) { return o.option_type === 'gplay' && (o.status === 'processing' || o.status === 'shipped'); }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
   if (!keepToolbar) renderRewardLedgerToolbar('gplay', sourceOrders);
   var orders = filterRewardLedgerRows('gplay', sourceOrders);
   document.getElementById('gplay-count').textContent = '📅 长期台账 (' + orders.length + ' orders)';
@@ -7958,7 +7958,7 @@ function exportMonth(type, label) {
     return;
   }
   if (type === 'gplay') {
-    var gplayOrders = allOrders.filter(function(o) { return o.option_type === 'gplay' && o.status === 'shipped'; }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
+    var gplayOrders = allOrders.filter(function(o) { return o.option_type === 'gplay' && (o.status === 'processing' || o.status === 'shipped'); }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
     if (!gplayOrders.length) { showToast('No orders to export', 'error'); return; }
     header = '批次\t姓名\t国家\t奖励';
     rows = gplayOrders.map(function(o) {
@@ -7970,7 +7970,7 @@ function exportMonth(type, label) {
     return;
   }
   if (type === 'merch') {
-    var merchOrders = allOrders.filter(function(o) { return o.option_type === 'merch' && o.status === 'shipped'; }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
+    var merchOrders = allOrders.filter(function(o) { return o.option_type === 'merch' && (o.status === 'processing' || o.status === 'shipped'); }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
     if (!merchOrders.length) { showToast('No orders to export', 'error'); return; }
     header = '批次\t姓名\tDiscord\t地址\t城市\t州/省\t邮编\t国家\t手机\t奖励\t备注';
     rows = merchOrders.map(function(o) {
