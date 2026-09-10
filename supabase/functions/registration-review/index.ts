@@ -182,6 +182,7 @@ serve(async (req) => {
         "publish_campaign_period",
         "add_point_log_once",
         "ship_redemption_order",
+        "queue_redemption_order",
         "preview_legacy_tier_upgrades",
         "apply_legacy_tier_upgrade_preview",
       ]);
