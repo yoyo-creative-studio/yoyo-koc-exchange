@@ -6682,6 +6682,17 @@ function renderScoringTable() {
     var orders = allOrders.filter(function(o) {
       return o.uid === k.uid && ((o.period||'') === currentPeriod || (o.created_at||'').substring(0,7) === currentPeriod);
     });
+    var otherOrderPeriods = {};
+    if (!orders.length) {
+      allOrders.forEach(function(order) {
+        if (order.uid !== k.uid || Number(order.points_spent || 0) <= 0 || order.status === 'cancelled') return;
+        var orderPeriod = order.period || (order.created_at || '').substring(0, 7);
+        if (orderPeriod && orderPeriod !== currentPeriod) otherOrderPeriods[orderPeriod] = (otherOrderPeriods[orderPeriod] || 0) + 1;
+      });
+    }
+    var otherOrderHint = Object.keys(otherOrderPeriods).sort().reverse().map(function(period) {
+      return period + ' 有 ' + otherOrderPeriods[period] + ' 张订单';
+    }).join(' · ');
     var pendingOrders = orders.filter(function(o) { return o.status === 'pending'; });
     var cc = hasCC(k.notes);
     return '<tr>' +
@@ -6697,6 +6708,7 @@ function renderScoringTable() {
       '</td>' +
       '<td style="max-width:260px;">' +
         (orders.length + ' orders (' + pendingOrders.length + ' pending)') +
+        (!orders.length && otherOrderHint ? '<div style="margin-top:3px;padding:4px 6px;background:#fff3e0;color:#e65100;font-size:11px;font-weight:700;line-height:1.4;">⚠️ ' + esc(otherOrderHint) + '，请切换工作月份查看</div>' : '') +
         '<div id="orders-' + k.uid + '" style="margin-top:4px;max-width:240px;">' +
           orders.slice(0,10).map(function(o) {
             var optName = esc(o.option_name||o.item||'');

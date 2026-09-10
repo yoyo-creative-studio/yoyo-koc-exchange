@@ -1479,6 +1479,13 @@ async function redeem() {
 
     const freshBalance = await getBalance(currentUser.uid);
     const pendingTotal = await getPendingRedemptionTotal(currentUser.uid);
+    var existingOrderResponse = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?uid=eq.' + encodeURIComponent(currentUser.uid) + '&period=eq.' + encodeURIComponent(currentPeriod) + '&points_spent=gt.0&status=neq.cancelled&select=id,option_name,status&limit=1');
+    if (!existingOrderResponse.ok) throw new Error('Unable to verify existing reward orders');
+    var existingOrders = await existingOrderResponse.json() || [];
+    if (existingOrders.length) {
+      await loadOrders();
+      throw new Error('You have already selected a reward for this redemption period. Check My Orders or contact support if you need to change it.');
+    }
     const available = Math.max(0, freshBalance - pendingTotal);
     currentUser.points = available;
     if (totalCost > available) {
