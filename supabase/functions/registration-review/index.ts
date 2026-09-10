@@ -279,11 +279,11 @@ serve(async (req) => {
         points_spent: 0,
         reward_amount: rewardContent,
         contact_info: type === "merch" ? address : "",
-        status: "shipped",
+        status: "processing",
         admin_notes: String(data.notes || "").trim() || "Manual reward entry by admin",
         period,
-        processed_at: new Date().toISOString(),
-        processed_by: "admin",
+        processed_at: null,
+        processed_by: "admin_manual_queue",
       }).select("*").single();
       if (error) return json({ ok: false, error: error.message }, 400);
       return json({ ok: true, order });
