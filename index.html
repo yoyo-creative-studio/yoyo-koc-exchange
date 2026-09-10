@@ -1594,8 +1594,12 @@ async function loadOrders() {
     }
     if (card) card.style.display = 'block';
     container.innerHTML = '<div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">📅 Reward History · current campaign ' + currentMonth.replace('-', '/') + '</div>' +
+    '<div style="background:#fff8fb;border:1px solid #f3c4d8;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:11px;color:#765466;line-height:1.6;">' +
+      '<strong>Order status:</strong> <b>Pending</b> = waiting for admin processing · <b>Shipped</b> = reward has been processed or sent · <b>Cancelled</b> = order was cancelled and will not be fulfilled.' +
+    '</div>' +
     orders.map(function(o) {
       var statusClass = o.status === 'shipped' ? 'badge-shipped' : o.status === 'pending' ? 'badge-pending' : 'badge-cancelled';
+      var statusLabel = o.status === 'shipped' ? 'Shipped · Processed' : o.status === 'pending' ? 'Pending · Awaiting processing' : 'Cancelled · Not processed';
       var displayName = o.option_name || o.option_type;
       if (displayName === '🎁 新人入职周边') displayName = '🎁 New Creator Welcome Gift';
       var displayAmount = o.reward_amount || '';
@@ -1608,7 +1612,7 @@ async function loadOrders() {
         '<span>' + o.points_spent + ' pts</span>' +
         '</div>' +
         '<div class="order-meta">' +
-        '<span class="badge ' + statusClass + '">' + o.status + '</span>' +
+        '<span class="badge ' + statusClass + '">' + statusLabel + '</span>' +
         ' · ' + esc(orderMonth || '') + ' · ' + new Date(o.created_at).toLocaleDateString() +
         '</div>' + renderCreatorFulfillment(fulfillment, o) + '</div>';
     }).join('');
