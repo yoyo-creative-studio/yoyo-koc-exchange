@@ -98,6 +98,9 @@
   .order-row { font-size: 12px; color: var(--text-light); padding: 3px 0; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .stats-bar { display: flex; gap: 16px; font-size: 13px; color: var(--text-light); margin-bottom: 12px; flex-wrap: wrap; }
   .stats-bar span { background: var(--pink-light); padding: 4px 12px; border-radius: 20px; font-weight: 500; }
+  .stats-bar .stat-filter-link { cursor: pointer; border: 1px solid transparent; user-select: none; }
+  .stats-bar .stat-filter-link:hover { border-color: var(--pink); color: var(--pink-dark); }
+  .stats-bar .stat-filter-link.active { background: var(--pink); color: white; }
   .list-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:10px 0 12px; padding:10px; background:#fff7fb; border:1px solid var(--border); border-radius:12px; }
   .list-toolbar input[type="search"] { flex:1; min-width:190px; background:#fff; }
   .list-toolbar select { min-width:130px; background:#fff; }
@@ -1072,9 +1075,9 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
         </div>
         <div class="stats-bar" id="stats-bar">
           <span id="stat-total">Loading...</span>
-          <span id="stat-submitters">Loading...</span>
-          <span id="stat-redeemers">Loading...</span>
-          <span id="stat-not-redeemed">Loading...</span>
+          <span id="stat-submitters" class="stat-filter-link" onclick="setScoringParticipationFilter('submitted')" title="Click to show creators who submitted this month">Loading...</span>
+          <span id="stat-redeemers" class="stat-filter-link" onclick="setScoringParticipationFilter('redeemed')" title="Click to show creators who selected a reward">Loading...</span>
+          <span id="stat-not-redeemed" class="stat-filter-link" onclick="setScoringParticipationFilter('not-redeemed')" title="Click to show creators who have not selected a reward">Loading...</span>
           <span id="stat-shipped">Loading...</span>
           <span id="stat-pending">Loading...</span>
           <span id="stat-cc" style="margin-left:12px;font-size:12px;color:var(--text-light);"></span>
@@ -1086,6 +1089,9 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
             <option value="has-pending">有 Pending 订单</option>
             <option value="has-orders">有当月订单</option>
             <option value="no-orders">无当月订单</option>
+            <option value="submitted">本月已投稿</option>
+            <option value="redeemed">本月已选择兑换</option>
+            <option value="not-redeemed">本月未选择兑换</option>
           </select>
           <select id="scoring-filter-cc" style="padding:8px 12px;border:1.5px solid var(--pink);border-radius:8px;font-size:13px;" onchange="renderScoringTable()">
             <option value="all">全部 CC 状态</option>
@@ -6671,6 +6677,11 @@ function renderScoringTable() {
   var statusFilter = filterStatus ? filterStatus.value : 'all';
   var ccFilter = filterCC ? filterCC.value : 'all';
   var tierFilter = filterTier ? filterTier.value : 'all';
+  ['submitted', 'redeemed', 'not-redeemed'].forEach(function(value) {
+    var id = value === 'submitted' ? 'stat-submitters' : value === 'redeemed' ? 'stat-redeemers' : 'stat-not-redeemed';
+    var element = document.getElementById(id);
+    if (element) element.classList.toggle('active', statusFilter === value);
+  });
 
   var filtered = allKocs.filter(function(k) {
     // Search filter
@@ -6688,6 +6699,15 @@ function renderScoringTable() {
     if (statusFilter === 'has-pending' && !hasPending) return false;
     if (statusFilter === 'has-orders' && !hasOrders) return false;
     if (statusFilter === 'no-orders' && hasOrders) return false;
+    var hasSubmitted = allSubmissions.some(function(s) {
+      return s.uid === k.uid && s.submission_type !== 'showcase' && (s.period || (s.created_at || '').substring(0, 7)) === currentPeriod;
+    });
+    var hasPaidRedemption = orders.some(function(o) {
+      return o.status !== 'cancelled' && Number(o.points_spent) > 0;
+    });
+    if (statusFilter === 'submitted' && !hasSubmitted) return false;
+    if (statusFilter === 'redeemed' && !(hasSubmitted && hasPaidRedemption)) return false;
+    if (statusFilter === 'not-redeemed' && !(hasSubmitted && !hasPaidRedemption)) return false;
 
     // CC filter
     var hasCC = (k.notes || '').includes('CC:' + currentPeriod);
@@ -6783,6 +6803,18 @@ function renderScoringTable() {
   }).join('');
   loadScoringMonthlyPoints();
   ensureCCEligibilityForCurrentPeriod(false);
+}
+
+function setScoringParticipationFilter(filter) {
+  var select = document.getElementById('scoring-filter-status');
+  if (!select) return;
+  select.value = select.value === filter ? 'all' : filter;
+  ['submitted', 'redeemed', 'not-redeemed'].forEach(function(value) {
+    var id = value === 'submitted' ? 'stat-submitters' : value === 'redeemed' ? 'stat-redeemers' : 'stat-not-redeemed';
+    var element = document.getElementById(id);
+    if (element) element.classList.toggle('active', select.value === value);
+  });
+  renderScoringTable();
 }
 
 async function syncAllBalances() {
