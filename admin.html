@@ -1656,6 +1656,7 @@ Bonuses and carry-over do not count. Existing tiers only move up.</textarea>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:6px;">
       <button class="btn btn-sm" style="background:#e8f5e9;color:#2e7d32;text-align:left;" onclick="previewBroadcast('welcome')">🆕 ② 条件新人欢迎 — 手动补发</button>
       <button class="btn btn-sm" style="background:#fff3e0;color:#e65100;text-align:left;" onclick="previewBroadcast('reminder')">📥 ④ 催交作品 — UTC-7 截止</button>
+      <button class="btn btn-sm" style="background:#fff8e1;color:#8d6e00;text-align:left;" onclick="previewBroadcast('redemption_reminder')">🎁 ⑤ 未兑换提醒 — 本月已投稿</button>
       <button class="btn btn-sm" style="background:#eef4ff;color:#3347a8;text-align:left;" onclick="previewMochiTemplateOnly('registration_approved')">✅ ③ 审核通过 — 查看自动通知模板</button>
       <button class="btn btn-sm" style="background:#f3e5f5;color:#6a1b9a;text-align:left;" onclick="previewBroadcast('tier_upgrade')">⭐ ⑥ 等级变动 — 手动名单</button>
     </div>
@@ -4138,6 +4139,7 @@ function getMochiMessageTemplates() {
     welcome: '🎉 **Welcome to the MLT Creator Program!**\n\nYour **Newcomer Month** is the first full calendar month after your registration is approved. Earn at least **5 base points** during that month to receive **+2 bonus points**. We believe you can do it! ✨\n\nTo officially become a Certified Creator, please submit your registration information here:\n' + portalUrl + '\n\nYou can explore the Creator Portal first. It includes a searchable **FAQ** where you can quickly find answers about submissions, points, and rewards.\n\nAfter submitting your application, please wait for administrator approval. MochiBot will notify you once your application has been approved.\n\nMochi will announce in Discord whenever the monthly submission and reward redemption periods open. If your application is approved before the current submission window closes, you may still submit content that you published earlier that month—even if you were not yet a Certified Creator when you created it. Your Newcomer Bonus will still be calculated during your first full Newcomer Month.\n\n🎁 Once approved, you will receive a physical New Creator Welcome Gift.\n💡 Visit **💡｜official-inspirations** for monthly content ideas and creator resources.',
     registration_approved: '✅ **Your Creator Registration Has Been Approved!**\n\nWelcome to the MLT Creator Program! 🎉\n\nYou can now log in to the Creator Portal using the **Game UID and Account ID** provided in your application:\n' + portalUrl + '\n\nMonthly submissions and reward redemption are only available during designated periods. Please wait for Mochi to announce in Discord when each period opens.\n\n🎁 A physical New Creator Welcome Gift has been registered for you.\n💡 Visit **💡｜official-inspirations** for monthly content ideas, trends, the Creator Playbook, and creator tools. This content is for certified creators only—please do not share it outside the community.',
     reminder: '⏰ **Monthly Submission Reminder**\n\nThis month’s submission period is now open.\n\nPlease log in to the Creator Portal and submit all of your content links before:\n\n**' + getMochiSubmissionDeadline() + '**\n\nCreator Portal:\n' + portalUrl + '\n\nOnly links successfully submitted through the Creator Portal will be included in this month’s point calculation.\n\nAfter submitting, please open **My Submissions** and confirm that all of your links have been saved correctly.',
+    redemption_reminder: '🎁 **Reward Redemption Reminder**\n\nYou submitted works for **' + currentPeriod + '**, but we have not found a reward selection for this redemption period yet.\n\nPlease log in to the Creator Portal, check your available balance, and submit your reward choice before the announced deadline:\n\n' + portalUrl + '\n\nIf you have already submitted a choice, please ignore this message.\n\nFor questions, please post in **#town-service-station**.',
     tier_upgrade: '⭐ **Congratulations—Your Creator Tier Has Been Upgraded!**\n\nBased on your recent creative contributions and point performance, you have officially been upgraded to:\n\n**{Gold Creator / Platinum Creator}**\n\nWe have assigned your new creator role in both the **My Leisure Time** and **YoYo Creative Studio** Discord communities. You can visit either community to see your new role and updated name display.\n\nDifferent creator tiers include different exclusive benefits. Please visit **⭐｜creator-tier-system** for the complete tier requirements, role details, and benefits.\n\nThank you for your continued creativity and contribution to the MLT Creator Program!'
   };
 }
@@ -4348,7 +4350,7 @@ async function previewBroadcast(type) {
     // Step 3: 获取 submissions 数据
     var subs = [];
     try {
-      var subRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/submissions?select=id,discord_name,uid,status,points_earned,links_engagement,links_views,period,created_at&order=created_at.desc');
+      var subRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/submissions?select=id,discord_name,uid,status,points_earned,links_engagement,links_views,submission_type,period,created_at&order=created_at.desc');
       if (subRes.ok) subs = await subRes.json() || [];
     } catch(e) {
       console.warn('Submissions fetch failed, continuing:', e);
@@ -4398,6 +4400,50 @@ async function previewBroadcast(type) {
       mochiBroadcastTargets = targets;
       renderBroadcastPreview(targets, msg);
       showToast('✅ 已加载 ' + targets.length + ' 位未提交当前月作品的 KOC，请手动勾选收件人', 'success');
+      return;
+    }
+
+    if (type === 'redemption_reminder') {
+      var submittedUids = {};
+      (subs || []).forEach(function(s) {
+        if (!s || s.submission_type === 'showcase' || getRowPeriod(s) !== currentPeriod || !s.uid) return;
+        submittedUids[String(s.uid).toLowerCase().trim()] = true;
+      });
+      var redeemedUids = {};
+      try {
+        var orderRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?period=eq.' + encodeURIComponent(currentPeriod) + '&select=uid,points_spent,status');
+        if (orderRes.ok) {
+          (await orderRes.json() || []).forEach(function(o) {
+            if (o.uid && o.status !== 'cancelled' && Number(o.points_spent) > 0) redeemedUids[String(o.uid).toLowerCase().trim()] = true;
+          });
+        }
+      } catch(e) { console.warn('Redemption order fetch failed:', e); }
+      var membersByName = {};
+      allMembers.forEach(function(m) {
+        [m.nick, m.global_name, m.username].forEach(function(value) {
+          if (value) membersByName[String(value).toLowerCase().trim()] = m;
+        });
+      });
+      kocData.forEach(function(koc) {
+        var uidKey = String(koc.uid || '').toLowerCase().trim();
+        if (!uidKey || !submittedUids[uidKey] || redeemedUids[uidKey]) return;
+        var member = membersByName[String(koc.discord_name || '').toLowerCase().trim()];
+        if (!member) return;
+        targets.push({
+          discord_name: member.nick || member.global_name || member.username || koc.discord_name,
+          uid: koc.uid,
+          account_id: koc.account_id || '',
+          discord_id: member.id,
+          guild_id: DISCORD_GUILD_ID,
+          checked: false,
+          reason: '本月已投稿，尚未选择兑换',
+          username: member.username || '',
+          global_name: member.global_name || ''
+        });
+      });
+      mochiBroadcastTargets = targets;
+      renderBroadcastPreview(targets, msg);
+      showToast('✅ 已加载 ' + targets.length + ' 位尚未选择兑换的投稿创作者，请先检查名单', 'success');
       return;
     }
 
