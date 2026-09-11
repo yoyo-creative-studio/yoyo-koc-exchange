@@ -1625,7 +1625,7 @@ Bonuses and carry-over do not count. Existing tiers only move up.</textarea>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
         <div>
           <div style="font-size:13px;font-weight:700;color:#3347a8;">📬 Discord 新人自动欢迎</div>
-          <div style="font-size:11px;color:var(--text-light);margin-top:2px;">每次打开时，从上次成功检查的位置开始检查 join-leave-log；之后每 5 分钟继续检查。</div>
+          <div style="font-size:11px;color:var(--text-light);margin-top:2px;">云端每 6 小时扫描一次 Discord 新成员，发现新人后自动发送欢迎语，无需保持管理后台打开。</div>
         </div>
         <button class="btn btn-sm" onclick="toggleAutoWelcome()" id="btn-auto-welcome" style="font-weight:700;min-width:112px;">⚪ 已关闭</button>
       </div>
@@ -4796,7 +4796,7 @@ function updateAutoWelcomeUi(message) {
     btn.style.background = enabled ? '#43b581' : '#eef0f4';
     btn.style.color = enabled ? 'white' : '#666';
   }
-  if (status) status.textContent = message || (enabled ? '运行中 · 每 5 分钟检查一次' : '当前未运行');
+  if (status) status.textContent = message || (enabled ? '云端运行中 · 每 6 小时检查一次' : '当前未运行');
 }
 
 function extractDiscordUserIdFromJoinEvent(event) {
@@ -4908,7 +4908,7 @@ async function startAutoWelcome(skipConfirmation) {
     return;
   }
   if (!skipConfirmation && !confirmDanger('开启 Discord 新人自动欢迎？', [
-    'MochiBot 每 5 分钟检查一次新人入群记录。',
+    'MochiBot 每 6 小时检查一次新人入群记录。',
     '会检查上次成功检查到本次打开之间的新入群账号。',
     '首次使用才建立起点；首次使用前已经入群的人不会补发。',
     '只有管理后台页面保持打开时才会运行。'
@@ -4952,7 +4952,7 @@ async function startAutoWelcome(skipConfirmation) {
     await saveLastCheckedJoinId();
   }
   if (autoWelcomeInterval) clearInterval(autoWelcomeInterval);
-  autoWelcomeInterval = setInterval(checkNewMembers, 5 * 60 * 1000);
+  autoWelcomeInterval = setInterval(checkNewMembers, 6 * 60 * 60 * 1000);
   localStorage.setItem('mochi_auto_welcome', 'enabled');
   if (skipConfirmation) {
     updateAutoWelcomeUi('已恢复 · 正在检查上次以来的新成员');
@@ -4971,7 +4971,7 @@ async function toggleAutoWelcome() {
   var token = (tokenInput && tokenInput.value.trim()) || MOCHI_TOKEN || localStorage.getItem('mochi_token') || '';
   if (enable && !token) { showToast('请先保存有效的 Bot Token', 'error'); return; }
   if (!confirmDanger(enable ? '开启云端新人自动欢迎？' : '关闭云端新人自动欢迎？', [
-    enable ? 'Supabase 将每 5 分钟检查一次 Discord 新成员。' : '关闭后云端将停止发送新人欢迎。',
+    enable ? 'Supabase 将每 6 小时检查一次 Discord 新成员，并自动发送欢迎语。' : '关闭后云端将停止发送新人欢迎。',
     enable ? '首次开启只建立当前成员基线，不会补发历史成员。' : '',
     enable ? '已注册 KOC 重新入群时会被跳过。' : ''
   ])) return;
@@ -4980,7 +4980,7 @@ async function toggleAutoWelcome() {
     cloudAutoWelcomeEnabled = result.enabled === true;
     if (cloudAutoWelcomeEnabled) localStorage.setItem('mochi_auto_welcome', 'enabled');
     else localStorage.removeItem('mochi_auto_welcome');
-    updateAutoWelcomeUi(cloudAutoWelcomeEnabled ? '云端运行中 · 每 5 分钟检查一次' : '云端已关闭');
+    updateAutoWelcomeUi(cloudAutoWelcomeEnabled ? '云端运行中 · 每 6 小时检查一次，发现新人后自动发送' : '云端已关闭');
     showToast(cloudAutoWelcomeEnabled ? '✅ 云端自动欢迎已开启' : '自动欢迎已关闭', 'success');
   } catch(e) { showToast('自动欢迎设置失败：' + e.message, 'error'); }
 }
