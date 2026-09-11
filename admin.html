@@ -4296,6 +4296,18 @@ function clearMochiCsvBroadcastState() {
   if (sum) sum.textContent = '';
 }
 
+function discordIdentityKeys(value) {
+  var raw = String(value || '').normalize('NFKC').trim().toLowerCase();
+  if (!raw) return [];
+  var values = [raw];
+  var userHint = raw.match(/\(\s*user\s*:\s*([^\)]+)\)/i);
+  if (userHint) values.push(userHint[1]);
+  raw.split('/').forEach(function(part) { values.push(part); });
+  return values.map(function(item) {
+    return item.replace(/^@/, '').replace(/\s+/g, ' ').trim();
+  }).filter(Boolean).filter(function(item, index, list) { return list.indexOf(item) === index; });
+}
+
 async function previewBroadcast(type) {
   // Read token from input if not set
   if (!MOCHI_TOKEN) {
@@ -4344,7 +4356,7 @@ async function previewBroadcast(type) {
     }
     var kocMap = {};
     (kocData||[]).forEach(function(k) {
-      if (k && k.discord_name) kocMap[(k.discord_name||'').toLowerCase().trim()] = k;
+      if (k && k.discord_name) discordIdentityKeys(k.discord_name).forEach(function(key) { kocMap[key] = k; });
     });
 
     // Step 3: 获取 submissions 数据
@@ -4451,7 +4463,15 @@ async function previewBroadcast(type) {
       var name = m.username || '';
       var nick = m.nick || m.global_name || '';
       var displayName = nick || name;
-      var koc = kocMap[displayName.toLowerCase().trim()] || kocMap[name.toLowerCase().trim()];
+      var memberKeys = [];
+      [displayName, name, m.nick, m.global_name].forEach(function(value) {
+        discordIdentityKeys(value).forEach(function(key) { if (memberKeys.indexOf(key) < 0) memberKeys.push(key); });
+      });
+      var koc = null;
+      memberKeys.some(function(key) {
+        if (kocMap[key]) { koc = kocMap[key]; return true; }
+        return false;
+      });
       var uid = koc ? (koc.uid || '') : '';
       var isKoc = !!koc;
 
@@ -4461,8 +4481,8 @@ async function previewBroadcast(type) {
       switch (type) {
         case 'welcome':
           if (!isKoc) {
-            checked = true;
-            reason = '未注册';
+            checked = false;
+            reason = 'KOC 信息库未匹配，请人工核对';
           } else {
             checked = false;
             reason = '已注册';
@@ -5014,6 +5034,27 @@ async function checkNewMembers() {
     });
 
     var candidates = Array.from(candidateIds);
+    var registeredIdentitySet = new Set();
+    var registrationCheckReady = false;
+    try {
+      var registeredRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?status=eq.active&select=discord_name');
+      if (registeredRes.ok) {
+        (await registeredRes.json() || []).forEach(function(koc) {
+          discordIdentityKeys(koc.discord_name).forEach(function(key) { registeredIdentitySet.add(key); });
+        });
+        registrationCheckReady = true;
+      }
+    } catch(e) { console.warn('Auto welcome registration check failed:', e); }
+    if (!registrationCheckReady) throw new Error('无法读取 KOC 信息库，已停止自动欢迎以避免误发');
+    candidates = candidates.filter(function(discordId) {
+      var member = currentMembers.find(function(item) { return String(item.id) === String(discordId); });
+      if (!member) return false;
+      var keys = [];
+      [member.username, member.nick, member.global_name].forEach(function(value) {
+        discordIdentityKeys(value).forEach(function(key) { if (keys.indexOf(key) < 0) keys.push(key); });
+      });
+      return !keys.some(function(key) { return registeredIdentitySet.has(key); });
+    });
     for (var candidateIndex = 0; candidateIndex < candidates.length; candidateIndex++) {
       var discordId = candidates[candidateIndex];
       var welcomeMsg = mochiSupportFooter(getMochiMessageTemplates().welcome);
