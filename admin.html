@@ -4782,6 +4782,7 @@ function sendDMPreset(type) { /* deprecated - use previewBroadcast */ }
 
 // ===== AUTO WELCOME (poll join-leave-log channel) =====
 var autoWelcomeInterval = null;
+var cloudAutoWelcomeEnabled = false;
 var lastCheckedJoinId = null;
 var autoWelcomeKnownMemberIds = null;
 const DISCORD_JOIN_LOG_CHANNEL_ID = '1458357258676211762';
@@ -4789,7 +4790,7 @@ const DISCORD_JOIN_LOG_CHANNEL_ID = '1458357258676211762';
 function updateAutoWelcomeUi(message) {
   var btn = document.getElementById('btn-auto-welcome');
   var status = document.getElementById('auto-welcome-status');
-  var enabled = Boolean(autoWelcomeInterval);
+  var enabled = cloudAutoWelcomeEnabled || Boolean(autoWelcomeInterval);
   if (btn) {
     btn.textContent = enabled ? '🟢 已开启' : '⚪ 已关闭';
     btn.style.background = enabled ? '#43b581' : '#eef0f4';
@@ -4965,16 +4966,23 @@ async function startAutoWelcome(skipConfirmation) {
 }
 
 async function toggleAutoWelcome() {
-  if (autoWelcomeInterval) {
-    clearInterval(autoWelcomeInterval);
-    autoWelcomeInterval = null;
-    localStorage.removeItem('mochi_auto_welcome');
-    updateAutoWelcomeUi('已关闭，不再自动检查');
-    showToast('新人自动欢迎已关闭', 'info');
-    return;
-  }
-  await loadLastCheckedJoinId();
-  await startAutoWelcome(false);
+  var enable = !cloudAutoWelcomeEnabled;
+  var tokenInput = document.getElementById('mochi-token-input');
+  var token = (tokenInput && tokenInput.value.trim()) || MOCHI_TOKEN || localStorage.getItem('mochi_token') || '';
+  if (enable && !token) { showToast('请先保存有效的 Bot Token', 'error'); return; }
+  if (!confirmDanger(enable ? '开启云端新人自动欢迎？' : '关闭云端新人自动欢迎？', [
+    enable ? 'Supabase 将每 5 分钟检查一次 Discord 新成员。' : '关闭后云端将停止发送新人欢迎。',
+    enable ? '首次开启只建立当前成员基线，不会补发历史成员。' : '',
+    enable ? '已注册 KOC 重新入群时会被跳过。' : ''
+  ])) return;
+  try {
+    var result = await cloudAutoWelcomeFetch('configure', { enabled: enable, token: enable ? token : '' });
+    cloudAutoWelcomeEnabled = result.enabled === true;
+    if (cloudAutoWelcomeEnabled) localStorage.setItem('mochi_auto_welcome', 'enabled');
+    else localStorage.removeItem('mochi_auto_welcome');
+    updateAutoWelcomeUi(cloudAutoWelcomeEnabled ? '云端运行中 · 每 5 分钟检查一次' : '云端已关闭');
+    showToast(cloudAutoWelcomeEnabled ? '✅ 云端自动欢迎已开启' : '自动欢迎已关闭', 'success');
+  } catch(e) { showToast('自动欢迎设置失败：' + e.message, 'error'); }
 }
 
 async function checkLatestNewMember() {
@@ -4985,13 +4993,17 @@ async function checkLatestNewMember() {
     showToast('请先保存 Bot Token', 'error');
     return;
   }
-  if (!autoWelcomeInterval) {
-      updateAutoWelcomeUi('请先开启自动欢迎');
+  if (!cloudAutoWelcomeEnabled) {
+    updateAutoWelcomeUi('请先开启云端自动欢迎');
     showToast('请先开启自动欢迎', 'error');
     return;
   }
-  await loadLastCheckedJoinId();
-  await checkNewMembers();
+  try {
+    updateAutoWelcomeUi('云端正在立即检查…');
+    var result = await cloudAutoWelcomeFetch('scan_now', {});
+    updateAutoWelcomeUi('检查完成：发现 ' + (result.found || 0) + '，发送 ' + (result.sent || 0) + '，失败 ' + (result.failed || 0));
+    showToast('✅ 云端检查完成', 'success');
+  } catch(e) { updateAutoWelcomeUi('检查失败：' + e.message); showToast('检查失败：' + e.message, 'error'); }
 }
 
 async function checkNewMembers() {
@@ -5091,17 +5103,26 @@ async function checkNewMembers() {
 }
 
 async function restoreAutoWelcome() {
-  if (localStorage.getItem('mochi_auto_welcome') !== 'enabled') {
-    updateAutoWelcomeUi();
-    return;
-  }
-  if (!MOCHI_TOKEN) MOCHI_TOKEN = localStorage.getItem('mochi_token') || '';
-  if (!MOCHI_TOKEN) {
-    updateAutoWelcomeUi('等待恢复 · Token 缺失，开启状态已保留');
-    return;
-  }
-  await loadLastCheckedJoinId();
-  await startAutoWelcome(true);
+  try {
+    var result = await cloudAutoWelcomeFetch('status', {});
+    cloudAutoWelcomeEnabled = result.enabled === true;
+    if (cloudAutoWelcomeEnabled) localStorage.setItem('mochi_auto_welcome', 'enabled');
+    else localStorage.removeItem('mochi_auto_welcome');
+    var detail = result.last_result || {};
+    var message = cloudAutoWelcomeEnabled ? '云端运行中 · 上次发现 ' + (detail.found || 0) + '，发送 ' + (detail.sent || 0) + '，失败 ' + (detail.failed || 0) : '云端已关闭';
+    updateAutoWelcomeUi(message);
+  } catch(e) { updateAutoWelcomeUi('云端状态读取失败：' + e.message); }
+}
+
+async function cloudAutoWelcomeFetch(action, payload) {
+  var response = await fetch(SUPABASE_URL + '/functions/v1/mochi-auto-welcome', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-admin-password': ADMIN_PASSWORD },
+    body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+  });
+  var data = await response.json().catch(function() { return {}; });
+  if (!response.ok || !data.ok) throw new Error(data.error || ('HTTP ' + response.status));
+  return data;
 }
 
 function openMochiBroadcast() {
