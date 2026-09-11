@@ -1739,6 +1739,7 @@ function saveMochiToken() {
   if (input && input.value.trim()) {
     setMochiToken(input.value.trim());
     showToast('✅ Token 已保存', 'success');
+    if (localStorage.getItem('mochi_auto_welcome') === 'enabled' && !autoWelcomeInterval) restoreAutoWelcome();
   } else {
     showToast('请输入 Token', 'error');
   }
@@ -4896,10 +4897,12 @@ async function saveLastCheckedJoinId() {
 
 async function startAutoWelcome(skipConfirmation) {
   var tokenInput = document.getElementById('mochi-token-input');
-  if (!MOCHI_TOKEN && tokenInput && tokenInput.value.trim()) MOCHI_TOKEN = tokenInput.value.trim();
+  if (!MOCHI_TOKEN && tokenInput && tokenInput.value.trim()) {
+    MOCHI_TOKEN = tokenInput.value.trim();
+    localStorage.setItem('mochi_token', MOCHI_TOKEN);
+  }
   if (!MOCHI_TOKEN) {
-    localStorage.removeItem('mochi_auto_welcome');
-    updateAutoWelcomeUi('请先保存 Bot Token');
+    updateAutoWelcomeUi(skipConfirmation ? '等待恢复 · 请重新保存 Bot Token' : '请先保存 Bot Token');
     showToast('请先在 Mochi 消息中心保存 Bot Token', 'error');
     return;
   }
@@ -5092,9 +5095,9 @@ async function restoreAutoWelcome() {
     updateAutoWelcomeUi();
     return;
   }
+  if (!MOCHI_TOKEN) MOCHI_TOKEN = localStorage.getItem('mochi_token') || '';
   if (!MOCHI_TOKEN) {
-    localStorage.removeItem('mochi_auto_welcome');
-    updateAutoWelcomeUi('已关闭 · 保存 Bot Token 后请重新开启');
+    updateAutoWelcomeUi('等待恢复 · Token 缺失，开启状态已保留');
     return;
   }
   await loadLastCheckedJoinId();
