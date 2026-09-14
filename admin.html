@@ -3825,13 +3825,13 @@ function renderFulfillmentRewardCards() {
   var grouped = {};
   activeOrders.filter(function(order) { return order.option_type === 'diamonds'; }).forEach(function(order) {
     var key = String(order.uid || '') + '|' + getRowPeriod(order);
-    if (!grouped[key]) grouped[key] = { uid: order.uid, discord_name: order.discord_name, period: getRowPeriod(order), hasCC: false, hasDiamond: false, rewards: [] };
+    if (!grouped[key]) grouped[key] = { uid: order.uid, discord_name: order.discord_name, period: getRowPeriod(order), hasCC: false, hasDiamond: false, diamondUnits: 0, rewards: [] };
     var item = grouped[key];
     var text = String((order.option_name || '') + ' ' + (order.reward_amount || '')).toLowerCase();
     var isCC = rewardHasCC(order) || text.indexOf('cc:') === 0 || text.indexOf('持续创作') >= 0 || text.indexOf('豪华月卡') >= 0 || text.indexOf('蜗壳币') >= 0;
     var isDiamond = text.indexOf('钻石') >= 0 || text.indexOf('diamond') >= 0 || text.indexOf('450') >= 0 || (!isCC && Number(order.points_spent) > 0);
-    if (isCC) { item.hasCC = true; item.rewards.push('持续创作奖励：豪华月卡1、蜗壳币500、金币1000'); }
-    if (isDiamond) { item.hasDiamond = true; item.rewards.push(order.reward_amount || order.option_name || '450钻石'); }
+    if (isCC) { item.hasCC = true; item.rewards.push('Continuous Creation Reward*1'); }
+    if (isDiamond) { item.hasDiamond = true; item.diamondUnits += getDiamondUnits(order) || 1; }
   });
   var categoryRows = { 'cc-only': [], 'diamond-only': [], 'cc-diamond': [] };
   Object.keys(grouped).forEach(function(key) {
@@ -3839,11 +3839,12 @@ function renderFulfillmentRewardCards() {
     if (!item.hasCC && !item.hasDiamond) return;
     var category = item.hasCC && item.hasDiamond ? 'cc-diamond' : item.hasCC ? 'cc-only' : 'diamond-only';
     var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(item.uid); }) || {};
-    categoryRows[category].push({ discord_name: item.discord_name, uid: item.uid, reward: item.rewards.filter(function(value, index, list) { return list.indexOf(value) === index; }).join('；'), server: koc.server || koc.region || '正式服', account_id: koc.account_id || '', period: item.period });
+    if (item.hasDiamond) item.rewards.push('450 Diamonds*' + item.diamondUnits);
+    categoryRows[category].push({ discord_name: item.discord_name, uid: item.uid, reward: item.rewards.filter(function(value, index, list) { return list.indexOf(value) === index; }).join('; '), server: koc.server || koc.region || '正式服', account_id: koc.account_id || '', period: item.period });
   });
   var cards = [
-    { key: 'gplay', title: '🎮 Google Play', color: '#f3e5f5', rows: activeOrders.filter(function(order) { return order.option_type === 'gplay'; }).map(function(order) { var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); }) || {}; return { discord_name: order.discord_name, uid: order.uid, reward: order.option_name || order.reward_amount || 'Google Play 礼品卡', country: koc.country || koc.region || '', period: order.period }; }) },
-    { key: 'merch', title: '📦 Merchandise', color: '#fff3e0', rows: activeOrders.filter(function(order) { return order.option_type === 'merch'; }).map(function(order) { var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); }) || {}; return { discord_name: order.discord_name, uid: order.uid, reward: order.option_name || order.reward_amount || '随机周边', country: koc.country || koc.region || '', period: order.period, address: [koc.full_legal_name || koc.name, koc.address, koc.city, koc.state, koc.postal_code, koc.country].filter(Boolean).join('<br>'), phone: koc.phone || koc.contact_number || '' }; }) },
+    { key: 'gplay', title: '🎮 Google Play', color: '#f3e5f5', rows: activeOrders.filter(function(order) { return order.option_type === 'gplay'; }).map(function(order) { var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); }) || {}; return { discord_name: order.discord_name, uid: order.uid, reward: '$10 Google Play Gift Card*' + getRewardQty(order, 2), country: koc.country || koc.region || '', period: order.period }; }) },
+    { key: 'merch', title: '📦 Merchandise', color: '#fff3e0', rows: activeOrders.filter(function(order) { return order.option_type === 'merch'; }).map(function(order) { var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); }) || {}; return { discord_name: order.discord_name, uid: order.uid, reward: 'Random Merchandise*' + getRewardQty(order, 5), country: koc.country || koc.region || '', period: order.period, address: [koc.full_legal_name || koc.name, koc.address, koc.city, koc.state, koc.postal_code, koc.country].filter(Boolean).join('<br>'), phone: koc.phone || koc.contact_number || '' }; }) },
     { key: 'cc-only', title: '🏆 仅持续创作奖励', color: '#fff8e1', rows: categoryRows['cc-only'] },
     { key: 'diamond-only', title: '💎 仅钻石', color: '#e3f2fd', rows: categoryRows['diamond-only'] },
     { key: 'cc-diamond', title: '🎁 钻石 + 持续创作奖励', color: '#e8f5e9', rows: categoryRows['cc-diamond'] }
