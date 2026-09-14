@@ -828,6 +828,10 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
         <span>💖</span>
       </div>
       <div style="font-size:10px;margin-top:4px;opacity:0.5;">© 2026 Yoyo Creative Studio · v2.0</div>
+      <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-top:10px;font-size:10px;">
+        <a href="https://yoyo-creative-studio.github.io/yoyo-koc-exchange/flowcharts.html" target="_blank" rel="noopener" style="color:#b75c83;text-decoration:none;">↗ System Flowcharts</a>
+        <a href="https://yoyo-creative-studio.github.io/yoyo-koc-exchange/portfolio.html" target="_blank" rel="noopener" style="color:#b75c83;text-decoration:none;">↗ Project Portfolio</a>
+      </div>
     </div>
   </div>
 
@@ -1183,8 +1187,9 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
     <div id="tab-tiers" class="tab-content">
       <div class="card">
         <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>⭐ 创作者等级管理 <small style="font-weight:400;color:var(--text-light);">等级由结算规则和算分结果决定；手动标签只影响运营权益</small></span>
+          <span>⭐ 创作者等级管理 <small style="font-weight:400;color:var(--text-light);">积分规则负责判定；Discord 等级角色可同步为运营权益</small></span>
           <div style="display:flex;gap:6px;">
+            <button class="btn btn-sm" style="background:#e3f2fd;color:#1565c0;" onclick="syncTiersFromDiscord()">从 Discord 同步升级</button>
             <button class="btn btn-success btn-sm" onclick="previewLegacyTierUpgrades()">生成截至 8 月升级预览</button>
           </div>
         </div>
@@ -1733,6 +1738,7 @@ Bonuses and carry-over do not count. Existing tiers only move up.</textarea>
 const SUPABASE_URL = 'https://rryzofimrehmkijkckrm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_oyewqnQ8AnitAOD94Qg0nA_v6Zqkr7r';
 const ADMIN_PASSWORD = 'jiashi65';
+</script><script src="admin-shared.js"></script><script>
 
 // ===== Mochi Discord Bot =====
 const DISCORD_GUILD_ID = '1458340952358785193';
@@ -1867,10 +1873,6 @@ async function rejectRegistrationApplication(id) {
     writeAuditLog('koc', 'rejected registration application #' + id + ' for ' + application.uid);
     await loadRegistrationApplications();
   } catch (error) { showToast('Rejection failed: ' + error.message, 'error'); }
-}
-
-function supabaseFetch(url, opts = {}) {
-  return fetch(url, { ...opts, headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json', ...opts.headers } });
 }
 
 // Discord proxy via XHR (avoids Safari CORS issue with Edge Functions)
@@ -2060,15 +2062,20 @@ async function renderTiersTable() {
   document.getElementById('tier-stat-new').textContent = '✅ 认证创作官: ' + ((stats.newbie||0)+(stats.certified||0));
 }
 
+async function saveKocTierOverride(uid, tier) {
+  var resp = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(uid), {
+    method: 'PATCH',
+    body: JSON.stringify({ tier: tier, tier_updated_at: new Date().toISOString() })
+  });
+  if (!resp.ok) throw new Error((await resp.text()).substring(0, 120));
+  writeAuditLog('tier', 'manual tier override ' + uid + ' -> ' + tier);
+}
+
 async function updateKocTier(uid) {
   var tier = document.getElementById('tier-select-' + uid).value;
   try {
-    var resp = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + uid, {
-      method: 'PATCH',
-      body: JSON.stringify({ tier: tier, tier_updated_at: new Date().toISOString() })
-    });
-    if (!resp.ok) throw new Error((await resp.text()).substring(0, 80));
-    showToast('✅ ' + uid + ' tier updated to ' + tier, 'success');
+    await saveKocTierOverride(uid, tier);
+    showToast('✅ ' + uid + ' tier updated to ' + tier + ' (manual override)', 'success');
     renderTiersTable();
   } catch(e) { showToast('Error: ' + e.message, 'error'); }
 }
@@ -2107,28 +2114,54 @@ async function applyLegacyTierUpgradePreview() {
 }
 
 async function syncTiersFromDiscord() {
-  if (!confirm('Sync tier data from Discord?')) return;
-  var discordTiers = { 'platinum': ['Achiru', 'diana', 'Janie', 'taylor'], 'gold': ['Ema', 'maished', 'Mia'] };
-  var res = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?select=*');
-  if (!res.ok) return;
-  var kocs = await res.json();
-  var updated = 0, failed = 0;
-  for (var k of kocs) {
-    if (k.uid === '__config__') continue;
-    var name = (k.discord_name || '').toLowerCase();
-    var tier = 'certified';
-    if (discordTiers.platinum.some(function(n) { return name.indexOf(n.toLowerCase()) >= 0; })) tier = 'platinum';
-    else if (discordTiers.gold.some(function(n) { return name.indexOf(n.toLowerCase()) >= 0; })) tier = 'gold';
-    if (tier !== 'certified') {
-      var tierResp = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + k.uid, {
-        method: 'PATCH',
-        body: JSON.stringify({ tier: tier, tier_updated_at: new Date().toISOString() })
-      });
-      if (tierResp.ok) updated++; else failed++;
-    }
+  if (!MOCHI_TOKEN) {
+    var tokenInput = document.getElementById('mochi-token-input');
+    if (tokenInput && tokenInput.value.trim()) MOCHI_TOKEN = tokenInput.value.trim();
   }
-  showToast('✅ Sync complete. Updated ' + updated + ' KOCs' + (failed ? '，失败 ' + failed : '') + '.', failed ? 'error' : 'success');
-  setTimeout(renderTiersTable, 1000);
+  if (!MOCHI_TOKEN) { showToast('请先填写 MochiBot Token', 'error'); return; }
+  if (!confirm('从 Discord 当前创作者等级角色同步权益？仅同步升级，不会自动降级。')) return;
+  try {
+    var memberResponse = await discordProxyFetch('list_members', { guild_id: DISCORD_GUILD_ID }, MOCHI_TOKEN);
+    if (!memberResponse.ok) throw new Error(memberResponse.error || '获取 Discord 成员失败');
+    var members = Array.isArray(memberResponse.data) ? memberResponse.data : ((memberResponse.data && memberResponse.data.members) || []);
+    var roleNamesById = {};
+    try {
+      var roleResponse = await discordProxyFetch('list_roles', { guild_id: DISCORD_GUILD_ID }, MOCHI_TOKEN);
+      var roles = roleResponse.ok ? (Array.isArray(roleResponse.data) ? roleResponse.data : ((roleResponse.data && roleResponse.data.roles) || [])) : [];
+      roles.forEach(function(role) { if (role && role.id) roleNamesById[String(role.id)] = role.name || ''; });
+    } catch (roleError) { console.warn('Discord role lookup unavailable:', roleError); }
+    var kocResponse = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=neq.__config__&select=*');
+    if (!kocResponse.ok) throw new Error('获取 KOC 信息库失败');
+    var kocs = await kocResponse.json();
+    var memberByKey = {};
+    members.forEach(function(member) {
+      discordMemberIdentityKeys(member).forEach(function(key) { memberByKey[key] = member; });
+    });
+    var rank = { certified: 0, gold: 1, platinum: 2 };
+    var updated = 0, skipped = 0;
+    for (var i = 0; i < kocs.length; i++) {
+      var koc = kocs[i];
+      var member = null;
+      discordIdentityKeys(koc.discord_name).some(function(key) {
+        member = memberByKey[key];
+        return !!member;
+      });
+      if (!member) { skipped++; continue; }
+      var roleText = [].concat(member.roles || [], member.role_names || [], member.roles_by_name || []).map(function(role) {
+        if (typeof role === 'string') return roleNamesById[role] || role;
+        return (role && (role.name || role.role_name)) || '';
+      }).join(' ').toLowerCase();
+      var discordTier = /platinum|铂金/.test(roleText) ? 'platinum' : /gold|金级/.test(roleText) ? 'gold' : 'certified';
+      if ((rank[discordTier] || 0) <= (rank[koc.tier || 'certified'] || 0)) continue;
+      await saveKocTierOverride(koc.uid, discordTier);
+      updated++;
+    }
+    showToast('✅ Discord 等级扫描完成：同步升级 ' + updated + ' 人，未匹配/无需升级 ' + skipped + ' 人', 'success');
+    await loadData();
+    try { renderTiersTable(); } catch (e) {}
+  } catch (e) {
+    showToast('Discord 等级同步失败：' + e.message, 'error');
+  }
 }
 
 // ===== CAMPAIGN / RULES CONFIG =====
@@ -2533,12 +2566,14 @@ async function sendMochiDM(discordUsername, message, discordId, guildId) {
 }
 // ===== SUBMISSIONS: Render table =====
 var now = new Date();
-var currentPeriod = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
+// The saved campaign_config.is_current_period value is authoritative. Until it
+// loads, keep this empty instead of silently switching to the browser month.
+var currentPeriod = '';
 var allSubmissions = [];
 function getRowPeriod(row) {
   if (row && row.period) return row.period;
   if (row && row.created_at) return String(row.created_at).substring(0, 7);
-  return currentPeriod;
+  return currentPeriod || (now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'));
 }
 function splitSubmissionLinks(text) {
   return String(text || '')
@@ -4334,18 +4369,6 @@ function clearMochiCsvBroadcastState() {
   if (sum) sum.textContent = '';
 }
 
-function discordIdentityKeys(value) {
-  var raw = String(value || '').normalize('NFKC').trim().toLowerCase();
-  if (!raw) return [];
-  var values = [raw];
-  var userHint = raw.match(/\(\s*user\s*:\s*([^\)]+)\)/i);
-  if (userHint) values.push(userHint[1]);
-  raw.split('/').forEach(function(part) { values.push(part); });
-  return values.map(function(item) {
-    return item.replace(/^@/, '').replace(/\s+/g, ' ').trim();
-  }).filter(Boolean).filter(function(item, index, list) { return list.indexOf(item) === index; });
-}
-
 async function previewBroadcast(type) {
   // Read token from input if not set
   if (!MOCHI_TOKEN) {
@@ -5389,11 +5412,8 @@ function filterByPeriod(orders) {
 function initSettleSelect() {
   var sel = document.getElementById('settle-month');
   if (!sel || sel.options.length > 0) return;
-  // Ensure currentPeriod is set
-  if (!currentPeriod) {
-    var now = new Date();
-    currentPeriod = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');
-  }
+  // Populate navigation options only. The selected period is loaded from
+  // campaign_config.is_current_period by loadSettleMonthDropdown().
   sel.innerHTML = '';
   var now = new Date();
   for (var i = 6; i >= -3; i--) {
@@ -6481,13 +6501,7 @@ async function submitBatchReward() {
         // 若扣积分，写一条 point_logs（balance_after 用 sum(change) 汇总口径算出）
         if (points > 0) {
           try {
-            var bal = await getBalance(s.uid);
-            var newBal = bal - points;
-            var pResp = await supabaseFetch(SUPABASE_URL + '/rest/v1/point_logs', {
-              method: 'POST',
-              body: JSON.stringify({ uid: s.uid, change: -points, balance_after: newBal, source: 'redemption', reason: '批量发放: ' + name, period: currentPeriod, created_by: 'admin', created_at: new Date().toISOString() })
-            });
-            if (!pResp.ok) deductFailed++;
+            await appendPointLog(s.uid, -points, '批量发放: ' + name, currentPeriod, 'redemption');
           } catch(e) { deductFailed++; }
         }
       } else {
@@ -6969,17 +6983,9 @@ function updateKocTierInline(uid) {
   var select = document.getElementById('koc-tier-select-' + uid);
   if (!select) return;
   var tier = select.value;
-  supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(uid), {
-    method: 'PATCH',
-    body: JSON.stringify({ tier: tier, tier_updated_at: new Date().toISOString() })
-  }).then(function(r) {
-    if (r.ok) {
-      showToast('✅ Tier updated to ' + tier, 'success');
-      // Reload all data to refresh the table with correct tier badge + dropdown
-      loadData();
-    } else {
-      showToast('Failed to update tier', 'error');
-    }
+  saveKocTierOverride(uid, tier).then(function() {
+    showToast('✅ Tier updated to ' + tier + ' (manual override)', 'success');
+    loadData();
   }).catch(function(e) { showToast('Error: ' + e.message, 'error'); });
 }
 
@@ -7233,11 +7239,7 @@ async function submitPoints() {
       'Reason: ' + reason,
       'This inserts a manual point_logs row.'
     ])) return;
-    var newBal = Math.max(0, bal + change);
-    var resp = await supabaseFetch(SUPABASE_URL + '/rest/v1/point_logs', {
-      method: 'POST',
-      body: JSON.stringify({ uid: editingUid, change: change, balance_after: newBal, source: 'manual', reason: reason, period: currentPeriod, created_by: 'admin', created_at: new Date().toISOString() })
-    });
+    var result = await appendPointLog(editingUid, change, reason, currentPeriod, 'manual');
     // \u5173\u952e:\u5fc5\u987b\u786e\u8ba4\u5199\u5165\u6210\u529f\u518d\u62a5\u6210\u529f,\u5426\u5219\u79ef\u5206\u4f1a\u5bf9\u4e0d\u4e0a\u8d26
     if (!resp.ok) {
       var errTxt = await resp.text().catch(function() { return ''; });
@@ -7458,19 +7460,11 @@ function inlineEditPts(uid, discord) {
       'Change: ' + (diff > 0 ? '+' : '') + diff + ' pts',
       'This writes a point_logs manual adjustment entry.'
     ])) return;
-    supabaseFetch(SUPABASE_URL + '/rest/v1/point_logs', {
-      method: 'POST',
-      body: JSON.stringify({
-        uid: uid, change: diff,
-        balance_after: newVal,
-        source: 'manual', reason: 'Manual adjustment by admin (inline)',
-        period: currentPeriod, created_by: 'admin',
-        created_at: new Date().toISOString()
-      })
-    }).then(function(r) {
-      if (r.ok) { showToast('✅ Points updated to ' + newVal, 'success'); writeAuditLog('score', 'inline point balance set ' + uid + ' to ' + newVal + ' (' + (diff > 0 ? '+' : '') + diff + ')'); loadData(); }
-      else showToast('Failed to update points', 'error');
-    });
+    appendPointLog(uid, diff, 'Manual adjustment by admin (inline)', currentPeriod, 'manual').then(function() {
+      showToast('✅ Points updated to ' + newVal, 'success');
+      writeAuditLog('score', 'inline point balance set ' + uid + ' to ' + newVal + ' (' + (diff > 0 ? '+' : '') + diff + ')');
+      loadData();
+    }).catch(function(e) { showToast('Failed to update points: ' + e.message, 'error'); });
   });
 }
 
@@ -7493,6 +7487,11 @@ function inlineEdit(cell, field, uid) {
     var newVal = input.value.trim();
     if (newVal === currentVal) {
       cell.textContent = currentVal || '-';
+      return;
+    }
+    if (field === 'status' && REDEMPTION_STATUSES.indexOf(newVal) < 0) {
+      cell.textContent = currentVal || '-';
+      showToast('Invalid redemption status', 'error');
       return;
     }
     var update = {};
@@ -7553,7 +7552,7 @@ function editOrderInline(cell, field, orderId, uid) {
       return;
     }
     
-    if (field === 'status' && ['pending','shipped','cancelled'].indexOf(newVal) >= 0 && currentVal !== newVal) {
+    if (field === 'status' && ['pending','processing','shipped','cancelled'].indexOf(newVal) >= 0 && currentVal !== newVal) {
       if (!confirmDanger('Change redemption order status?', [
         'Order ID: #' + orderId,
         'UID: ' + (uid || '(unknown)'),
@@ -7570,7 +7569,13 @@ function editOrderInline(cell, field, orderId, uid) {
         field === 'uid' ? 'UID changes can affect KOC, submissions, point logs, and order matching.' : 'Please confirm this field is correct before saving.'
       ])) { cell.textContent = currentVal || '-'; return; }
     }
-    if (['discord_name','option_name','status','contact_info','reward_amount','admin_notes'].indexOf(field) >= 0) {
+    if (field === 'status') {
+      updateRedemptionOrderStatus(orderId, newVal).then(async function() {
+        showToast('✅ status updated', 'success');
+        await loadData(); renderKocTable(); renderScoringTable();
+        try { renderMerchTab(); } catch (e) {} try { renderDiamondTab(); } catch (e) {} try { renderGplayTab(); } catch (e) {}
+      }).catch(function(e) { cell.textContent = currentVal || '-'; showToast('Failed: ' + e.message, 'error'); });
+    } else if (['discord_name','option_name','contact_info','reward_amount','admin_notes'].indexOf(field) >= 0) {
       // Update redemption_orders
       var update = {};
       update[field] = newVal;
