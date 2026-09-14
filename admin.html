@@ -1071,7 +1071,6 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
             <span style="font-size:11px;color:#4caf50;padding:8px 0;display:inline-block;">✅ 确认应用时已自动写入积分，不需要再次传送</span>
           </div>
           <span id="scoring-redemption-status" style="font-size:12px;font-weight:700;padding:8px 12px;border-radius:8px;background:#f5f5f5;color:#666;">🎁 兑换状态读取中…</span>
-          <button class="btn btn-sm" id="btn-sync-balance" style="background:#7b1fa2;color:white;font-weight:700;padding:8px 16px;" onclick="syncAllBalances()">🔄 更新剩余积分</button>
         </div>
         <div class="stats-bar" id="stats-bar">
           <span id="stat-total">Loading...</span>
@@ -6928,12 +6927,6 @@ function setScoringParticipationFilter(filter) {
   renderScoringTable();
 }
 
-async function syncAllBalances() {
-  // point_logs is the source of truth; balance is computed as sum(change).
-  // Keep this legacy button safe so it cannot double-apply monthly points or redemptions.
-  showToast('✅ 剩余积分按 point_logs 自动汇总，无需手动更新', 'success');
-  try { await loadData(); } catch(e) {}
-}
 function updateKocTierInline(uid) {
   var select = document.getElementById('koc-tier-select-' + uid);
   if (!select) return;
