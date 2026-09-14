@@ -3838,26 +3838,36 @@ function renderFulfillmentRewardCards() {
     var item = grouped[key];
     if (!item.hasCC && !item.hasDiamond) return;
     var category = item.hasCC && item.hasDiamond ? 'cc-diamond' : item.hasCC ? 'cc-only' : 'diamond-only';
-    categoryRows[category].push({ discord_name: item.discord_name, uid: item.uid, reward: item.rewards.filter(function(value, index, list) { return list.indexOf(value) === index; }).join('；') });
+    var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(item.uid); }) || {};
+    categoryRows[category].push({ discord_name: item.discord_name, uid: item.uid, reward: item.rewards.filter(function(value, index, list) { return list.indexOf(value) === index; }).join('；'), server: koc.server || koc.region || '正式服', account_id: koc.account_id || '', period: item.period });
   });
   var cards = [
-    { key: 'gplay', title: '🎮 Google Play', color: '#f3e5f5', rows: activeOrders.filter(function(order) { return order.option_type === 'gplay'; }).map(function(order) { return { discord_name: order.discord_name, uid: order.uid, reward: order.option_name || order.reward_amount || 'Google Play 礼品卡' }; }) },
-    { key: 'merch', title: '📦 Merchandise', color: '#fff3e0', rows: activeOrders.filter(function(order) { return order.option_type === 'merch'; }).map(function(order) { return { discord_name: order.discord_name, uid: order.uid, reward: order.option_name || order.reward_amount || '周边' }; }) },
+    { key: 'gplay', title: '🎮 Google Play', color: '#f3e5f5', rows: activeOrders.filter(function(order) { return order.option_type === 'gplay'; }).map(function(order) { var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); }) || {}; return { discord_name: order.discord_name, uid: order.uid, reward: order.option_name || order.reward_amount || 'Google Play 礼品卡', country: koc.country || koc.region || '', period: order.period }; }) },
+    { key: 'merch', title: '📦 Merchandise', color: '#fff3e0', rows: activeOrders.filter(function(order) { return order.option_type === 'merch'; }).map(function(order) { var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); }) || {}; return { discord_name: order.discord_name, uid: order.uid, reward: order.option_name || order.reward_amount || '随机周边', country: koc.country || koc.region || '', period: order.period, address: [koc.full_legal_name || koc.name, koc.address, koc.city, koc.state, koc.postal_code, koc.country].filter(Boolean).join('<br>'), phone: koc.phone || koc.contact_number || '' }; }) },
     { key: 'cc-only', title: '🏆 仅持续创作奖励', color: '#fff8e1', rows: categoryRows['cc-only'] },
     { key: 'diamond-only', title: '💎 仅钻石', color: '#e3f2fd', rows: categoryRows['diamond-only'] },
     { key: 'cc-diamond', title: '🎁 钻石 + 持续创作奖励', color: '#e8f5e9', rows: categoryRows['cc-diamond'] }
   ];
   root.innerHTML = cards.map(function(card) {
     var rows = card.rows || [];
-    var lines = ['Discord\tUID\tReward'].concat(rows.map(function(order) {
-      return [order.discord_name || '', order.uid || '', order.reward || ''].join('\t');
-    }));
-    _fulfillmentRewardCardRows[card.key] = lines.join('\n');
+    _fulfillmentRewardCardRows[card.key] = formatRewardCardMarkdown(card.key, rows);
     var body = rows.length ? '<div style="max-height:180px;overflow:auto;font-size:11px;line-height:1.6;">' + rows.map(function(order) {
       return '<div style="padding:3px 0;border-bottom:1px solid rgba(0,0,0,.06);"><strong>' + esc(order.discord_name || '-') + '</strong> · ' + esc(order.uid || '-') + '<br><span>' + esc(order.reward || '-') + '</span></div>';
     }).join('') + '</div>' : '<div style="padding:14px 0;color:var(--text-light);font-size:12px;">当前月份暂无记录</div>';
     return '<div style="background:' + card.color + ';border-radius:12px;padding:12px;border:1px solid rgba(0,0,0,.08);"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;"><strong>' + card.title + ' (' + rows.length + ')</strong><button type="button" class="btn btn-outline btn-sm" onclick="copyFulfillmentCard(\'' + card.key + '\')">📋 复制到 Excel</button></div>' + body + '</div>';
   }).join('');
+}
+
+function formatRewardCardMarkdown(key, rows) {
+  var month = function(period) { var parts = String(period || currentPeriod || '').split('-'); return parts.length === 2 ? parseInt(parts[1], 10) + '月' : ''; };
+  var escapeCell = function(value) { return String(value || '').replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>'); };
+  if (key === 'gplay') {
+    return ['| Batch | Creator | Country | Reward | |', '| :-----: | :-------: | :-: | :-------: | :-: |'].concat(rows.map(function(row) { return '| ' + month(row.period) + 'koc结算 | ' + escapeCell(row.discord_name) + ' | ' + escapeCell(row.country) + ' | ' + escapeCell(row.reward) + ' | |'; })).join('\n');
+  }
+  if (key === 'merch') {
+    return ['| Batch | Creator | Reward | Shipping Information | Country |', '| ---- | ------ | ------- | -------------------------------------------------------------------------------------- | --- |'].concat(rows.map(function(row) { return '| ' + month(row.period) + '结算 | ' + escapeCell(row.discord_name) + ' | ' + escapeCell(row.reward) + ' | ' + escapeCell(row.address) + '<br><br>' + escapeCell(row.phone) + ' | ' + escapeCell(row.country) + ' |'; })).join('\n');
+  }
+  return ['| Creator | Server | Account ID | Game UID | Reward | Month |', '| :--------: | :-: | :-----------------: | :----------: | :------: | :-: |'].concat(rows.map(function(row) { return '| ' + escapeCell(row.discord_name) + ' | ' + escapeCell(row.server) + ' | ' + escapeCell(row.account_id) + ' | ' + escapeCell(row.uid) + ' | ' + escapeCell(row.reward) + ' | ' + month(row.period) + ' |'; })).join('\n');
 }
 
 async function copyFulfillmentCard(key) {
