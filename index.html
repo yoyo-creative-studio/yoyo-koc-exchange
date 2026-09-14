@@ -79,7 +79,7 @@
   .redeem-balance-hero{padding:16px;background:linear-gradient(145deg,#fffafd,#ffeaf4);border:3px solid var(--line);box-shadow:6px 6px 0 rgba(185,47,114,.35)}
   .redeem-balance-title{text-align:center;color:var(--text-light);font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
   .redeem-balance-primary{margin-top:5px;text-align:center}.redeem-balance-primary .points-number{font-size:44px;line-height:1}.redeem-balance-primary .points-label{margin-top:5px;font-size:12px;font-weight:900;color:var(--pink-dark)}
-  .redeem-balance-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:15px}
+  .redeem-balance-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:15px}
   .redeem-balance-item{padding:10px 7px;background:#fff;border:2px solid var(--line);box-shadow:3px 3px 0 var(--light);text-align:center}.redeem-balance-item strong{display:block;color:var(--pink-dark);font-size:21px;line-height:1.1}.redeem-balance-item span{display:block;margin-top:5px;color:var(--text-light);font-size:9px;font-weight:800;line-height:1.25}.redeem-balance-item.pending{background:#fff8e1;box-shadow:3px 3px 0 #ffd27f}
   .tier-path{position:relative;overflow:hidden;margin-top:13px;padding:13px 11px 11px;background:radial-gradient(circle at 15% 0%,rgba(255,255,255,.98),transparent 33%),linear-gradient(135deg,#fff7fc 0%,#ffe9f4 48%,#f2eaff 100%);border:3px solid var(--line);box-shadow:5px 5px 0 rgba(185,47,114,.3),0 0 22px rgba(255,111,170,.16)}
   .tier-path:before{content:'✦  ✧  ✦  ✧  ✦';position:absolute;right:10px;top:3px;color:#fff;letter-spacing:5px;font-size:10px;text-shadow:0 0 7px #ff70ae;opacity:.9}
@@ -247,7 +247,7 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
   #step-login{padding:31px 14px 23px!important;box-shadow:6px 6px 0 rgba(185,47,114,.68)!important}#step-login:before{margin-top:-47px!important;font-size:9px!important}#step-login>div[style*="font-size:48px"]{font-size:19px!important}#step-login>div[style*="font-size:80px"]{font-size:54px!important}
   .card{padding:14px!important}.card-title,.level-1-title{font-size:12px!important}.submit-period-badge{font-size:14px!important;padding:7px 9px!important}.tabs{grid-template-columns:1fr 1fr!important;gap:9px!important;margin-top:33px!important;padding:10px!important}.tabs:before{font-size:10px!important;top:-23px!important}.tab{min-height:76px!important;font-size:15px!important;padding:16px 8px!important;line-height:1.4!important}.tab.active:after{font-size:7px!important}.nav-title{font-size:11px!important}
   #creator-tab-faq .suggestions{justify-content:flex-start!important;overflow-x:auto!important;flex-wrap:nowrap!important;padding-bottom:6px!important}#creator-tab-faq .suggestions .chip{flex:none!important;max-width:250px!important}
-  .reward-row{align-items:flex-start!important;gap:8px!important;min-width:0}.reward-row>div:first-child{min-width:0}.qty-selector{flex:0 0 auto;gap:6px!important;padding-top:20px}.tier-badge{font-size:13px!important;padding:11px 17px!important}.redeem-balance-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.redeem-balance-item{padding:8px 3px}.redeem-balance-item strong{font-size:18px}.redeem-balance-item span{font-size:7px}.tier-path-list{gap:3px}.tier-path-arrow{font-size:9px}.tier-step{padding:7px 2px;gap:2px}.tier-step-icon{font-size:13px}.tier-step-name{font-size:7px}
+  .reward-row{align-items:flex-start!important;gap:8px!important;min-width:0}.reward-row>div:first-child{min-width:0}.qty-selector{flex:0 0 auto;gap:6px!important;padding-top:20px}.tier-badge{font-size:13px!important;padding:11px 17px!important}.redeem-balance-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}.redeem-balance-item{padding:8px 3px}.redeem-balance-item strong{font-size:18px}.redeem-balance-item span{font-size:7px}.tier-path-list{gap:3px}.tier-path-arrow{font-size:9px}.tier-step{padding:7px 2px;gap:2px}.tier-step-icon{font-size:13px}.tier-step-name{font-size:7px}
   .seraphina-card-name::after{display:block;margin-top:5px;font-size:.32em;white-space:normal}
   .submission-summary-grid{grid-template-columns:1fr 1fr;gap:8px}.submission-stat-card{padding:11px}.submission-stat-value{font-size:20px}.submission-record-head{flex-direction:column}.submission-status{align-self:flex-start}
 }
@@ -401,7 +401,8 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
           </div>
           <div class="redeem-balance-grid">
             <div class="redeem-balance-item"><strong id="display-month-points">--</strong><span id="display-month-points-label">Earned This Month</span></div>
-            <div class="redeem-balance-item"><strong id="display-carryover-balance">--</strong><span>Carry-over Balance</span></div>
+            <div class="redeem-balance-item pending"><strong id="display-reserved-points">--</strong><span>Reserved by Pending Orders</span></div>
+            <div class="redeem-balance-item"><strong id="display-carryover-balance">--</strong><span>Historical Carry-over</span></div>
             <div class="redeem-balance-item"><strong id="display-redeemed-month">--</strong><span id="display-redeemed-month-label">Redeemed This Month</span></div>
           </div>
         </div>
@@ -1074,6 +1075,8 @@ async function refreshAvailableBalance() {
   currentUser.points = Math.max(0, freshBalance - pendingTotal);
   var pointsEl = document.getElementById('display-points');
   if (pointsEl) pointsEl.textContent = currentUser.points;
+  var reservedEl = document.getElementById('display-reserved-points');
+  if (reservedEl) reservedEl.textContent = pendingTotal;
   var carryoverEl = document.getElementById('display-carryover-balance');
   if (carryoverEl) carryoverEl.textContent = carryoverBalance;
   var redeemedEl = document.getElementById('display-redeemed-month');
@@ -1092,7 +1095,7 @@ async function refreshAvailableBalance() {
     if (redeemedLabel) redeemedLabel.textContent = 'Redeemed in ' + readablePeriod;
   }
   var redeemDisplay = document.getElementById('display-user-redeem');
-  if (redeemDisplay) redeemDisplay.textContent = pendingTotal > 0 ? pendingTotal + ' pts are reserved while your reward order is pending or processing.' : 'No points are currently reserved by reward orders.';
+  if (redeemDisplay) redeemDisplay.textContent = pendingTotal > 0 ? pendingTotal + ' pts are locked and cannot be selected again while your reward order is pending or processing. If the order is cancelled, these points will return to your available balance.' : 'No points are currently reserved by reward orders. Historical carry-over is shown for reference.';
   renderOptions();
   return currentUser.points;
 }
