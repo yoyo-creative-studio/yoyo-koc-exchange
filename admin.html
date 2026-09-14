@@ -934,6 +934,17 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
         </div>
         <div id="fulfillment-table" style="overflow-x:auto;"><div style="padding:20px;color:var(--text-light);">请选择该模块加载记录</div></div>
       </div>
+
+      <div class="card">
+        <div class="card-title">🧾 统一奖励订单 <span id="unified-order-count" style="font-size:12px;color:var(--text-light);"></span></div>
+        <div class="list-toolbar">
+          <input type="search" id="unified-order-search" placeholder="🔍 搜索 Discord / UID / 奖励" oninput="renderUnifiedRewardOrders()">
+          <select id="unified-order-type" onchange="renderUnifiedRewardOrders()"><option value="all">全部奖励类型</option><option value="diamonds">端内奖励</option><option value="gplay">Google Play</option><option value="merch">周边</option></select>
+          <select id="unified-order-status" onchange="renderUnifiedRewardOrders()"><option value="all">全部状态</option><option value="pending">Pending</option><option value="processing">Processing</option><option value="shipped">Shipped</option><option value="cancelled">Cancelled</option></select>
+        </div>
+        <div style="font-size:11px;color:var(--text-light);margin:-4px 0 10px;">所有奖励订单的统一查看入口。发放操作仍按奖励类型使用对应的履约流程。</div>
+        <div id="unified-order-table" style="overflow-x:auto;"></div>
+      </div>
     </div>
 
     <!-- ======== TAB: KOC投稿月报 ======== -->
@@ -3719,7 +3730,7 @@ function switchTab(name) {
   if (name === 'community') { return; }
   if (name === 'koc-ledger') renderKocTable();
   if (name === 'scoring') renderScoringTable();
-  if (name === 'fulfillment') loadRewardFulfillments();
+  if (name === 'fulfillment') { loadRewardFulfillments(); renderUnifiedRewardOrders(); }
   if (name === 'diamond') renderDiamondTab();
   if (name === 'gplay') renderGplayTab();
   if (name === 'merch') renderMerchTab();
@@ -3733,6 +3744,31 @@ function switchTab(name) {
 // ===== REWARD FULFILLMENT CENTER =====
 var fulfillmentPreviewRows = [];
 var rewardFulfillments = [];
+
+function renderUnifiedRewardOrders() {
+  var table = document.getElementById('unified-order-table');
+  if (!table) return;
+  var query = ((document.getElementById('unified-order-search') || {}).value || '').toLowerCase().trim();
+  var type = (document.getElementById('unified-order-type') || {}).value || 'all';
+  var status = (document.getElementById('unified-order-status') || {}).value || 'all';
+  var rows = (allOrders || []).filter(function(order) {
+    if (type !== 'all' && order.option_type !== type) return false;
+    if (status !== 'all' && order.status !== status) return false;
+    if (!query) return true;
+    return [order.discord_name, order.uid, order.option_name, order.reward_amount, order.period].join(' ').toLowerCase().indexOf(query) >= 0;
+  });
+  var count = document.getElementById('unified-order-count');
+  if (count) count.textContent = '(' + rows.length + ' / ' + (allOrders || []).length + ')';
+  if (!rows.length) {
+    table.innerHTML = '<div style="padding:20px;color:var(--text-light);text-align:center;">暂无匹配订单</div>';
+    return;
+  }
+  var labels = { diamonds: '💎 端内奖励', gplay: '🎮 Google Play', merch: '📦 周边' };
+  table.innerHTML = '<table><thead><tr><th>Discord</th><th>UID</th><th>奖励类型</th><th>奖励内容</th><th>积分</th><th>月份</th><th>状态</th></tr></thead><tbody>' + rows.map(function(order) {
+    var badge = order.status === 'shipped' ? 'badge-shipped' : order.status === 'cancelled' ? 'badge-cancelled' : 'badge-pending';
+    return '<tr><td>' + esc(order.discord_name || '-') + '</td><td style="font-family:monospace;font-size:11px;">' + esc(order.uid || '-') + '</td><td>' + esc(labels[order.option_type] || order.option_type || '-') + '</td><td>' + esc(order.option_name || order.reward_amount || '-') + '</td><td>' + (Number(order.points_spent) || 0) + '</td><td>' + esc(order.period || '-') + '</td><td><span class="badge ' + badge + '">' + esc(order.status || '-') + '</span></td></tr>';
+  }).join('') + '</tbody></table>';
+}
 var fulfillmentPreviewLabel = '';
 
 function normalizeFulfillmentName(value) {
@@ -5280,7 +5316,7 @@ async function loadData() {
       if (activeId === 'dashboard') loadDashboard();
       else if (activeId === 'koc-ledger') renderKocTable();
       else if (activeId === 'scoring') renderScoringTable();
-      else if (activeId === 'fulfillment') loadRewardFulfillments();
+      else if (activeId === 'fulfillment') { loadRewardFulfillments(); renderUnifiedRewardOrders(); }
       else if (activeId === 'diamond') renderDiamondTab();
       else if (activeId === 'gplay') renderGplayTab();
       else if (activeId === 'merch') renderMerchTab();
@@ -5401,7 +5437,7 @@ function changeSettlePeriod() {
   else if (activeId === 'koc-ledger') renderKocTable();
   else if (activeId === 'scoring') renderScoringTable();
   else if (activeId === 'submissions') loadSubmissions();
-  else if (activeId === 'fulfillment') loadRewardFulfillments();
+  else if (activeId === 'fulfillment') { loadRewardFulfillments(); renderUnifiedRewardOrders(); }
   else if (activeId === 'diamond') renderDiamondTab();
   else if (activeId === 'gplay') renderGplayTab();
   else if (activeId === 'merch') renderMerchTab();
