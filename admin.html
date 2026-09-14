@@ -3822,21 +3822,39 @@ function renderFulfillmentRewardCards() {
   var activeOrders = (allOrders || []).filter(function(order) {
     return (!selectedPeriod || getRowPeriod(order) === selectedPeriod) && order.status !== 'cancelled';
   });
+  var grouped = {};
+  activeOrders.filter(function(order) { return order.option_type === 'diamonds'; }).forEach(function(order) {
+    var key = String(order.uid || '') + '|' + getRowPeriod(order);
+    if (!grouped[key]) grouped[key] = { uid: order.uid, discord_name: order.discord_name, period: getRowPeriod(order), hasCC: false, hasDiamond: false, rewards: [] };
+    var item = grouped[key];
+    var text = String((order.option_name || '') + ' ' + (order.reward_amount || '')).toLowerCase();
+    var isCC = rewardHasCC(order) || text.indexOf('cc:') === 0 || text.indexOf('持续创作') >= 0 || text.indexOf('豪华月卡') >= 0 || text.indexOf('蜗壳币') >= 0;
+    var isDiamond = text.indexOf('钻石') >= 0 || text.indexOf('diamond') >= 0 || text.indexOf('450') >= 0 || (!isCC && Number(order.points_spent) > 0);
+    if (isCC) { item.hasCC = true; item.rewards.push('持续创作奖励：豪华月卡1、蜗壳币500、金币1000'); }
+    if (isDiamond) { item.hasDiamond = true; item.rewards.push(order.reward_amount || order.option_name || '450钻石'); }
+  });
+  var categoryRows = { 'cc-only': [], 'diamond-only': [], 'cc-diamond': [] };
+  Object.keys(grouped).forEach(function(key) {
+    var item = grouped[key];
+    if (!item.hasCC && !item.hasDiamond) return;
+    var category = item.hasCC && item.hasDiamond ? 'cc-diamond' : item.hasCC ? 'cc-only' : 'diamond-only';
+    categoryRows[category].push({ discord_name: item.discord_name, uid: item.uid, reward: item.rewards.filter(function(value, index, list) { return list.indexOf(value) === index; }).join('；') });
+  });
   var cards = [
-    { key: 'gplay', title: '🎮 Google Play', color: '#f3e5f5', filter: function(order) { return order.option_type === 'gplay'; } },
-    { key: 'merch', title: '📦 Merchandise', color: '#fff3e0', filter: function(order) { return order.option_type === 'merch'; } },
-    { key: 'cc-only', title: '🏆 Only Continuous Creation', color: '#fff8e1', filter: function(order) { return order.option_type === 'diamonds' && rewardHasCC(order) && !rewardHasDiamond(order); } },
-    { key: 'diamond-only', title: '💎 Only Diamonds', color: '#e3f2fd', filter: function(order) { return order.option_type === 'diamonds' && rewardHasDiamond(order) && !rewardHasCC(order); } },
-    { key: 'cc-diamond', title: '🎁 Diamonds + Continuous Creation', color: '#e8f5e9', filter: function(order) { return order.option_type === 'diamonds' && rewardHasDiamond(order) && rewardHasCC(order); } }
+    { key: 'gplay', title: '🎮 Google Play', color: '#f3e5f5', rows: activeOrders.filter(function(order) { return order.option_type === 'gplay'; }).map(function(order) { return { discord_name: order.discord_name, uid: order.uid, reward: order.option_name || order.reward_amount || 'Google Play 礼品卡' }; }) },
+    { key: 'merch', title: '📦 Merchandise', color: '#fff3e0', rows: activeOrders.filter(function(order) { return order.option_type === 'merch'; }).map(function(order) { return { discord_name: order.discord_name, uid: order.uid, reward: order.option_name || order.reward_amount || '周边' }; }) },
+    { key: 'cc-only', title: '🏆 仅持续创作奖励', color: '#fff8e1', rows: categoryRows['cc-only'] },
+    { key: 'diamond-only', title: '💎 仅钻石', color: '#e3f2fd', rows: categoryRows['diamond-only'] },
+    { key: 'cc-diamond', title: '🎁 钻石 + 持续创作奖励', color: '#e8f5e9', rows: categoryRows['cc-diamond'] }
   ];
   root.innerHTML = cards.map(function(card) {
-    var rows = activeOrders.filter(card.filter);
+    var rows = card.rows || [];
     var lines = ['Discord\tUID\tReward'].concat(rows.map(function(order) {
-      return [order.discord_name || '', order.uid || '', order.option_name || order.reward_amount || ''].join('\t');
+      return [order.discord_name || '', order.uid || '', order.reward || ''].join('\t');
     }));
     _fulfillmentRewardCardRows[card.key] = lines.join('\n');
     var body = rows.length ? '<div style="max-height:180px;overflow:auto;font-size:11px;line-height:1.6;">' + rows.map(function(order) {
-      return '<div style="padding:3px 0;border-bottom:1px solid rgba(0,0,0,.06);"><strong>' + esc(order.discord_name || '-') + '</strong> · ' + esc(order.uid || '-') + '<br><span>' + esc(order.option_name || order.reward_amount || '-') + '</span></div>';
+      return '<div style="padding:3px 0;border-bottom:1px solid rgba(0,0,0,.06);"><strong>' + esc(order.discord_name || '-') + '</strong> · ' + esc(order.uid || '-') + '<br><span>' + esc(order.reward || '-') + '</span></div>';
     }).join('') + '</div>' : '<div style="padding:14px 0;color:var(--text-light);font-size:12px;">当前月份暂无记录</div>';
     return '<div style="background:' + card.color + ';border-radius:12px;padding:12px;border:1px solid rgba(0,0,0,.08);"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;"><strong>' + card.title + ' (' + rows.length + ')</strong><button type="button" class="btn btn-outline btn-sm" onclick="copyFulfillmentCard(\'' + card.key + '\')">📋 复制到 Excel</button></div>' + body + '</div>';
   }).join('');
