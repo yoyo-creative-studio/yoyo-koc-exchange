@@ -953,6 +953,10 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
         <div style="font-size:11px;color:var(--text-light);margin:-4px 0 10px;">所有奖励订单的统一查看入口。发放操作仍按奖励类型使用对应的履约流程。</div>
         <div id="unified-order-table" style="overflow-x:auto;"></div>
       </div>
+      <div class="card">
+        <div class="card-title">📋 线下发放卡片 <span style="font-size:11px;color:var(--text-light);">可直接复制到 Excel</span></div>
+        <div id="fulfillment-reward-cards" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;"></div>
+      </div>
     </div>
 
     <!-- ======== TAB: KOC投稿月报 ======== -->
@@ -3799,6 +3803,7 @@ function renderUnifiedRewardOrders() {
   if (count) count.textContent = '(' + rows.length + ' / ' + (allOrders || []).length + ')';
   if (!rows.length) {
     table.innerHTML = '<div style="padding:20px;color:var(--text-light);text-align:center;">暂无匹配订单</div>';
+    renderFulfillmentRewardCards();
     return;
   }
   var labels = { diamonds: '💎 端内奖励', gplay: '🎮 Google Play', merch: '📦 周边' };
@@ -3806,6 +3811,41 @@ function renderUnifiedRewardOrders() {
     var badge = order.status === 'shipped' ? 'badge-shipped' : order.status === 'cancelled' ? 'badge-cancelled' : 'badge-pending';
     return '<tr><td>' + esc(order.discord_name || '-') + '</td><td style="font-family:monospace;font-size:11px;">' + esc(order.uid || '-') + '</td><td>' + esc(labels[order.option_type] || order.option_type || '-') + '</td><td>' + esc(order.option_name || order.reward_amount || '-') + '</td><td>' + (Number(order.points_spent) || 0) + '</td><td>' + esc(order.period || '-') + '</td><td><span class="badge ' + badge + '">' + esc(order.status || '-') + '</span></td></tr>';
   }).join('') + '</tbody></table>';
+  renderFulfillmentRewardCards();
+}
+
+var _fulfillmentRewardCardRows = {};
+function renderFulfillmentRewardCards() {
+  var root = document.getElementById('fulfillment-reward-cards');
+  if (!root) return;
+  var activeOrders = (allOrders || []).filter(function(order) {
+    return getRowPeriod(order) === currentPeriod && order.status !== 'cancelled' && (order.status === 'processing' || order.status === 'shipped');
+  });
+  var cards = [
+    { key: 'diamonds', title: '💎 Diamonds', color: '#e3f2fd', filter: function(order) { return order.option_type === 'diamonds' && rewardHasDiamond(order) && !rewardHasCC(order); }, columns: ['Discord', 'UID', 'Reward'] },
+    { key: 'continuous', title: '🏆 Continuous Creation', color: '#fff8e1', filter: function(order) { return order.option_type === 'diamonds' && rewardHasCC(order); }, columns: ['Discord', 'UID', 'Reward'] },
+    { key: 'gplay', title: '🎮 Google Play', color: '#f3e5f5', filter: function(order) { return order.option_type === 'gplay'; }, columns: ['Discord', 'UID', 'Reward'] }
+  ];
+  root.innerHTML = cards.map(function(card) {
+    var rows = activeOrders.filter(card.filter);
+    var lines = [card.columns.join('\t')].concat(rows.map(function(order) {
+      return [order.discord_name || '', order.uid || '', order.option_name || order.reward_amount || ''].join('\t');
+    }));
+    _fulfillmentRewardCardRows[card.key] = lines.join('\n');
+    var body = rows.length ? '<div style="max-height:180px;overflow:auto;font-size:11px;line-height:1.6;">' + rows.map(function(order) {
+      return '<div style="padding:3px 0;border-bottom:1px solid rgba(0,0,0,.06);"><strong>' + esc(order.discord_name || '-') + '</strong> · ' + esc(order.uid || '-') + '<br><span>' + esc(order.option_name || order.reward_amount || '-') + '</span></div>';
+    }).join('') + '</div>' : '<div style="padding:14px 0;color:var(--text-light);font-size:12px;">当前月份暂无记录</div>';
+    return '<div style="background:' + card.color + ';border-radius:12px;padding:12px;border:1px solid rgba(0,0,0,.08);"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;"><strong>' + card.title + ' (' + rows.length + ')</strong><button type="button" class="btn btn-outline btn-sm" onclick="copyFulfillmentCard(\'' + card.key + '\')">📋 复制到 Excel</button></div>' + body + '</div>';
+  }).join('');
+}
+
+async function copyFulfillmentCard(key) {
+  var text = _fulfillmentRewardCardRows[key] || '';
+  if (!text) { showToast('没有可复制的记录', 'info'); return; }
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast('✅ 已复制，可直接粘贴到 Excel', 'success');
+  } catch (error) { showToast('复制失败：' + error.message, 'error'); }
 }
 var fulfillmentPreviewLabel = '';
 
