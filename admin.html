@@ -941,6 +941,9 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
           <input type="search" id="unified-order-search" placeholder="🔍 搜索 Discord / UID / 奖励" oninput="renderUnifiedRewardOrders()">
           <select id="unified-order-type" onchange="renderUnifiedRewardOrders()"><option value="all">全部奖励类型</option><option value="diamonds">端内奖励</option><option value="gplay">Google Play</option><option value="merch">周边</option></select>
           <select id="unified-order-status" onchange="renderUnifiedRewardOrders()"><option value="all">全部状态</option><option value="pending">Pending</option><option value="processing">Processing</option><option value="shipped">Shipped</option><option value="cancelled">Cancelled</option></select>
+          <button class="btn btn-primary btn-sm" onclick="openManualRewardModal('diamonds')">➕ 手动端内奖励</button>
+          <button class="btn btn-primary btn-sm" onclick="openManualRewardModal('gplay')">➕ 手动 Google Play</button>
+          <button class="btn btn-primary btn-sm" onclick="openManualRewardModal('merch')">➕ 手动周边</button>
         </div>
         <div style="font-size:11px;color:var(--text-light);margin:-4px 0 10px;">所有奖励订单的统一查看入口。发放操作仍按奖励类型使用对应的履约流程。</div>
         <div id="unified-order-table" style="overflow-x:auto;"></div>
@@ -1048,8 +1051,8 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
         <div class="row" style="margin-bottom:8px;gap:6px;">
           <input type="text" id="search-input" placeholder="🔍 Search Discord or UID..." style="width:280px;font-size:13px;" oninput="renderKocTable()">
           <button class="btn btn-primary btn-sm" onclick="openManualKocModal()">➕ 手动添加 KOC</button>
-          <button class="btn btn-sm" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;" onclick="batchMarkSelected('old_creator')">📋 标记老创作者</button>
-          <button class="btn btn-sm" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;" onclick="batchMarkSelected('new_creator')">🆕 标记新创作者</button>
+          <button class="btn btn-sm" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;" onclick="batchMarkSelected('old_creator')" title="仅修改运营权益标签，不影响自动新人月和等级计算">📋 手动标记老创作者</button>
+          <button class="btn btn-sm" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;" onclick="batchMarkSelected('new_creator')" title="仅修改运营权益标签，不影响自动新人月和等级计算">🆕 手动标记新创作者</button>
           <button class="btn btn-sm" style="background:#fce4ec;color:#c62828;border:1px solid #ef9a9a;" onclick="batchDeleteSelected()">🗑 删除所选</button>
         </div>
         <div style="overflow-x:auto;overflow-y:auto;max-height:70vh;" class="koc-table-wrap">
@@ -1180,10 +1183,9 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
     <div id="tab-tiers" class="tab-content">
       <div class="card">
         <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>⭐ 创作者等级管理</span>
+          <span>⭐ 创作者等级管理 <small style="font-weight:400;color:var(--text-light);">等级由结算规则和算分结果决定；手动标签只影响运营权益</small></span>
           <div style="display:flex;gap:6px;">
             <button class="btn btn-success btn-sm" onclick="previewLegacyTierUpgrades()">生成截至 8 月升级预览</button>
-            <button class="btn btn-sm" style="background:#5865F2;color:white;" onclick="syncTiersFromDiscord()">💬 从 Discord 同步</button>
           </div>
         </div>
         <div class="stats-bar">
