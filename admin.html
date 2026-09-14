@@ -873,9 +873,6 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
       <button class="tab" onclick="switchTab('submissions')">📋 作品审核</button>
       <button class="tab" onclick="switchTab('feedback')">💬 反馈收集</button>
       <button class="tab" onclick="switchTab('fulfillment')">🎁 奖励发放中心</button>
-      <button class="tab" onclick="switchTab('diamond')">💎 端内奖励</button>
-      <button class="tab" onclick="switchTab('gplay')">🎮 谷歌卡</button>
-      <button class="tab" onclick="switchTab('merch')">📦 周边发货</button>
       <button class="tab" onclick="switchTab('rules')">📐 规则配置</button>
       <button class="tab" onclick="switchTab('audit')">📜 操作日志</button>
     </div>
@@ -1142,7 +1139,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
     </div>
 
     <!-- ======== TAB: 端内奖励 ======== -->
-    <div id="tab-diamond" class="tab-content">
+    <div id="tab-diamond" class="tab-content legacy-reward-tab" style="display:none!important;">
       <div class="card">
         <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
           <span>💎 端内奖励清单 <span id="diamond-count" style="font-size:12px;color:var(--text-light);"></span></span>
@@ -1156,7 +1153,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
     </div>
 
     <!-- ======== TAB: 谷歌卡 ======== -->
-    <div id="tab-gplay" class="tab-content">
+    <div id="tab-gplay" class="tab-content legacy-reward-tab" style="display:none!important;">
       <div class="card">
         <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
           <span>🎮 Google Play 礼品卡清单 <span id="gplay-count" style="font-size:12px;color:var(--text-light);"></span></span>
@@ -1170,7 +1167,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
     </div>
 
     <!-- ======== TAB: 周边发货 ======== -->
-    <div id="tab-merch" class="tab-content">
+    <div id="tab-merch" class="tab-content legacy-reward-tab" style="display:none!important;">
       <div class="card">
         <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
           <span>📦 周边发货清单 <span id="merch-count" style="font-size:12px;color:var(--text-light);"></span></span>
@@ -4088,11 +4085,24 @@ function renderRewardFulfillmentTable() {
       var koc = (allKocs || []).find(function(k) { return String(k.uid) === String(row.uid); });
       var detail = row.reward_type === 'gplay' ? ((row.gift_codes || []).length + ' 个兑换码') : row.reward_type === 'merch' ? ((row.carrier || '') + ' · ' + (row.tracking_number || '无物流单号')) : '游戏邮箱领取';
       var status = row.is_published ? '✅ 已发布' : '📝 草稿';
+      var copyText = detail || ((order && (order.option_name || order.reward_amount)) || row.reward_type);
       return '<tr><td><input type="checkbox" class="fulfillment-record-check" value="' + row.id + '" data-published="' + (row.is_published ? 'true' : 'false') + '" onchange="updateFulfillmentSelection()"></td>' +
         '<td><strong>' + esc((koc && koc.discord_name) || (order && order.discord_name) || row.uid) + '</strong><br><small>' + esc(row.uid) + '</small></td>' +
-        '<td>' + esc((order && (order.option_name || order.reward_amount)) || row.reward_type) + '</td><td>' + esc(detail) + '</td>' +
+        '<td>' + esc((order && (order.option_name || order.reward_amount)) || row.reward_type) + '</td><td>' + esc(detail) + ' <button type="button" class="btn btn-outline btn-sm" style="padding:2px 6px;font-size:10px;" onclick="copyFulfillmentText(\'' + escAttr(copyText) + '\')">📋 复制</button></td>' +
         '<td>' + status + '</td><td style="font-size:11px;">' + new Date(row.updated_at).toLocaleString('zh-CN') + '</td></tr>';
     }).join('') + '</tbody></table>';
+}
+
+async function copyFulfillmentText(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(String(text || ''));
+    else {
+      var area = document.createElement('textarea');
+      area.value = String(text || ''); area.style.position = 'fixed'; area.style.opacity = '0';
+      document.body.appendChild(area); area.select(); document.execCommand('copy'); area.remove();
+    }
+    showToast('✅ 发放内容已复制', 'success');
+  } catch (error) { showToast('复制失败：' + error.message, 'error'); }
 }
 
 function toggleAllFulfillments(checked) {
