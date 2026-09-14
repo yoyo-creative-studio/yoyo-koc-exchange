@@ -3830,7 +3830,7 @@ function renderFulfillmentRewardCards() {
     var text = String((order.option_name || '') + ' ' + (order.reward_amount || '')).toLowerCase();
     var isCC = rewardHasCC(order) || text.indexOf('cc:') === 0 || text.indexOf('持续创作') >= 0 || text.indexOf('豪华月卡') >= 0 || text.indexOf('蜗壳币') >= 0;
     var isDiamond = text.indexOf('钻石') >= 0 || text.indexOf('diamond') >= 0 || text.indexOf('450') >= 0 || (!isCC && Number(order.points_spent) > 0);
-    if (isCC) { item.hasCC = true; item.rewards.push('Premium Monthly Card*1; Shelly Coin*500; Gold*1000'); }
+    if (isCC) { item.hasCC = true; item.rewards.push('豪华月卡1，蜗壳币500，金币1000'); }
     if (isDiamond) { item.hasDiamond = true; item.diamondUnits += getDiamondUnits(order) || 1; }
   });
   var categoryRows = { 'cc-only': [], 'diamond-only': [], 'cc-diamond': [] };
