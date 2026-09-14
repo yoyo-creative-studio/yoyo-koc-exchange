@@ -3823,13 +3823,15 @@ function renderFulfillmentRewardCards() {
     return (!selectedPeriod || getRowPeriod(order) === selectedPeriod) && order.status !== 'cancelled';
   });
   var cards = [
-    { key: 'diamonds', title: '💎 Diamonds', color: '#e3f2fd', filter: function(order) { return order.option_type === 'diamonds' && rewardHasDiamond(order) && !rewardHasCC(order); }, columns: ['Discord', 'UID', 'Reward'] },
-    { key: 'continuous', title: '🏆 Continuous Creation', color: '#fff8e1', filter: function(order) { return order.option_type === 'diamonds' && rewardHasCC(order); }, columns: ['Discord', 'UID', 'Reward'] },
-    { key: 'gplay', title: '🎮 Google Play', color: '#f3e5f5', filter: function(order) { return order.option_type === 'gplay'; }, columns: ['Discord', 'UID', 'Reward'] }
+    { key: 'gplay', title: '🎮 Google Play', color: '#f3e5f5', filter: function(order) { return order.option_type === 'gplay'; } },
+    { key: 'merch', title: '📦 Merchandise', color: '#fff3e0', filter: function(order) { return order.option_type === 'merch'; } },
+    { key: 'cc-only', title: '🏆 Only Continuous Creation', color: '#fff8e1', filter: function(order) { return order.option_type === 'diamonds' && rewardHasCC(order) && !rewardHasDiamond(order); } },
+    { key: 'diamond-only', title: '💎 Only Diamonds', color: '#e3f2fd', filter: function(order) { return order.option_type === 'diamonds' && rewardHasDiamond(order) && !rewardHasCC(order); } },
+    { key: 'cc-diamond', title: '🎁 Diamonds + Continuous Creation', color: '#e8f5e9', filter: function(order) { return order.option_type === 'diamonds' && rewardHasDiamond(order) && rewardHasCC(order); } }
   ];
   root.innerHTML = cards.map(function(card) {
     var rows = activeOrders.filter(card.filter);
-    var lines = [card.columns.join('\t')].concat(rows.map(function(order) {
+    var lines = ['Discord\tUID\tReward'].concat(rows.map(function(order) {
       return [order.discord_name || '', order.uid || '', order.option_name || order.reward_amount || ''].join('\t');
     }));
     _fulfillmentRewardCardRows[card.key] = lines.join('\n');
