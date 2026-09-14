@@ -3818,8 +3818,9 @@ var _fulfillmentRewardCardRows = {};
 function renderFulfillmentRewardCards() {
   var root = document.getElementById('fulfillment-reward-cards');
   if (!root) return;
+  var selectedPeriod = currentPeriod || ((document.getElementById('settle-month') || {}).value || '');
   var activeOrders = (allOrders || []).filter(function(order) {
-    return getRowPeriod(order) === currentPeriod && order.status !== 'cancelled' && (order.status === 'processing' || order.status === 'shipped');
+    return (!selectedPeriod || getRowPeriod(order) === selectedPeriod) && order.status !== 'cancelled';
   });
   var cards = [
     { key: 'diamonds', title: '💎 Diamonds', color: '#e3f2fd', filter: function(order) { return order.option_type === 'diamonds' && rewardHasDiamond(order) && !rewardHasCC(order); }, columns: ['Discord', 'UID', 'Reward'] },
