@@ -3815,6 +3815,10 @@ function renderUnifiedRewardOrders() {
 }
 
 var _fulfillmentRewardCardRows = {};
+function isWelcomeMerchOrder(order) {
+  var text = [order.option_name, order.admin_notes, order.reward_amount].join(' ').toLowerCase();
+  return order.option_type === 'merch' && (text.indexOf('新人') >= 0 || text.indexOf('welcome') >= 0 || text.indexOf('入职') >= 0);
+}
 function renderFulfillmentRewardCards() {
   var root = document.getElementById('fulfillment-reward-cards');
   if (!root) return;
@@ -3844,7 +3848,8 @@ function renderFulfillmentRewardCards() {
   });
   var cards = [
     { key: 'gplay', title: '🎮 Google Play', color: '#f3e5f5', rows: activeOrders.filter(function(order) { return order.option_type === 'gplay'; }).map(function(order) { var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); }) || {}; return { discord_name: order.discord_name, uid: order.uid, reward: '$10 Google Play Gift Card*' + getRewardQty(order, 2), country: koc.country || koc.region || '', period: order.period }; }) },
-    { key: 'merch', title: '📦 Merchandise', color: '#fff3e0', rows: activeOrders.filter(function(order) { return order.option_type === 'merch'; }).map(function(order) { var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); }) || {}; return { discord_name: order.discord_name, uid: order.uid, reward: 'Random Merchandise*' + getRewardQty(order, 5), country: koc.country || koc.region || '', period: order.period, address: [koc.full_legal_name || koc.name, koc.address, koc.city, koc.state, koc.postal_code, koc.country].filter(Boolean).join('<br>'), phone: koc.phone || koc.contact_number || '' }; }) },
+    { key: 'merch', title: '📦 周边兑换', color: '#fff3e0', rows: activeOrders.filter(function(order) { return order.option_type === 'merch' && !isWelcomeMerchOrder(order); }).map(function(order) { var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); }) || {}; return { discord_name: order.discord_name, uid: order.uid, reward: 'Random Merchandise*' + getRewardQty(order, 5), country: koc.country || koc.region || '', period: order.period, address: [koc.full_legal_name || koc.name, koc.address, koc.city, koc.state, koc.postal_code, koc.country].filter(Boolean).join('\n'), phone: koc.phone || koc.contact_number || '' }; }) },
+    { key: 'welcome-merch', title: '🎁 新人欢迎周边', color: '#fce4ec', rows: activeOrders.filter(function(order) { return isWelcomeMerchOrder(order); }).map(function(order) { var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); }) || {}; return { discord_name: order.discord_name, uid: order.uid, reward: 'Random Merchandise*' + getRewardQty(order, 1), country: koc.country || koc.region || '', period: order.period, address: [koc.full_legal_name || koc.name, koc.address, koc.city, koc.state, koc.postal_code, koc.country].filter(Boolean).join('\n'), phone: koc.phone || koc.contact_number || '' }; }) },
     { key: 'cc-only', title: '🏆 仅持续创作奖励', color: '#fff8e1', rows: categoryRows['cc-only'] },
     { key: 'diamond-only', title: '💎 仅钻石', color: '#e3f2fd', rows: categoryRows['diamond-only'] },
     { key: 'cc-diamond', title: '🎁 钻石 + 持续创作奖励', color: '#e8f5e9', rows: categoryRows['cc-diamond'] }
@@ -3861,14 +3866,21 @@ function renderFulfillmentRewardCards() {
 
 function formatRewardCardMarkdown(key, rows) {
   var month = function(period) { var parts = String(period || currentPeriod || '').split('-'); return parts.length === 2 ? parseInt(parts[1], 10) + '月' : ''; };
-  var escapeCell = function(value) { return String(value || '').replace(/\|/g, '\\|').replace(/\r?\n/g, '<br>'); };
+  var escapeCell = function(value) {
+    var cell = String(value == null ? '' : value)
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<[^>]*>/g, '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n');
+    return /[\t\n"]/.test(cell) ? '"' + cell.replace(/"/g, '""') + '"' : cell;
+  };
   if (key === 'gplay') {
-    return ['| Batch | Creator | Country | Reward | |', '| :-----: | :-------: | :-: | :-------: | :-: |'].concat(rows.map(function(row) { return '| ' + month(row.period) + 'koc结算 | ' + escapeCell(row.discord_name) + ' | ' + escapeCell(row.country) + ' | ' + escapeCell(row.reward) + ' | |'; })).join('\n');
+    return ['Batch\tCreator\tCountry\tReward'].concat(rows.map(function(row) { return [month(row.period) + 'koc结算', row.discord_name, row.country, row.reward].map(escapeCell).join('\t'); })).join('\n');
   }
-  if (key === 'merch') {
-    return ['| Batch | Creator | Reward | Shipping Information | Country |', '| ---- | ------ | ------- | -------------------------------------------------------------------------------------- | --- |'].concat(rows.map(function(row) { return '| ' + month(row.period) + '结算 | ' + escapeCell(row.discord_name) + ' | ' + escapeCell(row.reward) + ' | ' + escapeCell(row.address) + '<br><br>' + escapeCell(row.phone) + ' | ' + escapeCell(row.country) + ' |'; })).join('\n');
+  if (key === 'merch' || key === 'welcome-merch') {
+    return ['Batch\tCreator\tReward\tShipping Information\tCountry'].concat(rows.map(function(row) { return [month(row.period) + '结算', row.discord_name, row.reward, [row.address, row.phone].filter(Boolean).join('\n'), row.country].map(escapeCell).join('\t'); })).join('\n');
   }
-  return ['| Creator | Server | Account ID | Game UID | Reward | Month |', '| :--------: | :-: | :-----------------: | :----------: | :------: | :-: |'].concat(rows.map(function(row) { return '| ' + escapeCell(row.discord_name) + ' | ' + escapeCell(row.server) + ' | ' + escapeCell(row.account_id) + ' | ' + escapeCell(row.uid) + ' | ' + escapeCell(row.reward) + ' | ' + month(row.period) + ' |'; })).join('\n');
+  return ['Creator\tServer\tAccount ID\tGame UID\tReward\tMonth'].concat(rows.map(function(row) { return [row.discord_name, row.server, row.account_id, row.uid, row.reward, month(row.period)].map(escapeCell).join('\t'); })).join('\n');
 }
 
 async function copyFulfillmentCard(key) {
@@ -7717,7 +7729,11 @@ function getDisplayName(koc, order) {
 }
 function getAccountId(koc) { return (koc && koc.account_id) || '-'; }
 function getServerName(koc) { return (koc && koc.server) || '正式服'; }
-function getCountryName(koc) { return (koc && (koc.country || koc.region)) || '-'; }
+function getCountryName(koc) {
+  var value = (koc && (koc.country || koc.region)) || '-';
+  var map = { '美国':'United States', 'USA':'United States', 'United States of America':'United States', '加拿大':'Canada', '英国':'United Kingdom', '巴西':'Brazil', '意大利':'Italy', '立陶宛':'Lithuania', '法国':'France', '德国':'Germany', '瑞士':'Switzerland', '越南':'Vietnam', '科索沃':'Kosovo', '菲律宾':'Philippines', '波多黎各':'Puerto Rico', '智利':'Chile' };
+  return map[value] || value;
+}
 function getDiamondUnits(order) {
   var amt = String((order && (order.reward_amount || order.option_name)) || '');
   var m = amt.match(/(?:450\s*钻石?\s*[×x*]?\s*|450\s*[×x*]\s*)(\d+)/i) || amt.match(/(\d+)\s*(?:分|钻石)/);
@@ -8256,27 +8272,30 @@ function exportMonth(type, label) {
     return;
   }
   if (type === 'merch') {
-    var merchOrders = allOrders.filter(function(o) { return o.option_type === 'merch' && (o.status === 'processing' || o.status === 'shipped'); }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
-    if (!merchOrders.length) { showToast('No orders to export', 'error'); return; }
-    header = '批次\t姓名\tDiscord\t地址\t城市\t州/省\t邮编\t国家\t手机\t奖励\t备注';
-    rows = merchOrders.map(function(o) {
-      var koc = kmap[o.uid];
-      return [
-        getBatchLabelFromPeriod(o.period || (o.created_at || '').substring(0, 7)),
-        getDisplayName(koc, o),
-        koc ? koc.discord_name : o.discord_name,
-        koc ? koc.address : '',
-        koc ? koc.city : '',
-        koc ? koc.state : '',
-        koc ? koc.postal_code : '',
-        getCountryName(koc),
-        koc ? koc.phone : '',
-        o.option_name || 'Merch Pack',
-        o.admin_notes || ''
-      ].map(function(v) { return clean(esc(v)); }).join('\t');
-    }).join('\n');
+    var merchOrders = allOrders.filter(function(o) { return o.option_type === 'merch' && (o.status === 'processing' || o.status === 'shipped'); });
+    var merchByUid = {};
+    merchOrders.forEach(function(o) {
+      var key = String(o.uid || o.discord_name || '');
+      if (!merchByUid[key]) merchByUid[key] = { orders: [], order: o };
+      merchByUid[key].orders.push(o);
+    });
+    var merchRows = Object.keys(merchByUid).map(function(key) {
+      var group = merchByUid[key], o = group.order, koc = kmap[o.uid] || {};
+      var welcome = group.orders.some(function(item) { return isWelcomeMerchOrder(item); });
+      var quantity = group.orders.filter(function(item) { return !isWelcomeMerchOrder(item); }).reduce(function(total, item) { return total + getRewardQty(item, 5); }, 0);
+      var reward = (quantity ? 'Random Merchandise*' + quantity : '新人礼物') + (welcome && quantity ? '+新人礼物' : '');
+      var recipient = ['姓名：' + (koc.full_legal_name || koc.name || o.koc_name || ''), 'Address：' + (koc.address || ''), '城市：' + (koc.city || ''), '州：' + (koc.state || ''), '邮编：' + (koc.postal_code || ''), '国家：' + getCountryName(koc), '电话：' + (koc.phone || '')].join('\n');
+      return [reward, '', getCountryName(koc), recipient, koc.discord_name || o.discord_name || ''];
+    });
+    if (!merchRows.length) { showToast('No orders to export', 'error'); return; }
+    function toTsvCell(value) {
+      var cell = String(value == null ? '' : value).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      return /[\t\n"]/.test(cell) ? '"' + cell.replace(/"/g, '""') + '"' : cell;
+    }
+    header = '实体奖励奖品（周边）（游戏填）\t\t寄送地址地区（游戏填）\t收件信息（游戏填）\tdiscord名字';
+    rows = merchRows.map(function(row) { return row.map(toTsvCell).join('\t'); }).join('\n');
     text = header + '\n' + rows;
-    exportToClipboard(text, merchOrders.length);
+    exportToClipboard(text, merchRows.length);
     return;
   }
 }
