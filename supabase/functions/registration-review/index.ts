@@ -176,6 +176,8 @@ serve(async (req) => {
 
     if (!adminPassword || admin_password !== adminPassword) return json({ ok: false, error: "Admin verification failed" }, 403);
 
+    if (action === "login") return json({ ok: true });
+
     if (action === "admin_rpc") {
       const rpcName = String(data.rpc || "");
       const allowedRpcNames = new Set([

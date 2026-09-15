@@ -49,13 +49,6 @@ BEGIN
   IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' OR jsonb_array_length(p_items) = 0 THEN
     RAISE EXCEPTION 'p_items must be a non-empty array';
   END IF;
-  IF (
-    SELECT COUNT(DISTINCT item->>'option_type')
-    FROM jsonb_array_elements(p_items) AS item
-  ) > 1 THEN
-    RAISE EXCEPTION 'only one reward type may be selected per redemption period';
-  END IF;
-
   PERFORM pg_advisory_xact_lock(hashtext(p_uid));
 
   SELECT COUNT(*), COALESCE(SUM(points_spent), 0)::INTEGER

@@ -1742,7 +1742,7 @@ Bonuses and carry-over do not count. Existing tiers only move up.</textarea>
 <script>/* v1784200691 */
 const SUPABASE_URL = 'https://rryzofimrehmkijkckrm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_oyewqnQ8AnitAOD94Qg0nA_v6Zqkr7r';
-const ADMIN_PASSWORD = 'jiashi65';
+let ADMIN_PASSWORD = sessionStorage.getItem('admin_password') || '';
 </script><script src="admin-shared.js"></script><script>
 
 // ===== Mochi Discord Bot =====
@@ -1925,9 +1925,13 @@ function confirmDanger(title, lines) {
 }
 
 // ===== LOGIN =====
-window.adminLogin = function adminLogin() {
+window.adminLogin = async function adminLogin() {
   var pw = document.getElementById('admin-pw').value;
-  if (pw === ADMIN_PASSWORD) {
+  if (!pw) return;
+  ADMIN_PASSWORD = pw;
+  try {
+    await registrationReviewFetch('login');
+    sessionStorage.setItem('admin_password', pw);
     localStorage.setItem('admin_session', 'logged_in');
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('admin-panel').classList.remove('hidden');
@@ -1935,13 +1939,17 @@ window.adminLogin = function adminLogin() {
       await loadSettleMonthDropdown();
       await loadData();
     }, 100);
-  } else {
+  } catch (error) {
+    ADMIN_PASSWORD = '';
+    sessionStorage.removeItem('admin_password');
     alert('Wrong password. Please try again.');
   }
 }
 
 window.adminLogout = function adminLogout() {
   localStorage.removeItem('admin_session');
+  sessionStorage.removeItem('admin_password');
+  ADMIN_PASSWORD = '';
   localStorage.removeItem('admin_active_tab');
   document.querySelectorAll('.tab-content').forEach(function(tab) { tab.classList.remove('active'); });
   document.querySelectorAll('#tab-nav .tab').forEach(function(tab) { tab.classList.remove('active'); });
