@@ -1443,7 +1443,7 @@ function updateUI() {
     const already = (selections[r.id] || 0) > 0;
     const rewardRow = p.closest('.reward-row');
     if (rewardRow) rewardRow.classList.toggle('selected', already);
-    p.disabled = !((already || selCount < 1) && totalCost + r.cost <= bal);
+    p.disabled = !(already || totalCost + r.cost <= bal);
     if (m) m.disabled = !(selections[r.id] || 0);
   });
 
@@ -1451,7 +1451,7 @@ function updateUI() {
   if (!footer || !currentUser) return;
   const chosen = REWARDS.filter(r => selections[r.id] > 0);
   if (chosen.length === 0) {
-    footer.innerHTML = '<div style="font-size:13px;color:var(--text-light);text-align:center;padding:8px;">Select 1 reward type per month</div>';
+    footer.innerHTML = '<div style="font-size:13px;color:var(--text-light);text-align:center;padding:8px;">Select one or more reward types</div>';
     return;
   }
   const rem = bal - totalCost;
@@ -1465,7 +1465,6 @@ function changeQty(id, d) {
   const opt = REWARDS.find(r => r.id === id); if (!opt) return;
   const cur = selections[id] || 0; const nxt = cur + d;
   if (nxt < 0) return;
-  if (d > 0 && cur === 0 && getSelCount() >= 1) return;
   const newTotal = getTotalCost() - cur * opt.cost + nxt * opt.cost;
   if (newTotal > currentUser.points) return;
   selections[id] = nxt; updateUI();
@@ -1615,10 +1614,10 @@ async function loadOrders() {
       var statusClass = o.status === 'shipped' ? 'badge-shipped' : (o.status === 'pending' || o.status === 'processing') ? 'badge-pending' : 'badge-cancelled';
       var statusLabel = o.status === 'shipped' ? 'Completed · Reward sent' : o.status === 'processing' ? 'Processing · Admin preparing reward' : o.status === 'pending' ? 'Pending · Awaiting admin review' : 'Cancelled · Not processed';
       var displayName = o.option_name || o.option_type;
-      if (displayName === '🎁 新人入职周边') displayName = '🎁 New Creator Welcome Gift';
+      if (displayName === '🎁 新人入职周边' || displayName === '🎁 New Creator Welcome Gift') displayName = '🎁 New Creator Welcome Gift';
       var displayAmount = o.reward_amount || '';
       var orderMonth = o.period || String(o.created_at || '').slice(0, 7);
-      if (displayAmount === '随机周边 × 1') displayAmount = 'Random Merchandise × 1';
+      if (displayAmount === '随机周边 × 1' || displayAmount === 'Random Merchandise × 1') displayAmount = 'Random Merchandise × 1';
       var fulfillment = fulfillmentMap[String(o.id)];
       return '<div class="order-item">' +
         '<div style="display:flex;justify-content:space-between;">' +

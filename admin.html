@@ -1639,7 +1639,7 @@ Bonuses and carry-over do not count. Existing tiers only move up.</textarea>
     <h3>💬 Mochi 消息中心</h3>
     <label>Bot Token <span style="font-size:11px;color:var(--text-light);">（首次使用填写）</span></label>
     <div style="display:flex;gap:4px;margin-bottom:8px;">
-      <input type="text" id="mochi-token-input" style="flex:1;" placeholder="Enter Mochi Bot Token">
+      <input type="password" id="mochi-token-input" style="flex:1;" placeholder="Enter Mochi Bot Token" autocomplete="off">
       <button class="btn btn-sm" style="background:#5865F2;color:white;white-space:nowrap;" onclick="saveMochiToken()">💾 保存</button>
     </div>
 
@@ -1761,6 +1761,7 @@ function saveMochiToken() {
   var input = document.getElementById('mochi-token-input');
   if (input && input.value.trim()) {
     setMochiToken(input.value.trim());
+    input.value = '';
     showToast('✅ Token 已保存', 'success');
     if (localStorage.getItem('mochi_auto_welcome') === 'enabled' && !autoWelcomeInterval) restoreAutoWelcome();
   } else {
@@ -5286,10 +5287,8 @@ async function cloudAutoWelcomeFetch(action, payload) {
 function openMochiBroadcast() {
   var modal = document.getElementById('mochi-modal');
   if (modal) modal.classList.remove('hidden');
-  // 回显已保存的 Token
-  var savedToken = localStorage.getItem('mochi_token') || '';
   var tokenInput = document.getElementById('mochi-token-input');
-  if (savedToken && tokenInput) tokenInput.value = savedToken;
+  if (tokenInput) tokenInput.value = '';
   var statusEl = document.getElementById('mochi-status');
   if (statusEl) statusEl.textContent = '';
   updateAutoWelcomeUi();
