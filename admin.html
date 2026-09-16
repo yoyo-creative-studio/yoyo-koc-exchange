@@ -901,7 +901,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
           </div>
           <div style="border:2px solid #a5d6a7;background:#f4fff6;border-radius:14px;padding:14px;">
             <div style="font-weight:800;color:#2e7d32;margin-bottom:6px;">💎 端内奖励</div>
-            <div style="font-size:11px;color:#777;line-height:1.5;margin-bottom:10px;">从当月待处理端内奖励中勾选，运营回复已发放后批量创建“请查看游戏邮箱”记录。</div>
+            <div style="font-size:11px;color:#777;line-height:1.5;margin-bottom:10px;">读取当月已分配到发放流程、尚未生成发放记录的端内奖励订单。运营确认发放后批量创建“请查看游戏邮箱”记录。</div>
             <button class="btn btn-sm" style="width:100%;background:#43a047;color:white;margin-top:28px;" onclick="previewInGameFulfillments()">📋 选择待发放人员</button>
           </div>
         </div>
@@ -4116,18 +4116,30 @@ async function previewMerchFulfillmentFile() {
 }
 
 function previewInGameFulfillments() {
+  var existingOrderIds = {};
+  (rewardFulfillments || []).forEach(function(row) { existingOrderIds[Number(row.order_id)] = true; });
   fulfillmentPreviewRows = (allOrders || []).filter(function(order) {
-    return order.option_type === 'diamonds' && getRowPeriod(order) === currentPeriod && order.status === 'pending';
+    return order.option_type === 'diamonds' &&
+      getRowPeriod(order) === currentPeriod &&
+      order.status === 'processing' &&
+      !existingOrderIds[Number(order.id)];
   }).map(function(order) {
     var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); });
+    var problems = [];
+    if (!koc) problems.push('未匹配到 KOC 信息');
+    if (!String((koc && koc.account_id) || '').match(/^6\d{18}$/)) problems.push('缺少有效的 19 位 Account ID');
+    if (!String((koc && koc.server) || '').trim()) problems.push('缺少奖励区服');
+    var rewardContent = String(order.reward_amount || order.option_name || 'In-game reward').trim();
     return {
       discord_name: (koc && koc.discord_name) || order.discord_name || '', uid: order.uid,
       order_id: order.id, reward_type: 'diamonds', fulfillment_status: 'delivered', gift_codes: [],
-      carrier: '', tracking_number: '', reward_note: 'Your in-game reward has been sent. Please open the game and check your in-game mailbox.',
-      problems: [], valid: true, checked: false
+      carrier: '', tracking_number: '',
+      reward_note: rewardContent + '. Your in-game reward has been sent. Please open the game and check your in-game mailbox.',
+      warnings: [], problems: problems, valid: problems.length === 0, checked: false
     };
   });
   renderFulfillmentPreview('💎 端内奖励');
+  if (!fulfillmentPreviewRows.length) showToast('当前月份没有已进入发放流程且尚未生成记录的端内奖励', 'info');
 }
 
 function renderFulfillmentPreview(label) {
