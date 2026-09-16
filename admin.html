@@ -3138,11 +3138,11 @@ async function exportCSV() {
     }
 
     var csv = '﻿'; // BOM for Excel
-    csv += 'Discord,UID,Type,Status,Points,E Links,V Links,Created At\n';
+    csv += 'Discord,UID,Type,Status,Points,Engagement Links,View Links,Created At\n';
     subs.forEach(function(s) {
-      var el = splitSubmissionLinks(s.links_engagement).length;
-      var vl = splitSubmissionLinks(s.links_views).length;
-      csv += [s.discord_name||'', s.uid||'', s.submission_type || 'work', s.status||'', s.points_earned||0, el, vl, s.created_at||''].map(csvCell).join(',') + '\n';
+      var engagementLinks = splitSubmissionLinks(s.links_engagement).join('\n');
+      var viewLinks = splitSubmissionLinks(s.links_views).join('\n');
+      csv += [s.discord_name||'', s.uid||'', s.submission_type || 'work', s.status||'', s.points_earned||0, engagementLinks, viewLinks, s.created_at||''].map(csvCell).join(',') + '\n';
     });
 
     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
