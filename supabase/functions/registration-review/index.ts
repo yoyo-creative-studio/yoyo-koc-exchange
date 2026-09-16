@@ -387,10 +387,7 @@ serve(async (req) => {
         if (!order) return json({ ok: false, error: `Order #${row.order_id} not found` }, 404);
         const codes = Array.isArray(row.gift_codes) ? row.gift_codes.map((code: unknown) => String(code || "").trim()).filter(Boolean) : [];
         if (order.option_type === "gplay") {
-          const quantityText = `${order.option_name || ""} ${order.reward_amount || ""}`;
-          const quantityMatch = quantityText.match(/[×xX]\s*(\d+)/);
-          const expectedCodes = quantityMatch ? Number(quantityMatch[1]) : Math.max(1, Math.round((Number(order.points_spent) || 0) / 2));
-          if (codes.length !== expectedCodes) return json({ ok: false, error: `Order #${order.id} requires ${expectedCodes} gift codes` }, 400);
+          if (!codes.length) return json({ ok: false, error: `Order #${order.id} requires at least one gift code or claim link` }, 400);
         } else if (codes.length) {
           return json({ ok: false, error: `Order #${order.id} does not accept gift codes` }, 400);
         }
@@ -421,6 +418,36 @@ serve(async (req) => {
     if (action === "publish_reward_fulfillments") {
       const ids = (Array.isArray(data.ids) ? data.ids : []).map(Number).filter(Boolean);
       if (!ids.length) return json({ ok: false, error: "No fulfillment records selected" }, 400);
+      const { data: selectedRows, error: selectedError } = await db.from("reward_fulfillments")
+        .select("id,order_id,reward_type,gift_codes,is_published").in("id", ids);
+      if (selectedError) return json({ ok: false, error: selectedError.message }, 400);
+      if ((selectedRows || []).length !== ids.length) return json({ ok: false, error: "One or more fulfillment records were not found" }, 404);
+      const selectedCodeOwners = new Map<string, number>();
+      for (const row of selectedRows || []) {
+        if (row.is_published) continue;
+        const codes = Array.isArray(row.gift_codes) ? row.gift_codes.map((code: unknown) => String(code || "").trim()).filter(Boolean) : [];
+        if (row.reward_type === "gplay" && !codes.length) return json({ ok: false, error: `Order #${row.order_id} requires at least one gift code or claim link` }, 400);
+        for (const code of codes) {
+          const normalized = code.toUpperCase();
+          if (selectedCodeOwners.has(normalized) && selectedCodeOwners.get(normalized) !== Number(row.order_id)) {
+            return json({ ok: false, error: `Duplicate gift code detected before publishing: ${code}` }, 409);
+          }
+          selectedCodeOwners.set(normalized, Number(row.order_id));
+        }
+      }
+      if (selectedCodeOwners.size) {
+        const selectedOrderIds = (selectedRows || []).map((row) => Number(row.order_id));
+        const { data: publishedCodeRows, error: publishedCodeError } = await db.from("reward_fulfillments")
+          .select("order_id,gift_codes").eq("is_published", true).not("order_id", "in", `(${selectedOrderIds.join(",")})`);
+        if (publishedCodeError) return json({ ok: false, error: publishedCodeError.message }, 400);
+        for (const publishedRow of publishedCodeRows || []) {
+          for (const existingCode of Array.isArray(publishedRow.gift_codes) ? publishedRow.gift_codes : []) {
+            if (selectedCodeOwners.has(String(existingCode || "").trim().toUpperCase())) {
+              return json({ ok: false, error: `Gift code already belongs to published order #${publishedRow.order_id}` }, 409);
+            }
+          }
+        }
+      }
       const { data: result, error } = await db.rpc("publish_reward_fulfillments", { p_ids: ids });
       if (error) return json({ ok: false, error: error.message }, 400);
       return json({ ok: true, result });

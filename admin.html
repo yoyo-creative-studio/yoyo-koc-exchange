@@ -889,7 +889,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
         <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;" class="fulfillment-import-grid">
           <div style="border:2px solid #d1c4e9;background:#faf7ff;border-radius:14px;padding:14px;">
             <div style="font-weight:800;color:#6a1b9a;margin-bottom:6px;">🎮 Google Play 兑换码</div>
-            <div style="font-size:11px;color:#777;line-height:1.5;margin-bottom:10px;">CSV 两列：Discord名字、兑换码。一个人多个码可放在同一单元格内换行。</div>
+            <div style="font-size:11px;color:#777;line-height:1.5;margin-bottom:10px;">CSV 必填：Discord名字、兑换码；可选：币种、当地货币总额。一个人多个码可放在同一单元格内换行。</div>
             <input type="file" id="fulfillment-gplay-file" accept=".csv,text/csv,text/plain" style="width:100%;font-size:11px;margin-bottom:8px;">
             <button class="btn btn-sm" style="width:100%;background:#7e57c2;color:white;" onclick="previewGplayFulfillmentFile()">📋 解析预览</button>
           </div>
@@ -3937,35 +3937,65 @@ function parseRewardQuantity(order) {
   return 1;
 }
 
+function giftCodeKey(value) {
+  var code = String(value || '').trim();
+  return /^https?:\/\//i.test(code) ? code : code.toUpperCase();
+}
+
 function splitGiftCodes(value) {
-  return String(value || '').replace(/\r/g, '\n').split(/[\n,，;；\t ]+/).map(function(code) { return code.trim(); }).filter(Boolean);
+  var output = [];
+  String(value || '').replace(/\r/g, '\n').split(/\n+/).forEach(function(line) {
+    var trimmed = line.trim();
+    if (!trimmed) return;
+    var parts = /^https?:\/\//i.test(trimmed) ? [trimmed] : trimmed.split(/[,，;；]+/);
+    parts.forEach(function(part) {
+      var code = part.trim();
+      if (code && output.map(giftCodeKey).indexOf(giftCodeKey(code)) === -1) output.push(code);
+    });
+  });
+  return output;
 }
 
 function buildGplayFulfillmentPreview(text) {
   var rows = parseMochiCsv(text || '');
   var codeOwners = {};
   var output = [];
+  var header = rows.length ? rows[0].map(function(cell) { return String(cell || '').trim().toLowerCase(); }) : [];
+  var hasHeader = header.some(function(cell) { return cell.indexOf('discord') >= 0; });
+  function columnIndex(words, fallback) {
+    var index = header.findIndex(function(cell) { return words.some(function(word) { return cell.indexOf(word) >= 0; }); });
+    return index >= 0 ? index : fallback;
+  }
+  var discordIndex = columnIndex(['discord'], 0);
+  var codeIndex = columnIndex(['兑换码', 'code', 'link'], 1);
+  var currencyIndex = columnIndex(['币种', 'currency'], -1);
+  var amountIndex = columnIndex(['当地货币总额', '当地金额', 'local amount'], -1);
   rows.forEach(function(row, index) {
-    var joined = row.join(' ').toLowerCase();
-    if (index === 0 && joined.indexOf('discord') >= 0 && (joined.indexOf('兑换') >= 0 || joined.indexOf('code') >= 0)) return;
-    var discord = String(row[0] || '').trim();
-    var codes = splitGiftCodes(row.slice(1).join('\n'));
+    if (index === 0 && hasHeader) return;
+    var discord = String(row[discordIndex] || '').trim();
+    var codes = splitGiftCodes(row[codeIndex] || '');
+    var currency = currencyIndex >= 0 ? String(row[currencyIndex] || '').trim().toUpperCase() : '';
+    var localAmount = amountIndex >= 0 ? String(row[amountIndex] || '').trim() : '';
     if (!discord && !codes.length) return;
     var koc = findKocByDiscordName(discord);
     var order = getFulfillmentOrder(koc, 'gplay');
     var expected = parseRewardQuantity(order);
     var problems = [];
+    var warnings = [];
     if (!koc) problems.push('未唯一匹配 KOC');
     if (koc && !order) problems.push('未唯一匹配 ' + currentPeriod + ' 谷歌卡订单');
     if (!codes.length) problems.push('没有兑换码');
-    if (order && codes.length !== expected) problems.push('兑换码 ' + codes.length + ' 个，订单需要 ' + expected + ' 个');
+    if (order && codes.length !== expected) warnings.push('订单为 $10 × ' + expected + '，本次上传 ' + codes.length + ' 个兑换码/链接；请确认供应商合并面额');
+    if (!currency || !localAmount) warnings.push('未完整填写币种或当地货币总额');
+    var existingPublished = (rewardFulfillments || []).some(function(item) { return Number(item.order_id) === Number(order && order.id) && item.is_published; });
+    if (existingPublished) problems.push('订单已发布，禁止覆盖');
     var rowCodes = {};
     codes.forEach(function(code) {
-      var key = code.toUpperCase();
+      var key = giftCodeKey(code);
       if (rowCodes[key]) problems.push('本行存在重复兑换码：' + code);
       rowCodes[key] = true;
-      if (codeOwners[key] && codeOwners[key] !== discord) problems.push('兑换码与 ' + codeOwners[key] + ' 重复');
-      else codeOwners[key] = discord;
+      if (!codeOwners[key]) codeOwners[key] = [];
+      codeOwners[key].push({ discord: discord, outputIndex: output.length, code: code });
     });
     output.push({
       discord_name: (koc && koc.discord_name) || discord,
@@ -3976,9 +4006,26 @@ function buildGplayFulfillmentPreview(text) {
       gift_codes: codes,
       carrier: '', tracking_number: '', reward_note: '',
       expected: expected,
+      source_usd_value: expected * 10,
+      country: (koc && (koc.country || koc.region)) || '',
+      currency: currency,
+      local_amount: localAmount,
+      warnings: warnings,
       problems: problems,
       valid: problems.length === 0,
       checked: problems.length === 0
+    });
+  });
+  Object.keys(codeOwners).forEach(function(key) {
+    var owners = codeOwners[key];
+    var distinctNames = Array.from(new Set(owners.map(function(owner) { return owner.discord; })));
+    if (distinctNames.length < 2) return;
+    owners.forEach(function(owner) {
+      var row = output[owner.outputIndex];
+      if (!row) return;
+      row.problems.push('兑换码与其他创作者重复：' + owner.code);
+      row.valid = false;
+      row.checked = false;
     });
   });
   return output;
@@ -4091,7 +4138,8 @@ function renderFulfillmentPreview(label) {
   if (!card || !list) return;
   card.style.display = 'block';
   var valid = fulfillmentPreviewRows.filter(function(row) { return row.valid; }).length;
-  if (summary) summary.textContent = fulfillmentPreviewLabel + ' · 共 ' + fulfillmentPreviewRows.length + ' 行 · 可保存 ' + valid + ' 行 · 异常 ' + (fulfillmentPreviewRows.length - valid) + ' 行';
+  var warningCount = fulfillmentPreviewRows.filter(function(row) { return row.valid && row.warnings && row.warnings.length; }).length;
+  if (summary) summary.textContent = fulfillmentPreviewLabel + ' · 共 ' + fulfillmentPreviewRows.length + ' 行 · 可保存 ' + valid + ' 行 · 需确认 ' + warningCount + ' 行 · 错误 ' + (fulfillmentPreviewRows.length - valid) + ' 行';
   if (!fulfillmentPreviewRows.length) {
     list.innerHTML = '<div style="padding:18px;text-align:center;color:var(--text-light);">没有解析到可用记录</div>';
     return;
@@ -4105,11 +4153,14 @@ function renderFulfillmentPreview(label) {
   if (!visibleRows.length) { list.innerHTML = '<div style="padding:18px;text-align:center;color:var(--text-light);">没有匹配记录</div>'; return; }
   list.innerHTML = visibleRows.map(function(item) {
     var row = item.row, index = item.index;
-    var detail = row.reward_type === 'gplay' ? (row.gift_codes.length + ' codes / expected ' + row.expected) : row.reward_type === 'merch' ? ((row.carrier || '') + ' · ' + (row.tracking_number || 'No tracking')) : 'Check in-game mailbox';
-    return '<label style="display:grid;grid-template-columns:28px 1fr auto;gap:8px;align-items:start;padding:9px;border-bottom:1px solid #eee;background:' + (row.valid ? '#fff' : '#fff3f3') + ';">' +
+    var hasWarning = row.valid && row.warnings && row.warnings.length;
+    var detail = row.reward_type === 'gplay' ? ('国家: ' + (row.country || '—') + ' · 原订单: $10 × ' + row.expected + ' = $' + row.source_usd_value + ' · 上传: ' + row.gift_codes.length + ' 个' + (row.currency || row.local_amount ? ' · 当地金额: ' + (row.currency || '—') + ' ' + (row.local_amount || '—') : '') + '<br>' + row.gift_codes.map(esc).join('<br>')) : row.reward_type === 'merch' ? ((row.carrier || '') + ' · ' + (row.tracking_number || 'No tracking')) : 'Check in-game mailbox';
+    var statusText = row.problems.length ? row.problems.join('；') : hasWarning ? row.warnings.join('；') : '可导入';
+    var statusColor = row.problems.length ? '#c62828' : hasWarning ? '#9a6700' : '#2e7d32';
+    return '<label style="display:grid;grid-template-columns:28px 1fr minmax(160px,260px);gap:8px;align-items:start;padding:9px;border-bottom:1px solid #eee;background:' + (row.valid ? (hasWarning ? '#fffbea' : '#fff') : '#fff3f3') + ';">' +
       '<input type="checkbox" class="fulfillment-preview-check" data-index="' + index + '" ' + (row.checked ? 'checked' : '') + (row.valid ? '' : ' disabled') + '>' +
-      '<span><strong>' + esc(row.discord_name || '(Unknown)') + '</strong> <span style="font-size:11px;color:#999;">' + esc(row.uid || '') + '</span><br><span style="font-size:11px;color:#666;">' + esc(detail) + '</span></span>' +
-      '<span style="font-size:11px;color:' + (row.valid ? '#2e7d32' : '#c62828') + ';text-align:right;">' + esc(row.problems.length ? row.problems.join('；') : '匹配成功') + '</span></label>';
+      '<span><strong>' + esc(row.discord_name || '(Unknown)') + '</strong> <span style="font-size:11px;color:#999;">' + esc(row.uid || '') + '</span><br><span style="font-size:11px;color:#666;line-height:1.5;">' + detail + '</span></span>' +
+      '<span style="font-size:11px;color:' + statusColor + ';text-align:right;">' + esc(statusText) + '</span></label>';
   }).join('');
 }
 
@@ -4144,7 +4195,7 @@ async function saveFulfillmentPreview() {
     if (row && row.valid) selected.push(row);
   });
   if (!selected.length) { showToast('没有勾选可保存的记录', 'error'); return; }
-  if (!confirmDanger('保存奖励发放草稿？', ['月份: ' + currentPeriod, '记录: ' + selected.length + ' 条', '保存后创作者仍看不到，必须稍后手动发布。'])) return;
+  if (!confirmDanger('保存奖励发放草稿？', ['月份: ' + currentPeriod, '记录: ' + selected.length + ' 条', '供应商可能将多张 $10 礼品卡合并为大面额礼品卡。系统只校验订单归属、兑换码非空和唯一性，不要求兑换码数量等于订单数量。', '保存后创作者仍看不到，必须稍后手动发布。'])) return;
   try {
     await registrationReviewFetch('save_reward_fulfillments', { rows: selected });
     showToast('✅ 已保存 ' + selected.length + ' 条草稿，尚未发布', 'success');
