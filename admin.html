@@ -4158,11 +4158,23 @@ async function previewMerchFulfillmentFile() {
   var input = document.getElementById('fulfillment-merch-file');
   if (!input || !input.files || !input.files[0]) { showToast('请先选择物流 Excel/CSV', 'error'); return; }
   try {
-    await loadSheetJs();
-    var buffer = await input.files[0].arrayBuffer();
-    var workbook = XLSX.read(buffer, { type: 'array' });
-    var sheet = workbook.Sheets[workbook.SheetNames[0]];
-    var rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+    var file = input.files[0];
+    var rows;
+    if (/\.csv$/i.test(file.name) || String(file.type || '').toLowerCase().indexOf('csv') >= 0) {
+      var csvRows = parseMochiCsv(await file.text());
+      var headers = (csvRows.shift() || []).map(function(header) { return String(header || '').replace(/^\uFEFF/, '').trim(); });
+      rows = csvRows.filter(function(row) { return row.some(function(cell) { return String(cell || '').trim(); }); }).map(function(row) {
+        var object = {};
+        headers.forEach(function(header, index) { object[header] = row[index] == null ? '' : row[index]; });
+        return object;
+      });
+    } else {
+      await loadSheetJs();
+      var buffer = await file.arrayBuffer();
+      var workbook = XLSX.read(buffer, { type: 'array' });
+      var sheet = workbook.Sheets[workbook.SheetNames[0]];
+      rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
+    }
     var monthMatch = input.files[0].name.match(/(?:^|[^0-9])(1[0-2]|0?[1-9])\s*月/);
     var sourcePeriod = monthMatch ? String(new Date().getFullYear()) + '-' + String(Number(monthMatch[1])).padStart(2, '0') : currentPeriod;
     fulfillmentPreviewRows = buildMerchPreviewFromObjects(rows, sourcePeriod);
