@@ -3912,18 +3912,47 @@ function normalizeFulfillmentName(value) {
   return String(value || '').normalize('NFKC').toLowerCase().replace(/[^a-z0-9\u00c0-\u024f\u4e00-\u9fff]+/g, '');
 }
 
+function getFulfillmentNameVariants(value) {
+  var raw = String(value || '').normalize('NFKC').trim();
+  var variants = [raw];
+  raw.split(/[\/|]/).forEach(function(part) { variants.push(part); });
+  variants.push(raw.replace(/\([^)]*\)/g, ' '));
+  var parenthetical = raw.match(/\(([^)]*)\)/g) || [];
+  parenthetical.forEach(function(part) { variants.push(part.replace(/[()]/g, '')); });
+  return variants.map(normalizeFulfillmentName).filter(function(value, index, list) {
+    return value && list.indexOf(value) === index;
+  });
+}
+
 function findKocByDiscordName(name) {
-  var needle = normalizeFulfillmentName(name);
-  if (!needle) return null;
-  var matches = (allKocs || []).filter(function(k) { return normalizeFulfillmentName(k.discord_name) === needle; });
-  return matches.length === 1 ? matches[0] : null;
+  var needles = getFulfillmentNameVariants(name);
+  if (!needles.length) return null;
+  var scored = (allKocs || []).map(function(koc) {
+    var fields = [koc.discord_name, koc.discord_username, koc.username, koc.name, koc.full_legal_name];
+    var variants = [];
+    fields.forEach(function(field) { variants = variants.concat(getFulfillmentNameVariants(field)); });
+    var score = 0;
+    needles.forEach(function(needle) {
+      variants.forEach(function(candidate) {
+        if (needle === candidate) score = Math.max(score, 100);
+        else if (needle.length >= 5 && candidate.length >= 5 && (needle.indexOf(candidate) >= 0 || candidate.indexOf(needle) >= 0)) score = Math.max(score, 60);
+      });
+    });
+    return { koc: koc, score: score };
+  }).filter(function(item) { return item.score > 0; }).sort(function(a, b) { return b.score - a.score; });
+  if (!scored.length || (scored[1] && scored[1].score === scored[0].score)) return null;
+  return scored[0].koc;
+}
+
+function getFulfillmentOrders(koc, type, period) {
+  if (!koc) return [];
+  return (allOrders || []).filter(function(order) {
+    return String(order.uid || '') === String(koc.uid || '') && order.option_type === type && (!period || getRowPeriod(order) === period) && order.status !== 'cancelled';
+  }).sort(function(a, b) { return Number(b.id) - Number(a.id); });
 }
 
 function getFulfillmentOrder(koc, type) {
-  if (!koc) return null;
-  var rows = (allOrders || []).filter(function(order) {
-    return String(order.uid || '') === String(koc.uid || '') && order.option_type === type && getRowPeriod(order) === currentPeriod && order.status !== 'cancelled';
-  }).sort(function(a, b) { return Number(b.id) - Number(a.id); });
+  var rows = getFulfillmentOrders(koc, type, currentPeriod);
   return rows.length === 1 ? rows[0] : null;
 }
 
@@ -4063,7 +4092,7 @@ function firstObjectValue(row, candidates) {
   return '';
 }
 
-function buildMerchPreviewFromObjects(rows) {
+function buildMerchPreviewFromObjects(rows, sourcePeriod) {
   var groups = [];
   var active = null;
   (rows || []).forEach(function(row) {
@@ -4072,33 +4101,51 @@ function buildMerchPreviewFromObjects(rows) {
     var carrier = firstObjectValue(row, ['物流公司', 'carrier']);
     var item = firstObjectValue(row, ['实体奖励奖品', '奖品', 'item']);
     var note = firstObjectValue(row, ['备注', 'note']);
+    var shippingInfo = firstObjectValue(row, ['收件信息', 'shipping information', 'shipping info']);
     if (discord) {
-      active = { discord_name: discord, tracking_number: tracking, carrier: carrier, items: [], notes: [] };
+      active = { discord_name: discord, tracking_number: tracking, carrier: carrier, shipping_info: shippingInfo, items: [], notes: [] };
       groups.push(active);
     }
     if (!active) return;
     if (tracking && !active.tracking_number) active.tracking_number = tracking;
     if (carrier && !active.carrier) active.carrier = carrier;
+    if (shippingInfo && !active.shipping_info) active.shipping_info = shippingInfo;
     if (item) active.items.push(item);
     if (note) active.notes.push(note);
   });
-  return groups.map(function(group) {
+  var output = [];
+  groups.forEach(function(group) {
     var koc = findKocByDiscordName(group.discord_name);
-    var order = getFulfillmentOrder(koc, 'merch');
+    if (!koc && group.shipping_info) {
+      var recipientMatch = String(group.shipping_info).match(/(?:姓名|name|full legal name)\s*[:：]\s*([^\r\n]+)/i);
+      if (recipientMatch) koc = findKocByDiscordName(recipientMatch[1]);
+    }
+    var orders = getFulfillmentOrders(koc, 'merch');
     var problems = [];
+    var isWelcomeGift = group.notes.some(function(note) { return /新人|welcome/i.test(note); });
     if (!koc) problems.push('未唯一匹配 KOC');
-    if (koc && !order) problems.push('未唯一匹配 ' + currentPeriod + ' 周边订单');
+    if (koc && !orders.length && !isWelcomeGift) problems.push('未匹配任何有效周边订单');
     if (!group.tracking_number) problems.push('缺少物流单号');
-    return {
-      discord_name: (koc && koc.discord_name) || group.discord_name,
-      uid: (koc && koc.uid) || '', order_id: order ? order.id : 0,
-      reward_type: 'merch', fulfillment_status: 'shipped', gift_codes: [],
-      carrier: group.carrier || 'International Shipping',
-      tracking_number: group.tracking_number,
-      reward_note: group.notes.join('；') || (group.items.length ? 'Package: ' + group.items.join(' / ') : ''),
-      problems: problems, valid: problems.length === 0, checked: problems.length === 0
-    };
+    var matchedOrders = orders.length ? orders : [null];
+    matchedOrders.forEach(function(order) {
+      var rowProblems = problems.slice();
+      var existingPublished = (rewardFulfillments || []).some(function(item) { return Number(item.order_id) === Number(order && order.id) && item.is_published; });
+      if (existingPublished) rowProblems.push('该订单已发布，禁止覆盖');
+      output.push({
+        discord_name: (koc && koc.discord_name) || group.discord_name,
+        uid: (koc && koc.uid) || '', order_id: order ? order.id : 0,
+        create_missing_welcome_order: !!(koc && !order && isWelcomeGift),
+        order_period: sourcePeriod || currentPeriod,
+        reward_type: 'merch', fulfillment_status: 'shipped', gift_codes: [],
+        carrier: group.carrier || 'International Shipping',
+        tracking_number: group.tracking_number,
+        reward_note: group.notes.join('；') || (group.items.length ? 'Package: ' + group.items.join(' / ') : ''),
+        warnings: (orders.length > 1 ? ['同一包裹关联 ' + orders.length + ' 张周边订单，已分别生成记录'] : []).concat(order && getRowPeriod(order) !== currentPeriod ? ['匹配到 ' + getRowPeriod(order) + ' 订单'] : []).concat(!order && isWelcomeGift ? ['保存时将补建缺失的新人欢迎周边订单'] : []),
+        problems: rowProblems, valid: rowProblems.length === 0, checked: rowProblems.length === 0
+      });
+    });
   });
+  return output;
 }
 
 async function previewMerchFulfillmentFile() {
@@ -4110,7 +4157,9 @@ async function previewMerchFulfillmentFile() {
     var workbook = XLSX.read(buffer, { type: 'array' });
     var sheet = workbook.Sheets[workbook.SheetNames[0]];
     var rows = XLSX.utils.sheet_to_json(sheet, { defval: '', raw: false });
-    fulfillmentPreviewRows = buildMerchPreviewFromObjects(rows);
+    var monthMatch = input.files[0].name.match(/(?:^|[^0-9])(1[0-2]|0?[1-9])\s*月/);
+    var sourcePeriod = monthMatch ? String(new Date().getFullYear()) + '-' + String(Number(monthMatch[1])).padStart(2, '0') : currentPeriod;
+    fulfillmentPreviewRows = buildMerchPreviewFromObjects(rows, sourcePeriod);
     renderFulfillmentPreview('📦 周边物流');
   } catch(error) { showToast(error.message, 'error'); }
 }

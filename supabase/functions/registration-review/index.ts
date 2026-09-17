@@ -368,6 +368,40 @@ serve(async (req) => {
     if (action === "save_reward_fulfillments") {
       const rows = Array.isArray(data.rows) ? data.rows : [];
       if (!rows.length) return json({ ok: false, error: "No fulfillment rows supplied" }, 400);
+      for (const row of rows as Record<string, unknown>[]) {
+        if (Number(row.order_id) || !row.create_missing_welcome_order) continue;
+        const uid = String(row.uid || "").trim();
+        const period = String(row.order_period || row.period || "").trim();
+        if (!uid || !/^\d{4}-\d{2}$/.test(period) || String(row.reward_type || "") !== "merch") {
+          return json({ ok: false, error: "Invalid missing welcome order request" }, 400);
+        }
+        const { data: creator, error: creatorError } = await db.from("kocs")
+          .select("uid,discord_name,name,address").eq("uid", uid).maybeSingle();
+        if (creatorError || !creator) return json({ ok: false, error: `Creator ${uid} not found` }, 404);
+        const { data: existingOrder, error: existingOrderError } = await db.from("redemption_orders")
+          .select("id").eq("uid", uid).eq("option_type", "merch").neq("status", "cancelled")
+          .order("id", { ascending: false }).limit(1).maybeSingle();
+        if (existingOrderError) return json({ ok: false, error: existingOrderError.message }, 400);
+        if (existingOrder) {
+          row.order_id = existingOrder.id;
+          continue;
+        }
+        const { data: createdOrder, error: createOrderError } = await db.from("redemption_orders").insert({
+          uid,
+          discord_name: creator.discord_name || "",
+          koc_name: creator.name || "",
+          option_type: "merch",
+          option_name: "🎁 New Creator Welcome Gift",
+          points_spent: 0,
+          reward_amount: "Random Merchandise × 1",
+          contact_info: creator.address || "",
+          status: "processing",
+          admin_notes: "Welcome gift order restored during logistics import",
+          period,
+        }).select("id").single();
+        if (createOrderError || !createdOrder) return json({ ok: false, error: createOrderError?.message || `Could not create welcome order for ${uid}` }, 400);
+        row.order_id = createdOrder.id;
+      }
       const orderIds = rows.map((row: Record<string, unknown>) => Number(row.order_id)).filter(Boolean);
       const { data: orders, error: orderError } = await db.from("redemption_orders")
         .select("id,uid,period,option_type,option_name,reward_amount,points_spent").in("id", orderIds);
