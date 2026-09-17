@@ -4139,12 +4139,20 @@ function buildMerchPreviewFromObjects(rows, sourcePeriod) {
       var recipientMatch = String(group.shipping_info).match(/(?:姓名|name|full legal name)\s*[:：]\s*([^\r\n]+)/i);
       if (recipientMatch) koc = findKocByDiscordName(recipientMatch[1]);
     }
-    var orders = getFulfillmentOrders(koc, 'merch');
+    var orderPeriod = sourcePeriod || currentPeriod;
+    var orders = getFulfillmentOrders(koc, 'merch', orderPeriod);
     var problems = [];
+    var isWelcomeGift = group.notes.some(function(note) { return /新人|welcome/i.test(note); });
+    var hasWelcomeOrder = orders.some(function(order) {
+      return isWelcomeMerchOrder(order);
+    });
+    var needsWelcomeOrder = !!(koc && isWelcomeGift && !hasWelcomeOrder);
     if (!koc) problems.push('未唯一匹配 KOC');
-    if (koc && !orders.length) problems.push('系统中没有本次待发放周边订单；不会用当前物流号补录历史新人礼物');
+    if (koc && !orders.length && !needsWelcomeOrder) problems.push('系统中没有可关联的本次周边订单');
     if (!group.tracking_number) problems.push('缺少物流单号');
-    var matchedOrders = orders.length ? orders : [null];
+    var matchedOrders = orders.slice();
+    if (needsWelcomeOrder) matchedOrders.push(null);
+    if (!matchedOrders.length) matchedOrders.push(null);
     matchedOrders.forEach(function(order) {
       var rowProblems = problems.slice();
       var existingPublished = (rewardFulfillments || []).some(function(item) { return Number(item.order_id) === Number(order && order.id) && item.is_published; });
@@ -4152,12 +4160,13 @@ function buildMerchPreviewFromObjects(rows, sourcePeriod) {
       output.push({
         discord_name: (koc && koc.discord_name) || group.discord_name,
         uid: (koc && koc.uid) || '', order_id: order ? order.id : 0,
+        create_missing_welcome_order: !!(!order && needsWelcomeOrder),
         order_period: sourcePeriod || currentPeriod,
         reward_type: 'merch', fulfillment_status: 'shipped', gift_codes: [],
         carrier: group.carrier || 'International Shipping',
         tracking_number: group.tracking_number,
         reward_note: group.notes.join('；') || (group.items.length ? 'Package: ' + group.items.join(' / ') : ''),
-        warnings: (orders.length > 1 ? ['同一包裹关联 ' + orders.length + ' 张现有周边订单，已分别生成记录'] : []).concat(order && getRowPeriod(order) !== currentPeriod ? ['匹配到 ' + getRowPeriod(order) + ' 订单'] : []),
+        warnings: (matchedOrders.length > 1 ? ['同一物流号关联新人礼物与当月周边奖励'] : []).concat(order && getRowPeriod(order) !== currentPeriod ? ['匹配到 ' + getRowPeriod(order) + ' 订单'] : []).concat(!order && needsWelcomeOrder ? ['表格标注为本次新人礼物；保存时补建对应订单，不会重复扣积分'] : []),
         problems: rowProblems, valid: rowProblems.length === 0, checked: rowProblems.length === 0
       });
     });
