@@ -7645,22 +7645,29 @@ function inlineEditPts(uid, discord) {
 // ===== INLINE EDIT for KOC信息库 (double-click cells) =====
 // Replaces the cell with an input field, saves on Enter/blur, cancels on Escape
 function inlineEdit(cell, field, uid) {
-  if (cell.querySelector('input')) return; // already editing
+  if (cell.dataset.editing) return;
+  cell.dataset.editing = 'true';
   var currentVal = cell.textContent.trim();
   if (currentVal === '-' || currentVal === '') currentVal = '';
-  var input = document.createElement('input');
-  input.type = 'text';
+  var multiline = ['address', 'notes'].indexOf(field) >= 0;
+  var input = document.createElement(multiline ? 'textarea' : 'input');
+  if (!multiline) input.type = 'text';
   input.value = currentVal;
-  input.style.cssText = 'width:100%;border:2px solid var(--pink);border-radius:6px;padding:4px 6px;font-size:12px;outline:none;background:white;';
-  cell.textContent = '';
-  cell.appendChild(input);
+  var rect = cell.getBoundingClientRect();
+  input.style.cssText = 'position:fixed;z-index:10000;width:min(420px,calc(100vw - 24px));box-sizing:border-box;border:2px solid var(--pink);border-radius:6px;padding:10px;font-size:14px;outline:none;background:white;box-shadow:0 6px 20px #0002;';
+  if (multiline) input.style.height = '120px';
+  input.style.left = Math.max(12, Math.min(rect.left, window.innerWidth - 432)) + 'px';
+  input.style.top = Math.max(12, Math.min(rect.top, window.innerHeight - (multiline ? 132 : 55))) + 'px';
+  document.body.appendChild(input);
   input.focus();
   input.select();
   
   function save() {
+    if (!cell.dataset.editing) return;
+    delete cell.dataset.editing;
+    input.remove();
     var newVal = input.value.trim();
     if (newVal === currentVal) {
-      cell.textContent = currentVal || '-';
       return;
     }
     if (field === 'status' && REDEMPTION_STATUSES.indexOf(newVal) < 0) {
@@ -7670,11 +7677,14 @@ function inlineEdit(cell, field, uid) {
     }
     var update = {};
     update[field] = newVal;
-    supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(uid), {
+    var request = field === 'uid'
+      ? registrationReviewFetch('change_creator_uid', { old_uid: uid, new_uid: newVal })
+      : supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(uid), {
       method: 'PATCH',
       body: JSON.stringify(update)
-    }).then(async function(r) {
-      if (r.ok) { 
+    });
+    request.then(async function(r) {
+      if (field === 'uid' || r.ok) {
         showToast('\u2705 ' + field + ' updated', 'success'); 
         await loadData();
         // Refresh all tabs
@@ -7695,31 +7705,40 @@ function inlineEdit(cell, field, uid) {
   }
   
   function cancel() {
-    cell.textContent = currentVal || '-';
+    delete cell.dataset.editing;
+    input.remove();
   }
   
   input.addEventListener('blur', save);
   input.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Enter' && (!multiline || e.ctrlKey)) { e.preventDefault(); input.blur(); }
     if (e.key === 'Escape') { cancel(); }
   });
 }
 
 // ===== INLINE EDIT for order tables (redemption_orders) =====
 function editOrderInline(cell, field, orderId, uid) {
-  if (cell.querySelector('input')) return;
+  if (cell.dataset.editing) return;
+  cell.dataset.editing = 'true';
   var currentVal = cell.textContent.trim();
   if (currentVal === '-' || currentVal === '') currentVal = '';
-  var input = document.createElement('input');
-  input.type = 'text';
+  var multiline = ['contact_info', 'admin_notes'].indexOf(field) >= 0;
+  var input = document.createElement(multiline ? 'textarea' : 'input');
+  if (!multiline) input.type = 'text';
   input.value = currentVal;
-  input.style.cssText = 'width:100%;border:2px solid var(--pink);border-radius:6px;padding:4px 6px;font-size:12px;outline:none;background:white;';
-  cell.textContent = '';
-  cell.appendChild(input);
+  var rect = cell.getBoundingClientRect();
+  input.style.cssText = 'position:fixed;z-index:10000;width:min(420px,calc(100vw - 24px));box-sizing:border-box;border:2px solid var(--pink);border-radius:6px;padding:10px;font-size:14px;outline:none;background:white;box-shadow:0 6px 20px #0002;';
+  if (multiline) input.style.height = '120px';
+  input.style.left = Math.max(12, Math.min(rect.left, window.innerWidth - 432)) + 'px';
+  input.style.top = Math.max(12, Math.min(rect.top, window.innerHeight - (multiline ? 132 : 55))) + 'px';
+  document.body.appendChild(input);
   input.focus();
   input.select();
   
   function save() {
+    if (!cell.dataset.editing) return;
+    delete cell.dataset.editing;
+    input.remove();
     var newVal = input.value.trim();
     if (newVal === currentVal) {
       cell.textContent = currentVal || '-';
@@ -7761,16 +7780,9 @@ function editOrderInline(cell, field, orderId, uid) {
         else { cell.textContent = currentVal || '-'; var et=await r.text().catch(function(){return '';}); showToast('Failed: '+et.substring(0,60), 'error'); }
       }).catch(function(e) { cell.textContent = currentVal || '-'; showToast('Error: '+e.message, 'error'); });
     } else if (field === 'uid') {
-      // Update both
-      supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?id=eq.' + orderId, {
-        method: 'PATCH', body: JSON.stringify({ uid: newVal })
-      }).then(function(r){}).catch(function(e){});
-      supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(uid), {
-        method: 'PATCH', body: JSON.stringify({ uid: newVal })
-      }).then(async function(r) {
-        if (r.ok) { showToast('\u2705 uid updated', 'success'); await loadData(); }
-        else { cell.textContent = currentVal || '-'; showToast('Failed', 'error'); }
-      }).catch(function(e) { cell.textContent = currentVal || '-'; });
+      registrationReviewFetch('change_creator_uid', { old_uid: uid || currentVal, new_uid: newVal })
+        .then(async function() { showToast('\u2705 UID updated', 'success'); await loadData(); })
+        .catch(function(e) { showToast('Failed: ' + e.message, 'error'); });
     } else {
       // Update kocs table (address, account_id, server, region)
       var update = {};
@@ -7784,10 +7796,10 @@ function editOrderInline(cell, field, orderId, uid) {
     }
   }
   
-  function cancel() { cell.textContent = currentVal || '-'; }
+  function cancel() { delete cell.dataset.editing; input.remove(); }
   input.addEventListener('blur', save);
   input.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Enter' && (!multiline || e.ctrlKey)) { e.preventDefault(); input.blur(); }
     if (e.key === 'Escape') { cancel(); }
   });
 }

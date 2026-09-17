@@ -178,6 +178,15 @@ serve(async (req) => {
 
     if (action === "login") return json({ ok: true });
 
+    if (action === "change_creator_uid") {
+      const oldUid = String(data.old_uid || "").trim();
+      const newUid = String(data.new_uid || "").trim();
+      if (!oldUid || !/^[A-Za-z0-9]+$/.test(newUid)) return json({ ok: false, error: "Invalid creator UID" }, 400);
+      const { error } = await db.rpc("change_creator_uid", { p_old_uid: oldUid, p_new_uid: newUid });
+      if (error) return json({ ok: false, error: error.message }, 400);
+      return json({ ok: true });
+    }
+
     if (action === "admin_rpc") {
       const rpcName = String(data.rpc || "");
       const allowedRpcNames = new Set([
