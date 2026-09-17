@@ -4234,6 +4234,7 @@ function previewInGameFulfillments() {
     return {
       discord_name: (koc && koc.discord_name) || firstOrder.discord_name || '', uid: uid,
       order_id: firstOrder.id, order_ids: orders.map(function(order) { return order.id; }),
+      server: String((koc && koc.server) || '').trim(),
       reward_type: 'diamonds', fulfillment_status: 'delivered', gift_codes: [],
       carrier: '', tracking_number: '',
       reward_note: rewardContent + '. Your in-game reward has been sent. Please open the game and check your in-game mailbox.',
@@ -4263,20 +4264,43 @@ function renderFulfillmentPreview(label) {
   var visibleRows = fulfillmentPreviewRows.map(function(row, index) { return { row: row, index: index }; }).filter(function(item) {
     if (!query) return true;
     var row = item.row;
-    return [row.discord_name, row.uid, row.carrier, row.tracking_number, row.reward_note, (row.gift_codes || []).join(' ')].join(' ').toLowerCase().indexOf(query) >= 0;
+    return [row.discord_name, row.uid, row.server, row.carrier, row.tracking_number, row.reward_note, (row.gift_codes || []).join(' ')].join(' ').toLowerCase().indexOf(query) >= 0;
   });
   if (!visibleRows.length) { list.innerHTML = '<div style="padding:18px;text-align:center;color:var(--text-light);">没有匹配记录</div>'; return; }
   list.innerHTML = visibleRows.map(function(item) {
     var row = item.row, index = item.index;
     var hasWarning = row.valid && row.warnings && row.warnings.length;
     var detail = row.reward_type === 'gplay' ? ('国家: ' + (row.country || '—') + ' · 原订单: $10 × ' + row.expected + ' = $' + row.source_usd_value + ' · 上传: ' + row.gift_codes.length + ' 个' + (row.currency || row.local_amount ? ' · 当地金额: ' + (row.currency || '—') + ' ' + (row.local_amount || '—') : '') + '<br>' + row.gift_codes.map(esc).join('<br>')) : row.reward_type === 'merch' ? ((row.carrier || '') + ' · ' + (row.tracking_number || 'No tracking')) : esc(String(row.reward_note || '').replace(/\. Your in-game reward has been sent[\s\S]*$/i, ''));
+    var serverControl = row.reward_type !== 'diamonds' ? '' : row.server
+      ? '<br><span style="color:#555;">奖励区服：' + esc(row.server) + '</span>'
+      : '<br><select aria-label="选择奖励区服" onclick="event.stopPropagation()" onchange="setFulfillmentPreviewServer(' + index + ', this.value)" style="margin-top:6px;padding:5px 8px;border:1px solid #e0a0b8;border-radius:6px;background:#fff;color:#6b3150;"><option value="">请选择奖励区服</option><option value="正式服">正式服</option><option value="灯塔服">灯塔服</option></select>';
     var statusText = row.problems.length ? row.problems.join('；') : hasWarning ? row.warnings.join('；') : '可导入';
     var statusColor = row.problems.length ? '#c62828' : hasWarning ? '#9a6700' : '#2e7d32';
     return '<label style="display:grid;grid-template-columns:28px 1fr minmax(160px,260px);gap:8px;align-items:start;padding:9px;border-bottom:1px solid #eee;background:' + (row.valid ? (hasWarning ? '#fffbea' : '#fff') : '#fff3f3') + ';">' +
       '<input type="checkbox" class="fulfillment-preview-check" data-index="' + index + '" ' + (row.checked ? 'checked' : '') + (row.valid ? '' : ' disabled') + '>' +
-      '<span><strong>' + esc(row.discord_name || '(Unknown)') + '</strong> <span style="font-size:11px;color:#999;">' + esc(row.uid || '') + '</span><br><span style="font-size:11px;color:#666;line-height:1.5;">' + detail + '</span></span>' +
+      '<span><strong>' + esc(row.discord_name || '(Unknown)') + '</strong> <span style="font-size:11px;color:#999;">' + esc(row.uid || '') + '</span><br><span style="font-size:11px;color:#666;line-height:1.5;">' + detail + serverControl + '</span></span>' +
       '<span style="font-size:11px;color:' + statusColor + ';text-align:right;">' + esc(statusText) + '</span></label>';
   }).join('');
+}
+
+async function setFulfillmentPreviewServer(index, server) {
+  var row = fulfillmentPreviewRows[Number(index)];
+  server = String(server || '').trim();
+  if (!row || !server || ['正式服', '灯塔服'].indexOf(server) < 0) return;
+  try {
+    await registrationReviewFetch('update_creator_profile', { uid: row.uid, changes: { server: server } });
+    var koc = (allKocs || []).find(function(item) { return String(item.uid) === String(row.uid); });
+    if (koc) koc.server = server;
+    row.server = server;
+    row.problems = (row.problems || []).filter(function(problem) { return problem !== '缺少奖励区服'; });
+    row.valid = row.problems.length === 0;
+    row.checked = row.valid;
+    renderFulfillmentPreview();
+    showToast('✅ 已保存 ' + row.discord_name + ' 的奖励区服：' + server, 'success');
+  } catch (error) {
+    showToast('区服保存失败：' + error.message, 'error');
+    renderFulfillmentPreview();
+  }
 }
 
 function toggleAllFulfillmentPreview(checked) {
