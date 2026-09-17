@@ -914,6 +914,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
           <button class="btn btn-outline btn-sm" onclick="toggleAllFulfillmentPreview(true)">☑ 全选结果</button>
           <button class="btn btn-outline btn-sm" onclick="toggleAllFulfillmentPreview(false)">取消全选</button>
           <button class="btn btn-danger btn-sm" onclick="deleteSelectedFulfillmentPreview()">🗑 删除所选</button>
+          <button class="btn btn-outline btn-sm" onclick="clearFulfillmentPreview()">清空本次导入</button>
         </div>
         <div id="fulfillment-preview-list" style="max-height:360px;overflow:auto;"></div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
@@ -932,6 +933,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
         </div>
         <div class="list-toolbar">
           <input type="search" id="fulfillment-search" placeholder="🔍 搜索 Discord / UID / 奖励" oninput="renderRewardFulfillmentTable()">
+          <select id="fulfillment-type-filter" onchange="renderRewardFulfillmentTable()"><option value="all">全部奖励类型</option><option value="gplay">Google Play</option><option value="merch">周边</option><option value="diamonds">端内奖励</option></select>
           <select id="fulfillment-status-filter" onchange="renderRewardFulfillmentTable()"><option value="all">全部状态</option><option value="draft">仅草稿</option><option value="published">仅已发布</option></select>
           <button class="btn btn-outline btn-sm" onclick="toggleAllFulfillments(true)">☑ 全选结果</button>
           <button class="btn btn-danger btn-sm" onclick="deleteSelectedFulfillments()">🗑 删除草稿</button>
@@ -4288,8 +4290,15 @@ function deleteSelectedFulfillmentPreview() {
 
 function clearFulfillmentPreview() {
   fulfillmentPreviewRows = [];
+  fulfillmentPreviewLabel = '';
   var card = document.getElementById('fulfillment-preview-card');
   if (card) card.style.display = 'none';
+  var search = document.getElementById('fulfillment-preview-search');
+  if (search) search.value = '';
+  ['fulfillment-gplay-file', 'fulfillment-merch-file'].forEach(function(id) {
+    var input = document.getElementById(id);
+    if (input) input.value = '';
+  });
 }
 
 async function saveFulfillmentPreview() {
@@ -4310,8 +4319,10 @@ async function saveFulfillmentPreview() {
   });
   if (!confirmDanger('保存奖励发放草稿？', ['月份: ' + currentPeriod, '创作者: ' + selected.length + ' 人', '关联订单: ' + rowsToSave.length + ' 张', '供应商可能将多张 $10 礼品卡合并为大面额礼品卡。系统只校验订单归属、兑换码非空和唯一性，不要求兑换码数量等于订单数量。', '保存后创作者仍看不到，必须稍后手动发布。'])) return;
   try {
-    await registrationReviewFetch('save_reward_fulfillments', { rows: rowsToSave });
-    showToast('✅ 已保存 ' + selected.length + ' 位创作者、' + rowsToSave.length + ' 张订单草稿，尚未发布', 'success');
+    var saveResult = await registrationReviewFetch('save_reward_fulfillments', { rows: rowsToSave });
+    var savedCount = (saveResult.fulfillments || []).length;
+    var skippedCount = Number(saveResult.skipped_published || 0);
+    showToast('✅ 已保存 ' + savedCount + ' 张草稿' + (skippedCount ? '，跳过 ' + skippedCount + ' 张已发布记录' : '') + '，尚未发布', 'success');
     writeAuditLog('reward', '保存奖励发放草稿 ' + selected.length + ' 人/' + rowsToSave.length + ' 张订单，月份 ' + currentPeriod);
     clearFulfillmentPreview();
     await loadRewardFulfillments();
@@ -4337,8 +4348,10 @@ function renderRewardFulfillmentTable() {
   var count = document.getElementById('fulfillment-count');
   if (!root) return;
   var query = ((document.getElementById('fulfillment-search') || {}).value || '').trim().toLowerCase();
+  var typeFilter = ((document.getElementById('fulfillment-type-filter') || {}).value || 'all');
   var statusFilter = ((document.getElementById('fulfillment-status-filter') || {}).value || 'all');
   var rows = rewardFulfillments.filter(function(row) {
+    if (typeFilter !== 'all' && row.reward_type !== typeFilter) return false;
     if (statusFilter === 'draft' && row.is_published) return false;
     if (statusFilter === 'published' && !row.is_published) return false;
     var order = (allOrders || []).find(function(o) { return Number(o.id) === Number(row.order_id); });

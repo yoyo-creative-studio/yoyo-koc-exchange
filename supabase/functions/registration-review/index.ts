@@ -412,10 +412,13 @@ serve(async (req) => {
       const { data: publishedRows, error: publishedError } = await db.from("reward_fulfillments")
         .select("order_id").in("order_id", orderIds).eq("is_published", true);
       if (publishedError) return json({ ok: false, error: publishedError.message }, 400);
-      if (publishedRows?.length) return json({ ok: false, error: "Published fulfillment records cannot be overwritten" }, 409);
+      const publishedOrderIds = new Set((publishedRows || []).map((row) => Number(row.order_id)));
+      const saveRows = rows.filter((row: Record<string, unknown>) => !publishedOrderIds.has(Number(row.order_id)));
+      const saveOrderIds = saveRows.map((row: Record<string, unknown>) => Number(row.order_id)).filter(Boolean);
+      if (!saveRows.length) return json({ ok: true, fulfillments: [], skipped_published: publishedOrderIds.size });
       const incomingCodeOwners = new Map<string, number>();
       const incomingCodes = new Set<string>();
-      for (const row of rows) {
+      for (const row of saveRows) {
         const orderId = Number(row.order_id);
         const codes = Array.isArray(row.gift_codes) ? row.gift_codes.map((code: unknown) => String(code || "").trim()).filter(Boolean) : [];
         for (const code of codes) {
@@ -427,7 +430,7 @@ serve(async (req) => {
       }
       if (incomingCodes.size) {
         const { data: existingCodeRows, error: existingCodeError } = await db.from("reward_fulfillments")
-          .select("order_id,gift_codes").not("order_id", "in", `(${orderIds.join(",")})`);
+          .select("order_id,gift_codes").not("order_id", "in", `(${saveOrderIds.join(",")})`);
         if (existingCodeError) return json({ ok: false, error: existingCodeError.message }, 400);
         for (const existingRow of existingCodeRows || []) {
           for (const existingCode of Array.isArray(existingRow.gift_codes) ? existingRow.gift_codes : []) {
@@ -438,7 +441,7 @@ serve(async (req) => {
         }
       }
       const payload = [];
-      for (const row of rows) {
+      for (const row of saveRows) {
         const order = orderMap.get(Number(row.order_id));
         if (!order) return json({ ok: false, error: `Order #${row.order_id} not found` }, 404);
         const codes = Array.isArray(row.gift_codes) ? row.gift_codes.map((code: unknown) => String(code || "").trim()).filter(Boolean) : [];
@@ -468,7 +471,7 @@ serve(async (req) => {
       }
       const { data: saved, error } = await db.from("reward_fulfillments").upsert(payload, { onConflict: "order_id" }).select("*");
       if (error) return json({ ok: false, error: error.message }, 400);
-      return json({ ok: true, fulfillments: saved || [] });
+      return json({ ok: true, fulfillments: saved || [], skipped_published: publishedOrderIds.size });
     }
 
     if (action === "publish_reward_fulfillments") {
