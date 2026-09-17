@@ -4139,9 +4139,8 @@ function buildMerchPreviewFromObjects(rows, sourcePeriod) {
     }
     var orders = getFulfillmentOrders(koc, 'merch');
     var problems = [];
-    var isWelcomeGift = group.notes.some(function(note) { return /新人|welcome/i.test(note); });
     if (!koc) problems.push('未唯一匹配 KOC');
-    if (koc && !orders.length && !isWelcomeGift) problems.push('未匹配任何有效周边订单');
+    if (koc && !orders.length) problems.push('系统中没有本次待发放周边订单；不会用当前物流号补录历史新人礼物');
     if (!group.tracking_number) problems.push('缺少物流单号');
     var matchedOrders = orders.length ? orders : [null];
     matchedOrders.forEach(function(order) {
@@ -4151,13 +4150,12 @@ function buildMerchPreviewFromObjects(rows, sourcePeriod) {
       output.push({
         discord_name: (koc && koc.discord_name) || group.discord_name,
         uid: (koc && koc.uid) || '', order_id: order ? order.id : 0,
-        create_missing_welcome_order: !!(koc && !order && isWelcomeGift),
         order_period: sourcePeriod || currentPeriod,
         reward_type: 'merch', fulfillment_status: 'shipped', gift_codes: [],
         carrier: group.carrier || 'International Shipping',
         tracking_number: group.tracking_number,
         reward_note: group.notes.join('；') || (group.items.length ? 'Package: ' + group.items.join(' / ') : ''),
-        warnings: (orders.length > 1 ? ['同一包裹关联 ' + orders.length + ' 张周边订单，已分别生成记录'] : []).concat(order && getRowPeriod(order) !== currentPeriod ? ['匹配到 ' + getRowPeriod(order) + ' 订单'] : []).concat(!order && isWelcomeGift ? ['系统中无旧订单；保存时仅补录历史发放台账，不会新增礼物、扣积分或再次寄送'] : []),
+        warnings: (orders.length > 1 ? ['同一包裹关联 ' + orders.length + ' 张现有周边订单，已分别生成记录'] : []).concat(order && getRowPeriod(order) !== currentPeriod ? ['匹配到 ' + getRowPeriod(order) + ' 订单'] : []),
         problems: rowProblems, valid: rowProblems.length === 0, checked: rowProblems.length === 0
       });
     });
