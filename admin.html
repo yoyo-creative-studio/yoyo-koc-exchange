@@ -4098,12 +4098,23 @@ function firstObjectValue(row, candidates) {
   return '';
 }
 
+function findTrackingNumber(row) {
+  var direct = firstObjectValue(row, ['物流单号', '运单号', 'tracking number', 'tracking no', 'tracking']);
+  if (direct) return direct;
+  var values = Object.keys(row || {}).map(function(key) { return String(row[key] || '').trim(); });
+  for (var i = 0; i < values.length; i++) {
+    var compact = values[i].replace(/\s+/g, '');
+    if (/^[A-Z]{2,5}\d{8,20}$/i.test(compact) || /^\d{10,24}$/.test(compact)) return compact;
+  }
+  return '';
+}
+
 function buildMerchPreviewFromObjects(rows, sourcePeriod) {
   var groups = [];
   var active = null;
   (rows || []).forEach(function(row) {
     var discord = firstObjectValue(row, ['discord']);
-    var tracking = firstObjectValue(row, ['物流单号', 'tracking']);
+    var tracking = findTrackingNumber(row);
     var carrier = firstObjectValue(row, ['物流公司', 'carrier']);
     var item = firstObjectValue(row, ['实体奖励奖品', '奖品', 'item']);
     var note = firstObjectValue(row, ['备注', 'note']);
@@ -4179,6 +4190,8 @@ async function previewMerchFulfillmentFile() {
     var sourcePeriod = monthMatch ? String(new Date().getFullYear()) + '-' + String(Number(monthMatch[1])).padStart(2, '0') : currentPeriod;
     fulfillmentPreviewRows = buildMerchPreviewFromObjects(rows, sourcePeriod);
     renderFulfillmentPreview('📦 周边物流');
+    var trackingCount = fulfillmentPreviewRows.filter(function(row) { return String(row.tracking_number || '').trim(); }).length;
+    showToast('物流号识别 ' + trackingCount + '/' + fulfillmentPreviewRows.length + ' 条', trackingCount === fulfillmentPreviewRows.length ? 'success' : 'error');
   } catch(error) { showToast(error.message, 'error'); }
 }
 
