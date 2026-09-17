@@ -187,6 +187,17 @@ serve(async (req) => {
       return json({ ok: true });
     }
 
+    if (action === "update_creator_profile") {
+      const uid = String(data.uid || "").trim();
+      const changes = data.changes;
+      if (!uid || !changes || typeof changes !== "object" || Array.isArray(changes)) {
+        return json({ ok: false, error: "Invalid creator profile" }, 400);
+      }
+      const { error } = await db.rpc("update_creator_profile", { p_uid: uid, p_changes: changes });
+      if (error) return json({ ok: false, error: error.message }, 400);
+      return json({ ok: true });
+    }
+
     if (action === "admin_rpc") {
       const rpcName = String(data.rpc || "");
       const allowedRpcNames = new Set([

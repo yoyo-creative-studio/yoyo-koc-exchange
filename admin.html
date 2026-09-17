@@ -7476,6 +7476,7 @@ async function saveEditKOC() {
   var phone = document.getElementById('edit-phone').value.trim();
 
   var updates = {
+    discord_name: document.getElementById('edit-discord').value.trim(),
     name: document.getElementById('edit-name').value.trim(),
     channel_tag: document.getElementById('edit-channel').value.trim(),
     region: document.getElementById('edit-region').value.trim(),
@@ -7494,6 +7495,10 @@ async function saveEditKOC() {
     showToast('Account ID 必须以 6 开头且严格为 19 位数字', 'error');
     return;
   }
+  if (document.getElementById('edit-uid').value.trim() !== editingUid) {
+    showToast('请先在 KOC 信息库双击 UID 单独修改，确保关联记录同步', 'error');
+    return;
+  }
 
   if (!confirmDanger('Save KOC profile changes?', [
     'UID: ' + editingUid,
@@ -7504,15 +7509,16 @@ async function saveEditKOC() {
   ])) return;
 
   try {
-    var resp = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(editingUid), {
-      method: 'PATCH',
-      body: JSON.stringify(updates)
+    var original = allKocs.find(function(koc) { return koc.uid === editingUid; });
+    var changes = {};
+    Object.keys(updates).forEach(function(field) {
+      if (String(updates[field]) !== String((original && original[field]) || '')) changes[field] = updates[field];
     });
-    if (!resp.ok) throw new Error((await resp.text()).substring(0, 80));
+    if (Object.keys(changes).length) await registrationReviewFetch('update_creator_profile', { uid: editingUid, changes: changes });
     showToast('\u2705 Saved', 'success');
     writeAuditLog('koc', 'save KOC ' + editingUid + ' profile/account/server/notes');
     closeEditModal();
-    loadData();
+    await loadData();
   } catch (e) { showToast('Error: ' + e.message, 'error'); }
 }
 
@@ -7566,38 +7572,17 @@ function editOrderRow(orderId, field) {
       ])) return;
     }
 
-    if (field === 'discord_name' || field === 'option_name') {
-      // Update redemption_orders
-      supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?id=eq.' + orderId, {
-        method: 'PATCH',
-        body: JSON.stringify((function(){ var o = {}; o[field] = newVal; return o; })())
-      }).then(async function(r) {
-        if (r.ok) { showToast('✅ ' + field + ' updated', 'success'); await loadData(); }
-        else { var et=await r.text().catch(function(){return '';}); showToast('Failed: '+et.substring(0,60), 'error'); }
-      }).catch(function(e) { showToast('Error: '+e.message, 'error'); });
-    } else if (field === 'uid') {
-      // Update both redemption_orders and kocs
-      supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?id=eq.' + orderId, {
-        method: 'PATCH',
-        body: JSON.stringify({ uid: newVal })
-      }).then(function(r) { return r; }).catch(function(e){});
-      supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(order.uid), {
-        method: 'PATCH',
-        body: JSON.stringify((function(){ var o = {}; o[field] = newVal; return o; })())
-      }).then(async function(r) {
-        if (r.ok) { showToast('✅ ' + field + ' updated', 'success'); await loadData(); }
-        else { var et=await r.text().catch(function(){return '';}); showToast('Failed: '+et.substring(0,60), 'error'); }
-      }).catch(function(e) { showToast('Error: '+e.message, 'error'); });
-    } else {
-      // Update kocs table
-      supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(order.uid), {
-        method: 'PATCH',
-        body: JSON.stringify((function(){ var o = {}; o[field] = newVal; return o; })())
-      }).then(async function(r) {
-        if (r.ok) { showToast('✅ ' + field + ' updated', 'success'); await loadData(); }
-        else { var et=await r.text().catch(function(){return '';}); showToast('Failed: '+et.substring(0,60), 'error'); }
-      }).catch(function(e) { showToast('Error: '+e.message, 'error'); });
-    }
+    var changes = {};
+    changes[field] = newVal;
+    var request = field === 'uid'
+      ? registrationReviewFetch('change_creator_uid', { old_uid: order.uid, new_uid: newVal })
+      : field === 'option_name'
+        ? supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?id=eq.' + orderId, {
+          method: 'PATCH', body: JSON.stringify(changes)
+        }).then(async function(response) { if (!response.ok) throw new Error(await response.text()); })
+        : registrationReviewFetch('update_creator_profile', { uid: order.uid, changes: changes });
+    request.then(async function() { showToast('✅ ' + field + ' updated', 'success'); await loadData(); })
+      .catch(function(error) { showToast('Failed: ' + error.message, 'error'); });
   } else {
     // Full row edit - show all fields
     var koc = getKocMap()[order.uid];
@@ -7675,31 +7660,20 @@ function inlineEdit(cell, field, uid) {
       showToast('Invalid redemption status', 'error');
       return;
     }
-    var update = {};
-    update[field] = newVal;
+    var changes = {};
+    changes[field] = newVal;
     var request = field === 'uid'
       ? registrationReviewFetch('change_creator_uid', { old_uid: uid, new_uid: newVal })
-      : supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(uid), {
-      method: 'PATCH',
-      body: JSON.stringify(update)
-    });
-    request.then(async function(r) {
-      if (field === 'uid' || r.ok) {
+      : registrationReviewFetch('update_creator_profile', { uid: uid, changes: changes });
+    request.then(async function() {
         showToast('\u2705 ' + field + ' updated', 'success'); 
         await loadData();
-        // Refresh all tabs
         renderKocTable();
         renderScoringTable();
-              try { renderDiamondTab(); } catch(e) {}
+        try { renderMerchTab(); } catch(e) {}
+        try { renderDiamondTab(); } catch(e) {}
         try { renderGplayTab(); } catch(e) {}
-      } else {
-        cell.textContent = currentVal || '-';
-        var errText = await r.text().catch(function(){return '';});
-        showToast('Failed: ' + errText.substring(0,60), 'error');
-        console.error('PATCH failed', r.status, errText);
-      }
     }).catch(function(e) {
-      cell.textContent = currentVal || '-';
       showToast('Error: ' + e.message, 'error');
     });
   }
@@ -7720,9 +7694,16 @@ function inlineEdit(cell, field, uid) {
 function editOrderInline(cell, field, orderId, uid) {
   if (cell.dataset.editing) return;
   cell.dataset.editing = 'true';
-  var currentVal = cell.textContent.trim();
+  var order = (allOrders || []).find(function(row) { return Number(row.id) === Number(orderId); });
+  if (!order) { delete cell.dataset.editing; showToast('Order not found', 'error'); return; }
+  var creator = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); });
+  var profileField = field === 'contact_info' ? 'address' : field;
+  var profileFields = ['discord_name','name','region','account_id','server','address','city','state','postal_code','country','phone'];
+  var currentVal = field === 'uid' ? order.uid : profileFields.indexOf(profileField) >= 0 && creator
+    ? creator[profileField] : order[field];
+  currentVal = String(currentVal == null ? '' : currentVal).trim();
   if (currentVal === '-' || currentVal === '') currentVal = '';
-  var multiline = ['contact_info', 'admin_notes'].indexOf(field) >= 0;
+  var multiline = ['address', 'contact_info', 'admin_notes'].indexOf(field) >= 0;
   var input = document.createElement(multiline ? 'textarea' : 'input');
   if (!multiline) input.type = 'text';
   input.value = currentVal;
@@ -7751,8 +7732,8 @@ function editOrderInline(cell, field, orderId, uid) {
         'UID: ' + (uid || '(unknown)'),
         'Status: ' + currentVal + ' → ' + newVal,
         'This changes what creators/admins see for this order.'
-      ])) { cell.textContent = currentVal || '-'; return; }
-    } else if (['discord_name','option_name','uid','account_id','address','server','region','contact_info','reward_amount','admin_notes'].indexOf(field) >= 0) {
+      ])) return;
+    } else if (['discord_name','option_name','uid','account_id','address','server','region','country','phone','contact_info','reward_amount','admin_notes'].indexOf(field) >= 0) {
       if (!confirmDanger('Save inline order/KOC change?', [
         'Order ID: #' + orderId,
         'UID: ' + (uid || '(unknown)'),
@@ -7760,16 +7741,15 @@ function editOrderInline(cell, field, orderId, uid) {
         'Old value: ' + (currentVal || '(empty)'),
         'New value: ' + (newVal || '(empty)'),
         field === 'uid' ? 'UID changes can affect KOC, submissions, point logs, and order matching.' : 'Please confirm this field is correct before saving.'
-      ])) { cell.textContent = currentVal || '-'; return; }
+      ])) return;
     }
     if (field === 'status') {
       updateRedemptionOrderStatus(orderId, newVal).then(async function() {
         showToast('✅ status updated', 'success');
         await loadData(); renderKocTable(); renderScoringTable();
         try { renderMerchTab(); } catch (e) {} try { renderDiamondTab(); } catch (e) {} try { renderGplayTab(); } catch (e) {}
-      }).catch(function(e) { cell.textContent = currentVal || '-'; showToast('Failed: ' + e.message, 'error'); });
-    } else if (['discord_name','option_name','contact_info','reward_amount','admin_notes'].indexOf(field) >= 0) {
-      // Update redemption_orders
+      }).catch(function(e) { showToast('Failed: ' + e.message, 'error'); });
+    } else if (['option_name','reward_amount','admin_notes'].indexOf(field) >= 0) {
       var update = {};
       update[field] = newVal;
       supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?id=eq.' + orderId, {
@@ -7777,22 +7757,18 @@ function editOrderInline(cell, field, orderId, uid) {
         body: JSON.stringify(update)
       }).then(async function(r) {
         if (r.ok) { showToast('\u2705 ' + field + ' updated', 'success'); await loadData(); renderKocTable(); renderScoringTable(); try{renderMerchTab()}catch(e){} try{renderDiamondTab()}catch(e){} try{renderGplayTab()}catch(e){} }
-        else { cell.textContent = currentVal || '-'; var et=await r.text().catch(function(){return '';}); showToast('Failed: '+et.substring(0,60), 'error'); }
-      }).catch(function(e) { cell.textContent = currentVal || '-'; showToast('Error: '+e.message, 'error'); });
+        else { var et=await r.text().catch(function(){return '';}); showToast('Failed: '+et.substring(0,120), 'error'); }
+      }).catch(function(e) { showToast('Error: '+e.message, 'error'); });
     } else if (field === 'uid') {
       registrationReviewFetch('change_creator_uid', { old_uid: uid || currentVal, new_uid: newVal })
-        .then(async function() { showToast('\u2705 UID updated', 'success'); await loadData(); })
+        .then(async function() { showToast('\u2705 UID updated', 'success'); await loadData(); renderKocTable(); renderScoringTable(); renderMerchTab(); renderDiamondTab(); renderGplayTab(); })
         .catch(function(e) { showToast('Failed: ' + e.message, 'error'); });
     } else {
-      // Update kocs table (address, account_id, server, region)
-      var update = {};
-      update[field] = newVal;
-      supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(uid), {
-        method: 'PATCH', body: JSON.stringify(update)
-      }).then(async function(r) {
-        if (r.ok) { showToast('\u2705 ' + field + ' updated', 'success'); await loadData(); renderKocTable(); renderScoringTable(); try{renderMerchTab()}catch(e){} try{renderDiamondTab()}catch(e){} try{renderGplayTab()}catch(e){} }
-        else { cell.textContent = currentVal || '-'; showToast('Failed', 'error'); }
-      }).catch(function(e) { cell.textContent = currentVal || '-'; });
+      var changes = {};
+      changes[profileField] = newVal;
+      registrationReviewFetch('update_creator_profile', { uid: order.uid, changes: changes })
+        .then(async function() { showToast('\u2705 ' + profileField + ' updated', 'success'); await loadData(); renderKocTable(); renderScoringTable(); renderMerchTab(); renderDiamondTab(); renderGplayTab(); })
+        .catch(function(e) { showToast('Failed: ' + e.message, 'error'); });
     }
   }
   
@@ -8213,8 +8189,8 @@ function renderMerchTab(keepToolbar) {
           '<td style="text-align:center;cursor:grab;font-size:16px;color:var(--text-light);user-select:none;" class="drag-handle">⠇</td>' +
           '<td ondblclick="editOrderInline(this,\'discord_name\',' + o.id + ')"><strong>' + esc(koc ? koc.discord_name : o.discord_name) + '</strong></td>' +
           '<td style="font-family:monospace;font-size:12px;color:var(--text-light);" ondblclick="editOrderInline(this,\'uid\',' + o.id + ')">' + esc(o.uid) + '</td>' +
-          '<td style="font-size:12px;white-space:pre-wrap;min-width:200px;" ondblclick="editOrderInline(this,\'contact_info\',' + o.id + ')">' + (esc(o.contact_info || addr) || '-') + '</td>' +
-          '<td style="font-size:12px;white-space:nowrap;" ondblclick="editOrderInline(this,\'reward_amount\',' + o.id + ')">' + (esc(phone) || '-') + '</td>' +
+          '<td style="font-size:12px;white-space:pre-wrap;min-width:200px;" ondblclick="editOrderInline(this,\'address\',' + o.id + ')">' + (esc(addr || o.contact_info) || '-') + '</td>' +
+          '<td style="font-size:12px;white-space:nowrap;" ondblclick="editOrderInline(this,\'phone\',' + o.id + ')">' + (esc(phone) || '-') + '</td>' +
           '<td ondblclick="editOrderInline(this,\'option_name\',' + o.id + ')">📦 ' + esc(o.option_name || 'Merch Pack') + '</td>' +
           '<td style="font-size:12px;color:#666;max-width:200px;white-space:pre-wrap;" ondblclick="editOrderInline(this,\'admin_notes\',' + o.id + ')">' + (esc(o.admin_notes) || '-') + '</td>' +
         '</tr>';
@@ -8297,7 +8273,7 @@ function renderGplayTab(keepToolbar) {
           '<td style="text-align:center;cursor:grab;font-size:16px;color:var(--text-light);user-select:none;" class="drag-handle">⠇</td>' +
           '<td>' + esc(getBatchLabelFromPeriod(period)) + '</td>' +
           '<td><strong ondblclick="event.stopPropagation();editOrderInline(this,\'discord_name\',' + o.id + ')">' + esc(getDisplayName(koc, o)) + '</strong></td>' +
-          '<td style="font-size:12px;" ondblclick="event.stopPropagation();editOrderInline(this,\'region\',' + o.id + ')">' + esc(getCountryName(koc)) + '</td>' +
+          '<td style="font-size:12px;" ondblclick="event.stopPropagation();editOrderInline(this,\'country\',' + o.id + ')">' + esc(getCountryName(koc)) + '</td>' +
           '<td ondblclick="event.stopPropagation();editOrderInline(this,\'option_name\',' + o.id + ')">' + esc(renderGplayRewardText(o)) + '</td>' +
         '</tr>';
       }).join('') + '</tbody></table>';
