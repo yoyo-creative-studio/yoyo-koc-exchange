@@ -4157,7 +4157,7 @@ function buildMerchPreviewFromObjects(rows, sourcePeriod) {
         carrier: group.carrier || 'International Shipping',
         tracking_number: group.tracking_number,
         reward_note: group.notes.join('；') || (group.items.length ? 'Package: ' + group.items.join(' / ') : ''),
-        warnings: (orders.length > 1 ? ['同一包裹关联 ' + orders.length + ' 张周边订单，已分别生成记录'] : []).concat(order && getRowPeriod(order) !== currentPeriod ? ['匹配到 ' + getRowPeriod(order) + ' 订单'] : []).concat(!order && isWelcomeGift ? ['保存时将补建缺失的新人欢迎周边订单'] : []),
+        warnings: (orders.length > 1 ? ['同一包裹关联 ' + orders.length + ' 张周边订单，已分别生成记录'] : []).concat(order && getRowPeriod(order) !== currentPeriod ? ['匹配到 ' + getRowPeriod(order) + ' 订单'] : []).concat(!order && isWelcomeGift ? ['系统中无旧订单；保存时仅补录历史发放台账，不会新增礼物、扣积分或再次寄送'] : []),
         problems: rowProblems, valid: rowProblems.length === 0, checked: rowProblems.length === 0
       });
     });

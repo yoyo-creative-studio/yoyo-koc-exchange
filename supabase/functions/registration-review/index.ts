@@ -399,7 +399,7 @@ serve(async (req) => {
           reward_amount: isGplay ? `$${giftCodes.length * 10} Google Play Gift Card` : "Random Merchandise × 1",
           contact_info: creator.address || "",
           status: "processing",
-          admin_notes: isGplay ? "Administrator Google Play order restored during code import" : "Welcome gift order restored during logistics import",
+          admin_notes: isGplay ? "Administrator Google Play order restored during code import" : "Historical welcome gift ledger restored from existing shipment; no additional gift or shipment created",
           period,
         }).select("id").single();
         if (createOrderError || !createdOrder) return json({ ok: false, error: createOrderError?.message || `Could not create welcome order for ${uid}` }, 400);
