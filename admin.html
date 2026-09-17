@@ -4185,24 +4185,38 @@ async function previewMerchFulfillmentFile() {
 function previewInGameFulfillments() {
   var existingOrderIds = {};
   (rewardFulfillments || []).forEach(function(row) { existingOrderIds[Number(row.order_id)] = true; });
-  fulfillmentPreviewRows = (allOrders || []).filter(function(order) {
+  var grouped = {};
+  (allOrders || []).filter(function(order) {
     return order.option_type === 'diamonds' &&
       getRowPeriod(order) === currentPeriod &&
       order.status === 'processing' &&
       !existingOrderIds[Number(order.id)];
-  }).map(function(order) {
-    var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); });
+  }).forEach(function(order) {
+    var uid = String(order.uid || '');
+    if (!grouped[uid]) grouped[uid] = { uid: uid, orders: [] };
+    grouped[uid].orders.push(order);
+  });
+  fulfillmentPreviewRows = Object.keys(grouped).map(function(uid) {
+    var creatorGroup = grouped[uid];
+    var orders = creatorGroup.orders;
+    var firstOrder = orders[0];
+    var koc = (allKocs || []).find(function(row) { return String(row.uid) === uid; });
     var problems = [];
     if (!koc) problems.push('未匹配到 KOC 信息');
     if (!String((koc && koc.account_id) || '').match(/^6\d{18}$/)) problems.push('缺少有效的 19 位 Account ID');
     if (!String((koc && koc.server) || '').trim()) problems.push('缺少奖励区服');
-    var rewardContent = String(order.reward_amount || order.option_name || 'In-game reward').trim();
+    var rewardContents = orders.map(function(order) {
+      return String(order.reward_amount || order.option_name || 'In-game reward').trim();
+    }).filter(function(value, index, list) { return value && list.indexOf(value) === index; });
+    var rewardContent = rewardContents.join(' + ');
     return {
-      discord_name: (koc && koc.discord_name) || order.discord_name || '', uid: order.uid,
-      order_id: order.id, reward_type: 'diamonds', fulfillment_status: 'delivered', gift_codes: [],
+      discord_name: (koc && koc.discord_name) || firstOrder.discord_name || '', uid: uid,
+      order_id: firstOrder.id, order_ids: orders.map(function(order) { return order.id; }),
+      reward_type: 'diamonds', fulfillment_status: 'delivered', gift_codes: [],
       carrier: '', tracking_number: '',
       reward_note: rewardContent + '. Your in-game reward has been sent. Please open the game and check your in-game mailbox.',
-      warnings: [], problems: problems, valid: problems.length === 0, checked: false
+      warnings: orders.length > 1 ? ['已合并 ' + orders.length + ' 张端内奖励订单'] : [],
+      problems: problems, valid: problems.length === 0, checked: false
     };
   });
   renderFulfillmentPreview('💎 端内奖励');
@@ -4233,7 +4247,7 @@ function renderFulfillmentPreview(label) {
   list.innerHTML = visibleRows.map(function(item) {
     var row = item.row, index = item.index;
     var hasWarning = row.valid && row.warnings && row.warnings.length;
-    var detail = row.reward_type === 'gplay' ? ('国家: ' + (row.country || '—') + ' · 原订单: $10 × ' + row.expected + ' = $' + row.source_usd_value + ' · 上传: ' + row.gift_codes.length + ' 个' + (row.currency || row.local_amount ? ' · 当地金额: ' + (row.currency || '—') + ' ' + (row.local_amount || '—') : '') + '<br>' + row.gift_codes.map(esc).join('<br>')) : row.reward_type === 'merch' ? ((row.carrier || '') + ' · ' + (row.tracking_number || 'No tracking')) : 'Check in-game mailbox';
+    var detail = row.reward_type === 'gplay' ? ('国家: ' + (row.country || '—') + ' · 原订单: $10 × ' + row.expected + ' = $' + row.source_usd_value + ' · 上传: ' + row.gift_codes.length + ' 个' + (row.currency || row.local_amount ? ' · 当地金额: ' + (row.currency || '—') + ' ' + (row.local_amount || '—') : '') + '<br>' + row.gift_codes.map(esc).join('<br>')) : row.reward_type === 'merch' ? ((row.carrier || '') + ' · ' + (row.tracking_number || 'No tracking')) : esc(String(row.reward_note || '').replace(/\. Your in-game reward has been sent[\s\S]*$/i, ''));
     var statusText = row.problems.length ? row.problems.join('；') : hasWarning ? row.warnings.join('；') : '可导入';
     var statusColor = row.problems.length ? '#c62828' : hasWarning ? '#9a6700' : '#2e7d32';
     return '<label style="display:grid;grid-template-columns:28px 1fr minmax(160px,260px);gap:8px;align-items:start;padding:9px;border-bottom:1px solid #eee;background:' + (row.valid ? (hasWarning ? '#fffbea' : '#fff') : '#fff3f3') + ';">' +
@@ -4274,11 +4288,20 @@ async function saveFulfillmentPreview() {
     if (row && row.valid) selected.push(row);
   });
   if (!selected.length) { showToast('没有勾选可保存的记录', 'error'); return; }
-  if (!confirmDanger('保存奖励发放草稿？', ['月份: ' + currentPeriod, '记录: ' + selected.length + ' 条', '供应商可能将多张 $10 礼品卡合并为大面额礼品卡。系统只校验订单归属、兑换码非空和唯一性，不要求兑换码数量等于订单数量。', '保存后创作者仍看不到，必须稍后手动发布。'])) return;
+  var rowsToSave = [];
+  selected.forEach(function(row) {
+    var orderIds = Array.isArray(row.order_ids) && row.order_ids.length ? row.order_ids : [row.order_id];
+    orderIds.forEach(function(orderId) {
+      var expanded = Object.assign({}, row, { order_id: orderId });
+      delete expanded.order_ids;
+      rowsToSave.push(expanded);
+    });
+  });
+  if (!confirmDanger('保存奖励发放草稿？', ['月份: ' + currentPeriod, '创作者: ' + selected.length + ' 人', '关联订单: ' + rowsToSave.length + ' 张', '供应商可能将多张 $10 礼品卡合并为大面额礼品卡。系统只校验订单归属、兑换码非空和唯一性，不要求兑换码数量等于订单数量。', '保存后创作者仍看不到，必须稍后手动发布。'])) return;
   try {
-    await registrationReviewFetch('save_reward_fulfillments', { rows: selected });
-    showToast('✅ 已保存 ' + selected.length + ' 条草稿，尚未发布', 'success');
-    writeAuditLog('reward', '保存奖励发放草稿 ' + selected.length + ' 条，月份 ' + currentPeriod);
+    await registrationReviewFetch('save_reward_fulfillments', { rows: rowsToSave });
+    showToast('✅ 已保存 ' + selected.length + ' 位创作者、' + rowsToSave.length + ' 张订单草稿，尚未发布', 'success');
+    writeAuditLog('reward', '保存奖励发放草稿 ' + selected.length + ' 人/' + rowsToSave.length + ' 张订单，月份 ' + currentPeriod);
     clearFulfillmentPreview();
     await loadRewardFulfillments();
   } catch(error) { showToast('保存失败: ' + error.message, 'error'); }
