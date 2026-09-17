@@ -3985,7 +3985,7 @@ function splitGiftCodes(value) {
   return output;
 }
 
-function buildGplayFulfillmentPreview(text) {
+function buildGplayFulfillmentPreview(text, sourcePeriod) {
   var rows = parseMochiCsv(text || '');
   var codeOwners = {};
   var output = [];
@@ -4007,12 +4007,14 @@ function buildGplayFulfillmentPreview(text) {
     var localAmount = amountIndex >= 0 ? String(row[amountIndex] || '').trim() : '';
     if (!discord && !codes.length) return;
     var koc = findKocByDiscordName(discord);
-    var order = getFulfillmentOrder(koc, 'gplay');
-    var expected = parseRewardQuantity(order);
+    var periodOrders = getFulfillmentOrders(koc, 'gplay', sourcePeriod);
+    var allOrdersForCreator = getFulfillmentOrders(koc, 'gplay');
+    var order = periodOrders.length === 1 ? periodOrders[0] : (!periodOrders.length && allOrdersForCreator.length === 1 ? allOrdersForCreator[0] : null);
+    var expected = order ? parseRewardQuantity(order) : codes.length;
     var problems = [];
     var warnings = [];
     if (!koc) problems.push('未唯一匹配 KOC');
-    if (koc && !order) problems.push('未唯一匹配 ' + currentPeriod + ' 谷歌卡订单');
+    if (koc && !order && allOrdersForCreator.length > 1) problems.push('匹配到多张谷歌卡订单，无法确定归属');
     if (!codes.length) problems.push('没有兑换码');
     if (order && codes.length !== expected) warnings.push('订单为 $10 × ' + expected + '，本次上传 ' + codes.length + ' 个兑换码/链接；请确认供应商合并面额');
     if (!currency || !localAmount) warnings.push('未完整填写币种或当地货币总额');
@@ -4030,6 +4032,8 @@ function buildGplayFulfillmentPreview(text) {
       discord_name: (koc && koc.discord_name) || discord,
       uid: (koc && koc.uid) || '',
       order_id: order ? order.id : 0,
+      create_missing_gplay_order: !!(koc && !order && !allOrdersForCreator.length && codes.length),
+      order_period: sourcePeriod || currentPeriod,
       reward_type: 'gplay',
       fulfillment_status: 'ready',
       gift_codes: codes,
@@ -4039,7 +4043,7 @@ function buildGplayFulfillmentPreview(text) {
       country: (koc && (koc.country || koc.region)) || '',
       currency: currency,
       local_amount: localAmount,
-      warnings: warnings,
+      warnings: warnings.concat(order && getRowPeriod(order) !== currentPeriod ? ['匹配到 ' + getRowPeriod(order) + ' 订单'] : []).concat(koc && !order && !allOrdersForCreator.length ? ['保存时将补建缺失的管理员 Google Play 发放订单'] : []),
       problems: problems,
       valid: problems.length === 0,
       checked: problems.length === 0
@@ -4065,7 +4069,9 @@ function previewGplayFulfillmentFile() {
   if (!input || !input.files || !input.files[0]) { showToast('请先选择谷歌卡 CSV', 'error'); return; }
   var reader = new FileReader();
   reader.onload = function() {
-    fulfillmentPreviewRows = buildGplayFulfillmentPreview(reader.result || '');
+    var monthMatch = input.files[0].name.match(/(?:^|[^0-9])(1[0-2]|0?[1-9])\s*月/);
+    var sourcePeriod = monthMatch ? String(new Date().getFullYear()) + '-' + String(Number(monthMatch[1])).padStart(2, '0') : currentPeriod;
+    fulfillmentPreviewRows = buildGplayFulfillmentPreview(reader.result || '', sourcePeriod);
     renderFulfillmentPreview('🎮 Google Play');
   };
   reader.readAsText(input.files[0], 'UTF-8');
