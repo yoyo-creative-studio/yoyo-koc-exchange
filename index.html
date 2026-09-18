@@ -572,7 +572,7 @@ html[lang="en"] body{font-family:var(--en-body)}
   </div>
   <div class="suggestions" id="suggestions"></div>
   <div id="faq-root"></div>
-  <div class="footer">✦ Yoyo Creative Studio · KOC FAQ · Data updated August 2026 ✦</div>
+  <div class="footer">✦ Yoyo Creative Studio · KOC FAQ · Data updated September 2026 ✦</div>
 </div>
 
 <script>
@@ -580,10 +580,25 @@ const EN_DATA = [{"name":"📌 1. Getting Started","icon":"🌟","items":[{"id":
 
 EN_DATA.forEach(function(section) {
   (section.items || []).forEach(function(item) {
+    if (item.id === 'Q20') item.a = '**TikTok / YouTube: calculated by views on each individual post**\n- 200 views = 1 Point\n- 400 views = 2 Points\n\nThe 20-second note for YouTube refers to the **recommended video length**, not a minimum watch-time requirement. Videos shorter than 20 seconds are still accepted; videos over 20 seconds may receive better traffic incentives from YouTube.\n\n**Facebook / Instagram / Pinterest / X / Reddit: calculated by engagements on each individual post**\n- 40 engagements = 1 Point\n- 80 engagements = 2 Points\n\nEngagement definitions by platform:\n- Facebook: likes + comments + shares\n- Instagram: likes + comments + shares + saves\n- Pinterest: likes + comments + saves\n- X: likes + comments + reposts + bookmarks\n- Reddit: upvotes + comments\n\nEach post is scored independently.';
+    if (item.id === 'Q41') item.a = 'A post can count as long as it was published during the current settlement calendar month and successfully submitted after submissions open. You may submit it even if it was published before you officially joined the Creator Program.\n\nPosts from an earlier calendar month do not count toward the current month unless an official announcement explicitly opens a supplemental submission.';
+    if (item.id === 'Q42' || item.id === 'Q57') item.a = "A creator's new-creator month is the **first full calendar month after joining (T+1)**.\n\nFor example, if you join in June, July is your new-creator month; if you join in July, August is your new-creator month. This prevents unfair participation time differences between creators who join early or late in a month.\n\nIf your base content score reaches **at least 5 points** during your new-creator month, you receive a one-time **+2 Points** bonus. Specific conditions follow the current month's announcement and portal settings.";
+    if (item.id === 'Q58') item.a = 'Yes, if the post was published during the current settlement calendar month and successfully submitted after submissions open. You may submit it even if it was published before you officially joined the Creator Program.\n\nPosts from an earlier calendar month do not count toward the current month unless an official announcement explicitly opens a supplemental submission.';
+    if (item.id === 'Q62') { item.q = 'When are rewards distributed, and where can I find them?'; item.a = "Reward delivery timing follows the current month's announcement in `📢｜yoyo-bulletin-board`.\n\n- Diamonds and other in-game rewards: check your in-game mailbox\n- Google Play gift card codes: check `My Orders` in the Creator Portal\n- Merchandise tracking numbers: check `My Orders` in the Creator Portal\n\nMerchandise ships from China, so international delivery may take time. If a reward is still missing after the announced time, ask in `📪｜town-service-station`."; }
     if (item.id === 'Q23') item.a = 'Current redemption options:\n- **Option A: 5 Points → 3 Random Merchandise Items**\n- **Option B: 2 Points → 10 USD Google Play Gift Card**\n- **Option C: 1 Point → 450 Diamonds**\n\nOne redemption order may include one or more reward types. Submit only one combined order per redemption period. Unused points remain available for future redemption periods.';
     if (item.id === 'Q24') item.a = 'You may select multiple reward types in one combined redemption order, but you can submit only one order per redemption period. Confirm all reward types and quantities before submitting; contact an administrator before the deadline if a correction is needed.';
   });
 });
+
+const otherFAQSection = EN_DATA.find(function(section) { return section.name === '❓ 10. Other'; });
+if (otherFAQSection) {
+  otherFAQSection.items.push(
+    {id:'Q64',q:'I forgot one submission link. Should I submit all of my work again?',a:'No. During a supplemental submission, submit only the missing work and do not resubmit links that are already saved. Administrators will merge the records in the backend.\n\nAfterward, open `My Submissions` and confirm that every link and the total submission count were saved correctly.',rarity:'r'},
+    {id:'Q65',q:'What should I do after changing my Discord name or account?',a:'If you change your Discord Display Name, notify an administrator immediately because rewards and records are matched using that name.\n\nFor a completely new Discord account, contact `YoYo assistant💗Mochi` from the new account. An administrator will invite the new account and manually relink it to the Creator Portal. Leave the server with the old account only after the migration is complete.',rarity:'r'},
+    {id:'Q66',q:'How do I become a Gold or Platinum Creator?',a:'Starting with **September 2026 work**:\n- Gold Creator: earn at least 20 content points per month for 2 consecutive months\n- Platinum Creator: earn at least 40 content points per month for 3 consecutive months\n\nOnly content points count. Bonus points and carried-over balances are excluded. Progress from August 2026 and earlier follows the old rules, and existing tiers will not be revoked retroactively.',rarity:'r'},
+    {id:'Q67',q:'Can merchandise unboxing or creator-recruitment posts earn bonus points?',a:'Yes. Posting official merchandise unboxing content or promoting Creator Program recruitment can earn **+1 bonus point**. This is calculated separately and does not use the monthly content-point cap. Specific eligibility follows the current announcement.',rarity:'r'}
+  );
+}
 
 let currentLang = 'en';
 
