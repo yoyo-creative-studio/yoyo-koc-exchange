@@ -1000,6 +1000,7 @@ function initSelections() { selections = {}; REWARDS.forEach(r => selections[r.i
 function getSelCount() { return Object.values(selections).filter(q => q > 0).length; }
 function getTotalCost() { return REWARDS.reduce((s, r) => s + (selections[r.id] || 0) * r.cost, 0); }
 function esc(s) { return s == null ? "" : String(s).replace(/[&<>]/g, function(c) { return ({"&":"&amp;","<":"&lt;",">":"&gt;"})[c]; }); }
+function escAttr(s) { return esc(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
 function supabaseFetch(url, opts = {}) {
   return fetch(url, { ...opts, headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json', ...opts.headers } });
@@ -1652,6 +1653,10 @@ async function loadOrders() {
     }).join('');
   } catch(e) {
     console.error('loadOrders error:', e);
+    if (isCurrentOrderRequest() && container) {
+      container.innerHTML = '<div style="color:#b71c1c;font-size:13px;">Unable to load reward orders. Please refresh and try again.</div>';
+      if (card) card.style.display = 'block';
+    }
   }
 }
 
