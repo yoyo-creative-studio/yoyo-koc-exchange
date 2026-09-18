@@ -908,6 +908,7 @@ function getSubmissionPeriod(item) {
 var currentPeriod = '';
 let currentUser = null;
 let redemptionOpen = false;
+let ordersLoadGeneration = 0;
 
 function formatPeriodLabel(period) {
   var match = /^(\d{4})-(\d{2})$/.exec(String(period || ''));
@@ -984,6 +985,7 @@ async function tryAutoLogin() {
     var koc = data[0];
     var pts = await getBalance(koc.uid);
     var pendingSpent = await getPendingRedemptionTotal(koc.uid);
+    ordersLoadGeneration += 1;
     currentUser = { ...koc, points: Math.max(0, pts - pendingSpent) };
 
     // 显示仪表盘
@@ -1182,6 +1184,7 @@ async function login() {
     var koc = data[0];
     var pts = await getBalance(koc.uid);
     var pendingSpent = await getPendingRedemptionTotal(koc.uid);
+    ordersLoadGeneration += 1;
     currentUser = { ...koc, points: Math.max(0, pts - pendingSpent) };
     localStorage.setItem('koc_session', JSON.stringify({ uid: currentUser.uid, account_id_verified: true, created_at: currentUser.created_at }));
     if (statusEl) statusEl.textContent = 'Verified! Loading dashboard...';
@@ -1584,24 +1587,36 @@ async function redeem() {
 
 async function loadOrders() {
   if (!currentUser) return;
+  var requestedUid = String(currentUser.uid || '');
+  var requestedAccountId = String(currentUser.account_id || '');
+  var requestGeneration = ++ordersLoadGeneration;
+  var container = document.getElementById('orders-list');
+  var card = document.getElementById('orders-card');
+  if (container) container.innerHTML = '<div style="color:var(--text-light);font-size:13px;">Loading your reward orders...</div>';
+  if (card) card.style.display = 'block';
+  function isCurrentOrderRequest() {
+    return requestGeneration === ordersLoadGeneration && currentUser && String(currentUser.uid || '') === requestedUid;
+  }
   try {
-    const res = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?uid=eq.' + encodeURIComponent(currentUser.uid) + '&order=created_at.desc&select=id,option_type,option_name,points_spent,status,reward_amount,period,created_at');
+    const res = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?uid=eq.' + encodeURIComponent(requestedUid) + '&order=created_at.desc&select=id,option_type,option_name,points_spent,status,reward_amount,period,created_at', { cache: 'no-store' });
     if (!res.ok) return;
     var allOrders = await res.json();
+    if (!isCurrentOrderRequest()) return;
     var fulfillmentMap = {};
     try {
       var fulfillmentResponse = await supabaseFetch(SUPABASE_URL + '/functions/v1/registration-review', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + SUPABASE_KEY },
-        body: JSON.stringify({ action: 'creator_reward_status', data: { uid: currentUser.uid, account_id: currentUser.account_id } })
+        cache: 'no-store',
+        body: JSON.stringify({ action: 'creator_reward_status', data: { uid: requestedUid, account_id: requestedAccountId } })
       });
       var fulfillmentResult = await fulfillmentResponse.json();
+      if (!isCurrentOrderRequest()) return;
       if (fulfillmentResponse.ok && fulfillmentResult.ok) {
         (fulfillmentResult.fulfillments || []).forEach(function(row) { fulfillmentMap[String(row.order_id)] = row; });
       }
     } catch(error) { console.error('reward status fetch:', error); }
-    const container = document.getElementById('orders-list');
-    const card = document.getElementById('orders-card');
+    if (!isCurrentOrderRequest()) return;
     if (!container) return;
     // Keep reward history across months so tracking numbers and gift codes do not disappear when the campaign period changes.
     var currentMonth = currentPeriod || (new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'));
@@ -2282,8 +2297,13 @@ function switchSubMonth(ym) {
     document.getElementById('sub-period-label'));
 }
 function logout() {
+  ordersLoadGeneration += 1;
   currentUser = null;
   localStorage.removeItem('koc_session');
+  var ordersList = document.getElementById('orders-list');
+  var ordersCard = document.getElementById('orders-card');
+  if (ordersList) ordersList.innerHTML = '<div style="color:var(--text-light);font-size:13px;">No orders yet</div>';
+  if (ordersCard) ordersCard.style.display = 'none';
   document.getElementById('step-login').classList.remove('hidden');
   document.getElementById('step-dashboard').classList.add('hidden');
   document.getElementById('input-account-id').value = '';
