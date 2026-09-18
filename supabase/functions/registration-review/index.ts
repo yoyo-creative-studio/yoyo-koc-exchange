@@ -50,6 +50,13 @@ function buildApprovedNotes(rawNotes: string, approvedAt: string, newbieMonth: s
   return JSON.stringify(notes);
 }
 
+function normalizeCreatorRewardNote(value: unknown) {
+  return String(value || "").trim()
+    .replace(/8月结算/g, "August settlement")
+    .replace(/合并新人礼物/g, "Combined with New Creator Welcome Gift")
+    .replace(/新人周边礼物/g, "New Creator Welcome Gift");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
   if (req.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
@@ -236,6 +243,22 @@ serve(async (req) => {
       const { error } = await db.from("reward_fulfillments").delete().in("id", ids).eq("is_published", false);
       if (error) return json({ ok: false, error: error.message }, 400);
       return json({ ok: true, deleted: ids.length });
+    }
+
+    if (action === "update_reward_fulfillment_notes") {
+      const updates = Array.isArray(data.updates) ? data.updates : [];
+      if (!updates.length) return json({ ok: false, error: "No fulfillment note updates supplied" }, 400);
+      let updated = 0;
+      for (const item of updates as Record<string, unknown>[]) {
+        const id = Number(item.id);
+        if (!id) return json({ ok: false, error: "Invalid fulfillment record id" }, 400);
+        const { error } = await db.from("reward_fulfillments")
+          .update({ reward_note: normalizeCreatorRewardNote(item.reward_note), updated_at: new Date().toISOString(), updated_by: "admin-copy-normalization" })
+          .eq("id", id);
+        if (error) return json({ ok: false, error: error.message }, 400);
+        updated += 1;
+      }
+      return json({ ok: true, updated });
     }
 
     if (action === "delete_reward_orders") {
@@ -466,7 +489,7 @@ serve(async (req) => {
           gift_codes: codes,
           carrier: String(row.carrier || "").trim(),
           tracking_number: String(row.tracking_number || "").trim(),
-          reward_note: String(row.reward_note || "").trim(),
+          reward_note: normalizeCreatorRewardNote(row.reward_note),
           is_published: false,
           published_at: null,
           updated_at: new Date().toISOString(),

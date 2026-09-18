@@ -1672,6 +1672,15 @@ function copyRewardValue(value, button) {
   }
 }
 
+function creatorFacingRewardText(value) {
+  var text = String(value || '').trim();
+  if (!text) return '';
+  return text
+    .replace(/8月结算/g, 'August settlement')
+    .replace(/合并新人礼物/g, 'Combined with New Creator Welcome Gift')
+    .replace(/新人周边礼物/g, 'New Creator Welcome Gift');
+}
+
 function renderCreatorFulfillment(row, order) {
   if (!row) {
     var waiting = order.status === 'shipped' ? 'Your reward was processed. Please contact support only if it has not arrived after the announced delivery time.' : 'Your request has been received. Fulfillment details will appear here after the admin publishes them.';
@@ -1687,10 +1696,10 @@ function renderCreatorFulfillment(row, order) {
     return '<div class="reward-status-card"><div class="reward-status-title"><span>📦 Package Shipped</span><span>Shipped</span></div>' +
       '<div class="tracking-box"><strong>Carrier:</strong> ' + esc(row.carrier || 'International Shipping') + '<br><strong>Tracking number:</strong> ' + esc(row.tracking_number || '—') +
       (row.tracking_number ? ' <button class="reward-copy-btn" data-copy-value="' + escAttr(row.tracking_number) + '" onclick="copyRewardValue(this.dataset.copyValue,this)">Copy</button>' : '') + '</div>' +
-      '<div class="reward-status-note" style="margin-top:7px;">International tracking may take several days to update. ' + esc(row.reward_note || '') + '</div></div>';
+      '<div class="reward-status-note" style="margin-top:7px;">International tracking may take several days to update. ' + esc(creatorFacingRewardText(row.reward_note)) + '</div></div>';
   }
   return '<div class="reward-status-card"><div class="reward-status-title"><span>💎 Delivered In-Game</span><span>Delivered</span></div>' +
-    '<div class="reward-status-note">' + esc(row.reward_note || 'Your in-game reward has been sent. Please open the game and check your in-game mailbox.') + '</div></div>';
+    '<div class="reward-status-note">' + esc(creatorFacingRewardText(row.reward_note) || 'Your in-game reward has been sent. Please open the game and check your in-game mailbox.') + '</div></div>';
 }
 
 // ===== CREATOR TAB SWITCHING =====
