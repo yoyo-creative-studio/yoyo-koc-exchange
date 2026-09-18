@@ -1060,7 +1060,8 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
           <span id="koc-count" style="font-size:13px;color:var(--text-light);"></span>
         </div>
         <div class="row" style="margin-bottom:8px;gap:6px;">
-          <input type="text" id="search-input" placeholder="🔍 Search Discord or UID..." style="width:280px;font-size:13px;" oninput="renderKocTable()">
+          <input type="text" id="search-input" placeholder="🔍 Search Discord / UID / User ID..." style="width:280px;font-size:13px;" oninput="renderKocTable()">
+          <button class="btn btn-outline btn-sm" onclick="syncDiscordIdentities()">🔄 Sync Discord Identity</button>
           <button class="btn btn-primary btn-sm" onclick="openManualKocModal()">➕ 手动添加 KOC</button>
           <button class="btn btn-sm" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;" onclick="batchMarkSelected('old_creator')" title="仅修改运营权益标签，不影响自动新人月和等级计算">📋 手动标记老创作者</button>
           <button class="btn btn-sm" style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;" onclick="batchMarkSelected('new_creator')" title="仅修改运营权益标签，不影响自动新人月和等级计算">🆕 手动标记新创作者</button>
@@ -2159,10 +2160,7 @@ async function syncTiersFromDiscord() {
     for (var i = 0; i < kocs.length; i++) {
       var koc = kocs[i];
       var member = null;
-      discordIdentityKeys(koc.discord_name).some(function(key) {
-        member = memberByKey[key];
-        return !!member;
-      });
+      member = findDiscordMemberForKoc(koc, members);
       if (!member) { skipped++; continue; }
       var roleText = [].concat(member.roles || [], member.role_names || [], member.roles_by_name || []).map(function(role) {
         if (typeof role === 'string') return roleNamesById[role] || role;
@@ -2178,6 +2176,30 @@ async function syncTiersFromDiscord() {
     try { renderTiersTable(); } catch (e) {}
   } catch (e) {
     showToast('Discord 等级同步失败：' + e.message, 'error');
+  }
+}
+
+async function syncDiscordIdentities() {
+  if (!MOCHI_TOKEN) {
+    var tokenInput = document.getElementById('mochi-token-input');
+    if (tokenInput && tokenInput.value.trim()) MOCHI_TOKEN = tokenInput.value.trim();
+  }
+  if (!MOCHI_TOKEN) { showToast('请先在 Mochi 设置中填写 Bot Token', 'error'); return; }
+  if (!confirm('从当前 Discord 服务器同步 User ID、用户名、昵称和历史别名？唯一匹配才会写入，歧义记录不会自动修改。')) return;
+  try {
+    showToast('正在同步 Discord 身份...', 'info');
+    var result = await registrationReviewFetch('sync_discord_identities', { guild_id: DISCORD_GUILD_ID, bot_token: MOCHI_TOKEN });
+    var unmatched = result.unmatched || [];
+    var ambiguous = result.ambiguous || [];
+    await loadData();
+    renderKocTable();
+    var details = [];
+    if (unmatched.length) details.push('未匹配：' + unmatched.map(function(row) { return row.discord_name; }).join('、'));
+    if (ambiguous.length) details.push('歧义待确认：' + ambiguous.map(function(row) { return row.discord_name; }).join('、'));
+    showToast('✅ Discord 身份同步完成：' + (result.matched || []).length + '/' + result.total_creators + ' 人已绑定' + (details.length ? '；' + details.join('；') : ''), details.length ? 'info' : 'success');
+    console.log('Discord identity sync report', result);
+  } catch (error) {
+    showToast('Discord 身份同步失败：' + error.message, 'error');
   }
 }
 
@@ -4733,7 +4755,7 @@ async function previewBroadcast(type) {
     // Step 2: 从 KOC 信息库获取已有创作者数据
     var kocData = [];
     try {
-      var kocRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?select=discord_name,uid,account_id,tier,notes,created_at&status=eq.active');
+      var kocRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?select=discord_name,discord_user_id,discord_username,discord_display_name,discord_aliases,uid,account_id,tier,notes,created_at&status=eq.active');
       if (kocRes.ok) kocData = await kocRes.json() || [];
     } catch(e) {
       console.warn('KOC fetch failed, continuing without KOC data:', e);
@@ -4778,7 +4800,7 @@ async function previewBroadcast(type) {
       kocData.forEach(function(koc) {
         if (!koc || !koc.uid || submittedUids[String(koc.uid).toLowerCase().trim()]) return;
         if (koc.discord_name && submittedNames[String(koc.discord_name).toLowerCase().trim()]) return;
-        var member = membersByName[String(koc.discord_name || '').toLowerCase().trim()];
+        var member = findDiscordMemberForKoc(koc, allMembers);
         if (!member) return;
         var displayName = member.nick || member.global_name || member.username || koc.discord_name;
         targets.push({
@@ -4823,7 +4845,7 @@ async function previewBroadcast(type) {
       kocData.forEach(function(koc) {
         var uidKey = String(koc.uid || '').toLowerCase().trim();
         if (!uidKey || !submittedUids[uidKey] || redeemedUids[uidKey]) return;
-        var member = membersByName[String(koc.discord_name || '').toLowerCase().trim()];
+        var member = findDiscordMemberForKoc(koc, allMembers);
         if (!member) return;
         targets.push({
           discord_name: member.nick || member.global_name || member.username || koc.discord_name,
@@ -5435,10 +5457,13 @@ async function checkNewMembers() {
     var registeredIdentitySet = new Set();
     var registrationCheckReady = false;
     try {
-      var registeredRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?status=eq.active&select=discord_name');
+      var registeredRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?status=eq.active&select=discord_name,discord_user_id,discord_username,discord_display_name,discord_aliases');
       if (registeredRes.ok) {
         (await registeredRes.json() || []).forEach(function(koc) {
-          discordIdentityKeys(koc.discord_name).forEach(function(key) { registeredIdentitySet.add(key); });
+          if (koc.discord_user_id) registeredIdentitySet.add('id:' + String(koc.discord_user_id));
+          [koc.discord_name, koc.discord_username, koc.discord_display_name].concat(Array.isArray(koc.discord_aliases) ? koc.discord_aliases : []).forEach(function(value) {
+            discordIdentityKeys(value).forEach(function(key) { registeredIdentitySet.add(key); });
+          });
         });
         registrationCheckReady = true;
       }
@@ -5447,6 +5472,7 @@ async function checkNewMembers() {
     candidates = candidates.filter(function(discordId) {
       var member = currentMembers.find(function(item) { return String(item.id) === String(discordId); });
       if (!member) return false;
+      if (registeredIdentitySet.has('id:' + String(member.id))) return false;
       var keys = [];
       [member.username, member.nick, member.global_name].forEach(function(value) {
         discordIdentityKeys(value).forEach(function(key) { if (keys.indexOf(key) < 0) keys.push(key); });
@@ -6570,7 +6596,9 @@ function renderKocTable() {
   if (selectAll) { selectAll.checked = false; selectAll.indeterminate = false; }
   var q = document.getElementById('search-input').value.toLowerCase();
   var filtered = allKocs.filter(function(k) {
-    return (k.discord_name || '').toLowerCase().includes(q) || (k.uid || '').toLowerCase().includes(q);
+    return [k.discord_name, k.discord_username, k.discord_display_name, k.discord_user_id, k.uid, k.account_id]
+      .concat(Array.isArray(k.discord_aliases) ? k.discord_aliases : [])
+      .some(function(value) { return String(value || '').toLowerCase().includes(q); });
   });
   // 没有 UID 的人（PENDING- 占位）排在列表最后
   filtered.sort(function(a, b) {
@@ -6607,7 +6635,9 @@ function renderKocTable() {
     var isOldCreator = explicitlyOld || (newbieMonth && currentPeriod > newbieMonth);
     return '<tr>' +
       '<td style="text-align:center;"><input type="checkbox" class="koc-select" value="' + k.uid + '"></td>' +
-      '<td><strong ondblclick="inlineEdit(this,\'discord_name\',\'' + k.uid + '\')" title="Double-click to edit">' + esc(k.discord_name) + '</strong></td>' +
+      '<td><strong ondblclick="inlineEdit(this,\'discord_name\',\'' + k.uid + '\')" title="Double-click to edit">' + esc(k.discord_name) + '</strong>' +
+        (k.discord_username ? '<br><small style="color:var(--text-light);">@' + esc(k.discord_username) + '</small>' : '') +
+        (k.discord_user_id ? '<br><small style="font-family:monospace;color:#999;">' + esc(k.discord_user_id) + '</small>' : '') + '</td>' +
       '<td style="font-family:monospace;font-size:12px;color:var(--text-light);" ondblclick="event.stopPropagation();inlineEdit(this,\'uid\',\'' + k.uid + '\')">' + esc(k.uid) + '</td>' +
       '<td>' + getTierBadge(k.tier || 'certified') + '<br><select id="koc-tier-select-' + k.uid + '" style="width:100px;font-size:11px;margin-top:2px;" onchange="updateKocTierInline(\'' + k.uid + '\')" class="tier-select">' +
         '<option value="certified"' + ((k.tier||'certified')==='certified'?' selected':'') + '>\u2705 \u8BA4\u8BC1\u521B\u4F5C\u5B98</option>' +

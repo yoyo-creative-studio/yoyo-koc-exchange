@@ -94,17 +94,23 @@ serve(async (request) => {
     const members = await listMembers(state.bot_token);
     const known = new Set((state.known_member_ids || []).map(String));
     const newMembers = members.filter((member: any) => !known.has(String(member.user.id)));
-    const { data: kocs, error: kocError } = await supabase.from("kocs").select("discord_name").eq("status", "active");
+    const { data: kocs, error: kocError } = await supabase.from("kocs")
+      .select("discord_name,discord_user_id,discord_username,discord_display_name,discord_aliases").eq("status", "active");
     if (kocError) throw kocError;
     const registered = new Set<string>();
-    (kocs || []).forEach((koc: any) => identityKeys(koc.discord_name).forEach((key) => registered.add(key)));
+    (kocs || []).forEach((koc: any) => {
+      if (koc.discord_user_id) registered.add(`id:${koc.discord_user_id}`);
+      [koc.discord_name, koc.discord_username, koc.discord_display_name]
+        .concat(Array.isArray(koc.discord_aliases) ? koc.discord_aliases : [])
+        .flatMap(identityKeys).forEach((key: string) => registered.add(key));
+    });
 
     let sent = 0;
     const failures: string[] = [];
     const skippedRegistered: string[] = [];
     for (const member of newMembers) {
       const keys = [member.user?.username, member.user?.global_name, member.nick].flatMap(identityKeys);
-      if (keys.some((key) => registered.has(key))) {
+      if (registered.has(`id:${member.user?.id}`) || keys.some((key) => registered.has(key))) {
         skippedRegistered.push(member.user?.username || member.user?.id);
         continue;
       }

@@ -48,3 +48,19 @@ function discordMemberIdentityKeys(member) {
   });
   return keys;
 }
+
+function findDiscordMemberForKoc(koc, members) {
+  if (!koc) return null;
+  if (koc.discord_user_id) {
+    var byId = (members || []).find(function(member) { return String(member.id || '') === String(koc.discord_user_id); });
+    if (byId) return byId;
+  }
+  var wanted = [];
+  [koc.discord_name, koc.discord_username, koc.discord_display_name].concat(Array.isArray(koc.discord_aliases) ? koc.discord_aliases : []).forEach(function(value) {
+    discordIdentityKeys(value).forEach(function(key) { if (wanted.indexOf(key) < 0) wanted.push(key); });
+  });
+  var matches = (members || []).filter(function(member) {
+    return discordMemberIdentityKeys(member).some(function(key) { return wanted.indexOf(key) >= 0; });
+  });
+  return matches.length === 1 ? matches[0] : null;
+}

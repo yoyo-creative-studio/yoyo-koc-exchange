@@ -57,6 +57,26 @@ function normalizeCreatorRewardNote(value: unknown) {
     .replace(/新人周边礼物/g, "New Creator Welcome Gift");
 }
 
+function discordIdentityKeys(value: unknown) {
+  const raw = String(value || "").normalize("NFKC").trim().toLowerCase();
+  if (!raw) return [];
+  const variants = [raw];
+  const usernameHint = raw.match(/\(\s*user\s*:\s*([^\)]+)\)/i);
+  if (usernameHint) variants.push(usernameHint[1]);
+  for (const match of raw.matchAll(/\(([^\)]+)\)/g)) variants.push(match[1]);
+  raw.split(/[\/|]|\s+or\s+/).forEach((part) => variants.push(part));
+  const firstReadableWord = raw.match(/[a-z0-9][a-z0-9._-]{2,}/i)?.[0];
+  if (firstReadableWord) variants.push(firstReadableWord);
+  const output: string[] = [];
+  for (const item of variants) {
+    const normalized = item.replace(/^@/, "").replace(/\s+/g, " ").trim();
+    const plain = normalized.replace(/[^\p{L}\p{N}._]+/gu, "").replace(/^\.+|\.+$/g, "");
+    if (normalized) output.push(normalized);
+    if (plain) output.push(plain);
+  }
+  return [...new Set(output)];
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
   if (req.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
@@ -184,6 +204,82 @@ serve(async (req) => {
     if (!adminPassword || admin_password !== adminPassword) return json({ ok: false, error: "Admin verification failed" }, 403);
 
     if (action === "login") return json({ ok: true });
+
+    if (action === "sync_discord_identities") {
+      const guildId = String(data.guild_id || "1458340952358785193").trim();
+      const { data: welcomeState, error: stateError } = await db.from("mochi_auto_welcome_state")
+        .select("bot_token").eq("id", 1).single();
+      const botToken = String(data.bot_token || welcomeState?.bot_token || "").trim();
+      if ((stateError && !data.bot_token) || !botToken) return json({ ok: false, error: "MochiBot token is not configured" }, 400);
+      const memberResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members?limit=1000`, {
+        headers: { Authorization: `Bot ${botToken}` },
+      });
+      if (!memberResponse.ok) return json({ ok: false, error: `Discord member sync failed: ${memberResponse.status} ${await memberResponse.text()}` }, 400);
+      const members = (await memberResponse.json()).filter((member: any) => !member.user?.bot).map((member: any) => ({
+        id: String(member.user?.id || ""),
+        username: String(member.user?.username || "").trim(),
+        global_name: String(member.user?.global_name || "").trim(),
+        nick: String(member.nick || "").trim(),
+      })).filter((member: any) => member.id && member.username);
+      const memberById = new Map(members.map((member: any) => [member.id, member]));
+      const membersByKey = new Map<string, any[]>();
+      for (const member of members) {
+        const keys = [member.username, member.global_name, member.nick].flatMap(discordIdentityKeys);
+        for (const key of [...new Set(keys)]) membersByKey.set(key, [...(membersByKey.get(key) || []), member]);
+      }
+      const { data: creators, error: creatorError } = await db.from("kocs")
+        .select("uid,discord_name,discord_user_id,discord_username,discord_display_name,discord_aliases")
+        .neq("uid", "__config__").eq("status", "active").order("discord_name");
+      if (creatorError) return json({ ok: false, error: creatorError.message }, 400);
+      const matched: any[] = [];
+      const unmatched: any[] = [];
+      const ambiguous: any[] = [];
+      for (const creator of creators || []) {
+        let member = creator.discord_user_id ? memberById.get(String(creator.discord_user_id)) : null;
+        if (!member) {
+          const keys = [creator.discord_name, creator.discord_username, creator.discord_display_name]
+            .concat(Array.isArray(creator.discord_aliases) ? creator.discord_aliases : [])
+            .flatMap(discordIdentityKeys);
+          const candidates = new Map<string, any>();
+          for (const key of [...new Set(keys)]) for (const candidate of membersByKey.get(key) || []) candidates.set(candidate.id, candidate);
+          if (candidates.size === 1) member = [...candidates.values()][0];
+          else if (candidates.size > 1) {
+            ambiguous.push({ uid: creator.uid, discord_name: creator.discord_name, candidates: [...candidates.values()] });
+            continue;
+          }
+        }
+        if (!member) {
+          unmatched.push({ uid: creator.uid, discord_name: creator.discord_name });
+          continue;
+        }
+        const aliases = [...new Set([creator.discord_name, creator.discord_username, creator.discord_display_name]
+          .concat(Array.isArray(creator.discord_aliases) ? creator.discord_aliases : [])
+          .concat([member.username, member.global_name, member.nick]).map((value) => String(value || "").trim()).filter(Boolean))];
+        const existingAliases = Array.isArray(creator.discord_aliases) ? creator.discord_aliases.map(String) : [];
+        const identityUnchanged = String(creator.discord_user_id || "") === member.id
+          && String(creator.discord_username || "") === member.username
+          && String(creator.discord_display_name || "") === (member.nick || member.global_name || member.username)
+          && aliases.length === existingAliases.length
+          && aliases.every((alias) => existingAliases.includes(alias));
+        if (identityUnchanged) {
+          matched.push({ uid: creator.uid, discord_name: creator.discord_name, discord_user_id: member.id, username: member.username, display_name: member.nick || member.global_name || member.username, unchanged: true });
+          continue;
+        }
+        const { error: updateError } = await db.from("kocs").update({
+          discord_user_id: member.id,
+          discord_username: member.username,
+          discord_display_name: member.nick || member.global_name || member.username,
+          discord_aliases: aliases,
+          discord_identity_synced_at: new Date().toISOString(),
+        }).eq("uid", creator.uid);
+        if (updateError) {
+          ambiguous.push({ uid: creator.uid, discord_name: creator.discord_name, error: updateError.message, candidates: [member] });
+          continue;
+        }
+        matched.push({ uid: creator.uid, discord_name: creator.discord_name, discord_user_id: member.id, username: member.username, display_name: member.nick || member.global_name || member.username });
+      }
+      return json({ ok: true, scanned_members: members.length, total_creators: (creators || []).length, matched, unmatched, ambiguous });
+    }
 
     if (action === "change_creator_uid") {
       const oldUid = String(data.old_uid || "").trim();
