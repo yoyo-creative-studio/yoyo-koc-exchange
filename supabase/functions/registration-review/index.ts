@@ -513,7 +513,33 @@ serve(async (req) => {
       }
       const { data: result, error } = await db.rpc("publish_reward_fulfillments", { p_ids: ids });
       if (error) return json({ ok: false, error: error.message }, 400);
-      return json({ ok: true, result });
+      const selectedOrderIds = (selectedRows || []).map((row) => Number(row.order_id)).filter(Boolean);
+      const { data: selectedOrders, error: selectedOrdersError } = await db.from("redemption_orders")
+        .select("id,uid,points_spent,period").in("id", selectedOrderIds);
+      if (selectedOrdersError) return json({ ok: false, error: selectedOrdersError.message }, 400);
+      const refundKeys = (selectedOrders || []).map((order) => `refund-pre-fulfillment:${order.id}`);
+      const { data: refundRows, error: refundError } = refundKeys.length
+        ? await db.from("point_logs").select("operation_key").in("operation_key", refundKeys)
+        : { data: [], error: null };
+      if (refundError) return json({ ok: false, error: refundError.message }, 400);
+      const refundedOrderIds = new Set((refundRows || []).map((row) => String(row.operation_key || "").split(":").pop()));
+      let correctedRefunds = 0;
+      for (const order of selectedOrders || []) {
+        const pointsSpent = Number(order.points_spent || 0);
+        if (pointsSpent <= 0 || !refundedOrderIds.has(String(order.id))) continue;
+        const { data: correction, error: correctionError } = await db.rpc("add_point_log_once", {
+          p_uid: order.uid,
+          p_change: -pointsSpent,
+          p_source: "redemption",
+          p_reason: `Fulfilled order #${order.id}; reversing pre-fulfillment refund`,
+          p_period: order.period,
+          p_created_by: "reward_fulfillment_publish",
+          p_operation_key: `correct-refund-after-fulfillment:${order.id}`,
+        });
+        if (correctionError) return json({ ok: false, error: correctionError.message }, 400);
+        if (correction?.inserted) correctedRefunds += 1;
+      }
+      return json({ ok: true, result, corrected_refunds: correctedRefunds });
     }
 
     if (action === "list") {
