@@ -1060,7 +1060,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
           <span id="koc-count" style="font-size:13px;color:var(--text-light);"></span>
         </div>
         <div class="row" style="margin-bottom:8px;gap:6px;">
-          <input type="text" id="search-input" placeholder="🔍 Search Discord / UID / User ID..." style="width:280px;font-size:13px;" oninput="renderKocTable()">
+          <input type="text" id="search-input" placeholder="🔍 Search nickname / username / UID / User ID..." style="width:340px;font-size:13px;" oninput="renderKocTable()">
           <button class="btn btn-outline btn-sm" onclick="syncDiscordIdentities()">🔄 Sync Discord Identity</button>
           <button class="btn btn-primary btn-sm" onclick="openManualKocModal()">➕ 手动添加 KOC</button>
           <button class="btn btn-sm" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;" onclick="batchMarkSelected('old_creator')" title="仅修改运营权益标签，不影响自动新人月和等级计算">📋 手动标记老创作者</button>
@@ -2180,15 +2180,12 @@ async function syncTiersFromDiscord() {
 }
 
 async function syncDiscordIdentities() {
-  if (!MOCHI_TOKEN) {
-    var tokenInput = document.getElementById('mochi-token-input');
-    if (tokenInput && tokenInput.value.trim()) MOCHI_TOKEN = tokenInput.value.trim();
-  }
-  if (!MOCHI_TOKEN) { showToast('请先在 Mochi 设置中填写 Bot Token', 'error'); return; }
   if (!confirm('从当前 Discord 服务器同步 User ID、用户名、昵称和历史别名？唯一匹配才会写入，歧义记录不会自动修改。')) return;
   try {
     showToast('正在同步 Discord 身份...', 'info');
-    var result = await registrationReviewFetch('sync_discord_identities', { guild_id: DISCORD_GUILD_ID, bot_token: MOCHI_TOKEN });
+    var tokenInput = document.getElementById('mochi-token-input');
+    var token = MOCHI_TOKEN || (tokenInput && tokenInput.value.trim()) || '';
+    var result = await registrationReviewFetch('sync_discord_identities', { guild_id: DISCORD_GUILD_ID, bot_token: token });
     var unmatched = result.unmatched || [];
     var ambiguous = result.ambiguous || [];
     await loadData();
@@ -6594,11 +6591,9 @@ function getActiveStatusBadge(uid, counts) {
 function renderKocTable() {
   var selectAll = document.getElementById('koc-select-all');
   if (selectAll) { selectAll.checked = false; selectAll.indeterminate = false; }
-  var q = document.getElementById('search-input').value.toLowerCase();
+  var q = document.getElementById('search-input').value;
   var filtered = allKocs.filter(function(k) {
-    return [k.discord_name, k.discord_username, k.discord_display_name, k.discord_user_id, k.uid, k.account_id]
-      .concat(Array.isArray(k.discord_aliases) ? k.discord_aliases : [])
-      .some(function(value) { return String(value || '').toLowerCase().includes(q); });
+    return creatorMatchesIdentitySearch(k, q);
   });
   // 没有 UID 的人（PENDING- 占位）排在列表最后
   filtered.sort(function(a, b) {
@@ -6636,6 +6631,7 @@ function renderKocTable() {
     return '<tr>' +
       '<td style="text-align:center;"><input type="checkbox" class="koc-select" value="' + k.uid + '"></td>' +
       '<td><strong ondblclick="inlineEdit(this,\'discord_name\',\'' + k.uid + '\')" title="Double-click to edit">' + esc(k.discord_name) + '</strong>' +
+        (k.discord_display_name && k.discord_display_name !== k.discord_name ? '<br><small style="color:#7b1fa2;">Nickname: ' + esc(k.discord_display_name) + '</small>' : '') +
         (k.discord_username ? '<br><small style="color:var(--text-light);">@' + esc(k.discord_username) + '</small>' : '') +
         (k.discord_user_id ? '<br><small style="font-family:monospace;color:#999;">' + esc(k.discord_user_id) + '</small>' : '') + '</td>' +
       '<td style="font-family:monospace;font-size:12px;color:var(--text-light);" ondblclick="event.stopPropagation();inlineEdit(this,\'uid\',\'' + k.uid + '\')">' + esc(k.uid) + '</td>' +

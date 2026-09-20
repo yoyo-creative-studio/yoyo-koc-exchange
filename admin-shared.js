@@ -41,6 +41,36 @@ function discordIdentityKeys(value) {
   }).filter(Boolean).filter(function(item, index, list) { return list.indexOf(item) === index; });
 }
 
+function normalizeCreatorSearchText(value) {
+  return String(value || '')
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/^@+/, '')
+    .replace(/[\p{P}\p{S}\s_]+/gu, '');
+}
+
+function creatorIdentitySearchValues(koc) {
+  return [
+    koc && koc.discord_name,
+    koc && koc.discord_username,
+    koc && koc.discord_display_name,
+    koc && koc.discord_user_id,
+    koc && koc.uid,
+    koc && koc.account_id
+  ].concat(koc && Array.isArray(koc.discord_aliases) ? koc.discord_aliases : []);
+}
+
+function creatorMatchesIdentitySearch(koc, query) {
+  var rawQuery = String(query || '').normalize('NFKC').trim().toLowerCase();
+  if (!rawQuery) return true;
+  var normalizedQuery = normalizeCreatorSearchText(rawQuery);
+  return creatorIdentitySearchValues(koc).some(function(value) {
+    var rawValue = String(value || '').normalize('NFKC').toLowerCase();
+    return rawValue.indexOf(rawQuery) >= 0 ||
+      (normalizedQuery && normalizeCreatorSearchText(rawValue).indexOf(normalizedQuery) >= 0);
+  });
+}
+
 function discordMemberIdentityKeys(member) {
   var keys = [];
   [member && member.id, member && member.username, member && member.global_name, member && member.nick].forEach(function(value) {
