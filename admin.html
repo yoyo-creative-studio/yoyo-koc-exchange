@@ -3844,9 +3844,10 @@ function renderUnifiedRewardOrders() {
     return;
   }
   var labels = { diamonds: '💎 端内奖励', gplay: '🎮 Google Play', merch: '📦 周边' };
-  table.innerHTML = '<table><thead><tr><th>Discord</th><th>UID</th><th>奖励类型</th><th>奖励内容</th><th>积分</th><th>月份</th><th>状态</th></tr></thead><tbody>' + rows.map(function(order) {
+  table.innerHTML = '<table><thead><tr><th>Discord</th><th>UID</th><th>奖励类型</th><th>奖励内容</th><th>积分</th><th>月份</th><th>状态</th><th>操作</th></tr></thead><tbody>' + rows.map(function(order) {
     var badge = order.status === 'shipped' ? 'badge-shipped' : order.status === 'cancelled' ? 'badge-cancelled' : 'badge-pending';
-    return '<tr><td>' + esc(order.discord_name || '-') + '</td><td style="font-family:monospace;font-size:11px;">' + esc(order.uid || '-') + '</td><td>' + esc(labels[order.option_type] || order.option_type || '-') + '</td><td>' + esc(order.option_name || order.reward_amount || '-') + '</td><td>' + (Number(order.points_spent) || 0) + '</td><td>' + esc(order.period || '-') + '</td><td><span class="badge ' + badge + '">' + esc(order.status || '-') + '</span></td></tr>';
+    var action = order.status === 'pending' ? '<button class="btn btn-success btn-sm" onclick="shipOrder(event,' + order.id + ')" title="分配到对应奖励模块，不扣积分">✓ 分配</button>' : order.status === 'processing' ? '<span style="font-size:11px;color:#2e7d32;">已分配</span>' : '—';
+    return '<tr><td>' + esc(order.discord_name || '-') + '</td><td style="font-family:monospace;font-size:11px;">' + esc(order.uid || '-') + '</td><td>' + esc(labels[order.option_type] || order.option_type || '-') + '</td><td>' + esc(order.option_name || order.reward_amount || '-') + '</td><td>' + (Number(order.points_spent) || 0) + '</td><td>' + esc(order.period || '-') + '</td><td><span class="badge ' + badge + '">' + esc(order.status || '-') + '</span></td><td>' + action + '</td></tr>';
   }).join('') + '</tbody></table>';
   renderFulfillmentRewardCards();
 }
