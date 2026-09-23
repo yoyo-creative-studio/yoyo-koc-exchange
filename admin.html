@@ -3830,13 +3830,14 @@ function renderUnifiedRewardOrders() {
   var type = (document.getElementById('unified-order-type') || {}).value || 'all';
   var status = (document.getElementById('unified-order-status') || {}).value || 'all';
   var rows = (allOrders || []).filter(function(order) {
+    if (getRowPeriod(order) !== currentPeriod) return false;
     if (type !== 'all' && order.option_type !== type) return false;
     if (status !== 'all' && order.status !== status) return false;
     if (!query) return true;
     return [order.discord_name, order.uid, order.option_name, order.reward_amount, order.period].join(' ').toLowerCase().indexOf(query) >= 0;
   });
   var count = document.getElementById('unified-order-count');
-  if (count) count.textContent = '(' + rows.length + ' / ' + (allOrders || []).length + ')';
+  if (count) count.textContent = '(' + rows.length + ' / ' + (allOrders || []).filter(function(order) { return getRowPeriod(order) === currentPeriod; }).length + ')';
   if (!rows.length) {
     table.innerHTML = '<div style="padding:20px;color:var(--text-light);text-align:center;">暂无匹配订单</div>';
     renderFulfillmentRewardCards();
@@ -8195,6 +8196,7 @@ function renderRewardLedgerToolbar(type, rows) {
   // Reward ledgers open on the active settlement month. Historical months
   // remain available through this filter instead of mixing into the default view.
   var selectedPeriod = root.dataset.period || currentPeriod || 'all';
+  root.dataset.period = selectedPeriod;
   var query = root.dataset.query || '';
   root.innerHTML = '<div class="list-toolbar">' +
     '<input type="search" value="' + escAttr(query) + '" placeholder="🔍 搜索 Discord / UID / 姓名 / 奖励" oninput="setRewardLedgerFilter(\'' + type + '\',\'query\',this.value)">' +
