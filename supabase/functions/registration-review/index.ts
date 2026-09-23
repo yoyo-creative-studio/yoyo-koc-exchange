@@ -473,7 +473,7 @@ serve(async (req) => {
           contact_info: String(data.address || "").trim(),
           status: "pending",
           admin_notes: "Welcome gift - manual creator entry",
-          period: String(data.period || "").trim() || null,
+          period: getBusinessPeriod(new Date()),
         }).select("*").single();
         if (giftError) {
           await db.from("kocs").delete().eq("uid", uid);
@@ -681,13 +681,7 @@ serve(async (req) => {
       const approvalPeriod = getBusinessPeriod(approvedAt);
       const newbieMonth = getNextPeriod(approvalPeriod);
       const approvedNotes = buildApprovedNotes(String(application.notes || ""), approvedAtIso, newbieMonth);
-      const { data: currentCampaign } = await db.from("campaign_config")
-        .select("period")
-        .eq("is_current_period", true)
-        .order("period", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      const orderPeriod = currentCampaign?.period || approvalPeriod;
+      const orderPeriod = approvalPeriod;
 
       const { error: insertError } = await db.from("kocs").insert({
         uid: application.uid,
