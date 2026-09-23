@@ -8016,7 +8016,7 @@ function comparePeriodDesc(a, b) {
 function buildInGameRewardRows(allHistory) {
   var kmap = getKocMap();
   var inGameOrders = (allHistory || allOrders).filter(function(o) {
-    return o.option_type === 'diamonds' && (o.status === 'processing' || o.status === 'shipped') && (rewardHasDiamond(o) || rewardHasCC(o));
+    return o.option_type === 'diamonds' && (o.status === 'pending' || o.status === 'processing' || o.status === 'shipped') && (rewardHasDiamond(o) || rewardHasCC(o));
   });
   var ccByUid = {};
   (allKocs || []).filter(function(k) { return k.status === 'active'; }).forEach(function(k) {
@@ -8192,7 +8192,9 @@ function renderRewardLedgerToolbar(type, rows) {
   if (!root) return;
   var periods = {};
   (rows || []).forEach(function(row) { periods[row.period || (row.created_at || '').substring(0, 7) || currentPeriod] = true; });
-  var selectedPeriod = root.dataset.period || 'all';
+  // Reward ledgers open on the active settlement month. Historical months
+  // remain available through this filter instead of mixing into the default view.
+  var selectedPeriod = root.dataset.period || currentPeriod || 'all';
   var query = root.dataset.query || '';
   root.innerHTML = '<div class="list-toolbar">' +
     '<input type="search" value="' + escAttr(query) + '" placeholder="🔍 搜索 Discord / UID / 姓名 / 奖励" oninput="setRewardLedgerFilter(\'' + type + '\',\'query\',this.value)">' +
@@ -8331,7 +8333,7 @@ async function deleteSelectedRewardOrders(type) {
 
 function renderMerchTab(keepToolbar) {
   var kmap = getKocMap();
-  var sourceOrders = allOrders.filter(function(o) { return o.option_type === 'merch' && (o.status === 'processing' || o.status === 'shipped'); }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
+  var sourceOrders = allOrders.filter(function(o) { return o.option_type === 'merch' && (o.status === 'pending' || o.status === 'processing' || o.status === 'shipped'); }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
   if (!keepToolbar) renderRewardLedgerToolbar('merch', sourceOrders);
   var orders = filterRewardLedgerRows('merch', sourceOrders);
   document.getElementById('merch-count').textContent = '📅 长期台账 (' + orders.length + ' orders)';
@@ -8417,7 +8419,7 @@ function renderDiamondTab(keepToolbar) {
 
 function renderGplayTab(keepToolbar) {
   var kmap = getKocMap();
-  var sourceOrders = allOrders.filter(function(o) { return o.option_type === 'gplay' && (o.status === 'processing' || o.status === 'shipped'); }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
+  var sourceOrders = allOrders.filter(function(o) { return o.option_type === 'gplay' && (o.status === 'pending' || o.status === 'processing' || o.status === 'shipped'); }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
   if (!keepToolbar) renderRewardLedgerToolbar('gplay', sourceOrders);
   var orders = filterRewardLedgerRows('gplay', sourceOrders);
   document.getElementById('gplay-count').textContent = '📅 长期台账 (' + orders.length + ' orders)';
