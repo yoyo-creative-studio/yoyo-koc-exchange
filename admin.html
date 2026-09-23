@@ -5784,6 +5784,18 @@ function shiftSettleMonth(delta) {
 function changeSettlePeriod() {
   var sel = document.getElementById('settle-month');
   if (!sel || !sel.value) return;
+  // A month switch must invalidate all month-scoped scoring state before any
+  // table render starts; otherwise a slower previous request can leave August
+  // values visible while September is selected.
+  var nextPeriod = sel.value;
+  if (nextPeriod !== currentPeriod) {
+    _scoringMonthlyPointsPeriod = '';
+    _scoringMonthlyPointsByUid = {};
+    _scoringMonthlyPointsPromise = null;
+    _ccEligibilityPeriod = '';
+    _ccEligibilityCheckedAt = 0;
+    _ccEligibilityPromise = null;
+  }
   syncAdminPeriodSelectors(sel.value);
   // Mark this option as selected
   for (var i = 0; i < sel.options.length; i++) {
@@ -7192,6 +7204,13 @@ function renderScoringTable() {
     if (element) element.classList.toggle('active', statusFilter === value);
   });
 
+  var periodSubmissions = (allSubmissions || []).filter(function(s) {
+    return getRowPeriod(s) === currentPeriod && s.submission_type !== 'showcase';
+  });
+  var periodOrders = (allOrders || []).filter(function(o) {
+    return !isWelcomeMerchOrder(o) && getRowPeriod(o) === currentPeriod;
+  });
+
   var filtered = allKocs.filter(function(k) {
     // Search filter
     if (q && !((k.discord_name || '').toLowerCase().includes(q) || (k.uid || '').toLowerCase().includes(q))) {
@@ -7199,18 +7218,14 @@ function renderScoringTable() {
     }
 
     // Order status filter
-    var orders = allOrders.filter(function(o) {
-      return o.uid === k.uid && ((o.period||'') === currentPeriod || (o.created_at||'').substring(0,7) === currentPeriod);
-    });
+    var orders = periodOrders.filter(function(o) { return o.uid === k.uid; });
     var hasPending = orders.some(function(o) { return o.status === 'pending'; });
     var hasOrders = orders.length > 0;
 
     if (statusFilter === 'has-pending' && !hasPending) return false;
     if (statusFilter === 'has-orders' && !hasOrders) return false;
     if (statusFilter === 'no-orders' && hasOrders) return false;
-    var hasSubmitted = allSubmissions.some(function(s) {
-      return s.uid === k.uid && s.submission_type !== 'showcase' && (s.period || (s.created_at || '').substring(0, 7)) === currentPeriod;
-    });
+    var hasSubmitted = periodSubmissions.some(function(s) { return s.uid === k.uid; });
     var hasPaidRedemption = orders.some(function(o) {
       return o.status !== 'cancelled' && Number(o.points_spent) > 0;
     });
@@ -7235,11 +7250,8 @@ function renderScoringTable() {
     return;
   }
   document.getElementById('stat-total').textContent = '\uD83D\uDD0D Showing: ' + filtered.length + '/' + allKocs.length;
-  var periodOrders = allOrders.filter(function(o) { return (o.period || '') === currentPeriod; });
   var periodSubmitters = {};
-  allSubmissions.filter(function(s) {
-    return s.submission_type !== 'showcase' && (s.period || (s.created_at || '').substring(0, 7)) === currentPeriod;
-  }).forEach(function(s) {
+  periodSubmissions.forEach(function(s) {
     if (s.uid) periodSubmitters[s.uid] = true;
   });
   var periodRedeemers = {};
@@ -7263,20 +7275,7 @@ function renderScoringTable() {
   if (ccEl) ccEl.textContent = '🎁 CC: ' + ccCount + ' creators';
 
   tbody.innerHTML = filtered.map(function(k) {
-    var orders = allOrders.filter(function(o) {
-      return o.uid === k.uid && ((o.period||'') === currentPeriod || (o.created_at||'').substring(0,7) === currentPeriod);
-    });
-    var otherOrderPeriods = {};
-    if (!orders.length) {
-      allOrders.forEach(function(order) {
-        if (order.uid !== k.uid || Number(order.points_spent || 0) <= 0 || order.status === 'cancelled') return;
-        var orderPeriod = order.period || (order.created_at || '').substring(0, 7);
-        if (orderPeriod && orderPeriod !== currentPeriod) otherOrderPeriods[orderPeriod] = (otherOrderPeriods[orderPeriod] || 0) + 1;
-      });
-    }
-    var otherOrderHint = Object.keys(otherOrderPeriods).sort().reverse().map(function(period) {
-      return period + ' 有 ' + otherOrderPeriods[period] + ' 张订单';
-    }).join(' · ');
+    var orders = periodOrders.filter(function(o) { return o.uid === k.uid; });
     var pendingOrders = orders.filter(function(o) { return o.status === 'pending'; });
     var cc = hasCC(k.notes);
     return '<tr>' +
@@ -7292,7 +7291,6 @@ function renderScoringTable() {
       '</td>' +
       '<td style="max-width:260px;">' +
         (orders.length + ' orders (' + pendingOrders.length + ' pending)') +
-        (!orders.length && otherOrderHint ? '<div style="margin-top:3px;padding:4px 6px;background:#fff3e0;color:#e65100;font-size:11px;font-weight:700;line-height:1.4;">⚠️ ' + esc(otherOrderHint) + '，请切换工作月份查看</div>' : '') +
         '<div id="orders-' + k.uid + '" style="margin-top:4px;max-width:240px;">' +
           orders.slice(0,10).map(function(o) {
             var optName = esc(o.option_name||o.item||'');
@@ -7362,7 +7360,7 @@ async function submitManualKoc() {
     var el = document.getElementById('new-koc-' + field); payload[field] = el ? String(el.value || '').trim() : '';
   });
   payload.welcome_gift = document.getElementById('new-koc-welcome-gift').checked;
-  payload.period = currentPeriod;
+  payload.period = '';
   if (!payload.discord || !payload.uid || !payload.account || !payload.name || !payload.server) { showToast('请填写 Discord、Game UID、Account ID、真实姓名和区服', 'error'); return; }
   if (!/^6\d{18}$/.test(payload.account)) { showToast('Account ID 必须以 6 开头且严格为 19 位数字', 'error'); return; }
   if (!confirmDanger('手动添加 KOC？', ['Discord: ' + payload.discord, 'Game UID: ' + payload.uid, 'Account ID: ' + payload.account, payload.welcome_gift ? '同时创建新人欢迎周边订单。' : '不创建欢迎周边订单。'])) return;
