@@ -7587,11 +7587,6 @@ async function submitPoints() {
       'This inserts a manual point_logs row.'
     ])) return;
     var result = await appendPointLog(editingUid, change, reason, currentPeriod, 'manual');
-    // \u5173\u952e:\u5fc5\u987b\u786e\u8ba4\u5199\u5165\u6210\u529f\u518d\u62a5\u6210\u529f,\u5426\u5219\u79ef\u5206\u4f1a\u5bf9\u4e0d\u4e0a\u8d26
-    if (!resp.ok) {
-      var errTxt = await resp.text().catch(function() { return ''; });
-      throw new Error(errTxt ? errTxt.substring(0, 100) : ('HTTP ' + resp.status));
-    }
     showToast('\u2705 ' + (change > 0 ? '+' : '') + change + ' pts (' + reason + ')', 'success');
     writeAuditLog('score', 'manual point change ' + editingUid + ' ' + (change > 0 ? '+' : '') + change + ' (' + reason + ')');
     closePointModal();
