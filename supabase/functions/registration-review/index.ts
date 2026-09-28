@@ -317,6 +317,20 @@ serve(async (req) => {
       return json({ ok: true, result: rpcResult });
     }
 
+    if (action === "restore_welcome_orders") {
+      const period = String(data.period || "").trim();
+      if (!/^\d{4}-\d{2}$/.test(period)) return json({ ok: false, error: "Valid period is required" }, 400);
+      const { data: orders, error: loadError } = await db.from("redemption_orders")
+        .select("id,option_name,admin_notes,status")
+        .eq("period", period).eq("option_type", "merch").eq("status", "shipped");
+      if (loadError) return json({ ok: false, error: loadError.message }, 400);
+      const welcomeIds = (orders || []).filter((order) => /welcome|新人|入职/i.test(`${order.option_name || ""} ${order.admin_notes || ""}`)).map((order) => order.id);
+      if (!welcomeIds.length) return json({ ok: true, updated: 0, ids: [] });
+      const { error: updateError } = await db.from("redemption_orders").update({ status: "processing", processed_at: null, processed_by: "admin_restore_welcome" }).in("id", welcomeIds);
+      if (updateError) return json({ ok: false, error: updateError.message }, 400);
+      return json({ ok: true, updated: welcomeIds.length, ids: welcomeIds });
+    }
+
     if (action === "list_reward_fulfillments") {
       const period = String(data.period || "").trim();
       let query = db.from("reward_fulfillments").select("*").order("updated_at", { ascending: false });
