@@ -368,6 +368,20 @@ serve(async (req) => {
       return json({ ok: true, updated: welcomeIds.length, ids: welcomeIds });
     }
 
+    if (action === "restore_current_welcome_orders") {
+      const period = String(data.period || "").trim();
+      const ids = (Array.isArray(data.ids) ? data.ids : []).map(Number).filter(Boolean);
+      if (!/^\d{4}-\d{2}$/.test(period) || !ids.length) return json({ ok: false, error: "Valid period and order IDs are required" }, 400);
+      const { data: orders, error: loadError } = await db.from("redemption_orders")
+        .select("id,option_type,option_name,admin_notes,points_spent").in("id", ids);
+      if (loadError) return json({ ok: false, error: loadError.message }, 400);
+      const welcomeIds = (orders || []).filter((order) => order.option_type === "merch" && Number(order.points_spent || 0) === 0 && /welcome|新人|入职/i.test(`${order.option_name || ""} ${order.admin_notes || ""}`)).map((order) => Number(order.id));
+      if (welcomeIds.length !== ids.length) return json({ ok: false, error: "One or more orders are not zero-point welcome gifts" }, 400);
+      const { error: updateError } = await db.from("redemption_orders").update({ period, status: "processing", processed_at: null, processed_by: "admin_restore_current_welcome" }).in("id", welcomeIds);
+      if (updateError) return json({ ok: false, error: updateError.message }, 400);
+      return json({ ok: true, updated: welcomeIds.length, ids: welcomeIds });
+    }
+
     if (action === "list_reward_fulfillments") {
       const period = String(data.period || "").trim();
       let query = db.from("reward_fulfillments").select("*").order("updated_at", { ascending: false });
