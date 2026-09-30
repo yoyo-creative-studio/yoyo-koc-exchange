@@ -382,6 +382,40 @@ serve(async (req) => {
       return json({ ok: true, updated: welcomeIds.length, ids: welcomeIds });
     }
 
+    if (action === "reconcile_period_welcome_orders") {
+      const period = String(data.period || "").trim();
+      if (!/^\d{4}-\d{2}$/.test(period)) return json({ ok: false, error: "Valid period is required" }, 400);
+      const nextPeriod = getNextPeriod(period);
+      const { data: creators, error: creatorError } = await db.from("kocs")
+        .select("uid,discord_name,name,created_at,address").eq("status", "active").neq("uid", "__config__")
+        .gte("created_at", `${period}-01T00:00:00.000Z`).lt("created_at", `${nextPeriod}-01T00:00:00.000Z`);
+      if (creatorError) return json({ ok: false, error: creatorError.message }, 400);
+      const expected = new Map((creators || []).map((creator) => [String(creator.uid), creator]));
+      const { data: orders, error: orderError } = await db.from("redemption_orders")
+        .select("id,uid,option_type,option_name,admin_notes,status,period,points_spent").eq("period", period).eq("option_type", "merch");
+      if (orderError) return json({ ok: false, error: orderError.message }, 400);
+      const welcomeOrders = (orders || []).filter((order) => Number(order.points_spent || 0) === 0 && /welcome|新人|入职/i.test(`${order.option_name || ""} ${order.admin_notes || ""}`));
+      const activeByUid = new Map(welcomeOrders.filter((order) => order.status !== "cancelled").map((order) => [String(order.uid), order]));
+      const extras = welcomeOrders.filter((order) => order.status !== "cancelled" && !expected.has(String(order.uid)));
+      if (extras.length) {
+        const { error } = await db.from("redemption_orders").update({ status: "cancelled", admin_notes: "Cancelled: creator was registered in an earlier period" }).in("id", extras.map((order) => order.id));
+        if (error) return json({ ok: false, error: error.message }, 400);
+      }
+      const created = [];
+      for (const creator of creators || []) {
+        if (activeByUid.has(String(creator.uid))) continue;
+        const { data: order, error } = await db.from("redemption_orders").insert({
+          uid: creator.uid, discord_name: creator.discord_name || "", koc_name: creator.name || creator.discord_name || "",
+          option_type: "merch", option_name: "🎁 New Creator Welcome Gift", points_spent: 0,
+          reward_amount: "Random Merchandise × 1", contact_info: creator.address || "", status: "processing",
+          admin_notes: "Welcome gift - reconciled from active KOC registration", period,
+        }).select("id").single();
+        if (error) return json({ ok: false, error: error.message }, 400);
+        created.push(order.id);
+      }
+      return json({ ok: true, expected: expected.size, cancelled: extras.map((order) => order.id), created });
+    }
+
     if (action === "list_reward_fulfillments") {
       const period = String(data.period || "").trim();
       let query = db.from("reward_fulfillments").select("*").order("updated_at", { ascending: false });
