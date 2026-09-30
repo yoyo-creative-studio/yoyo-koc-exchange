@@ -834,10 +834,17 @@ function isCreatorNewbieForPeriod(creator, period) {
   return !isOldCreator(creator) && getCreatorNewbieMonth(creator) === period;
 }
 function splitLinks(text) {
-  return String(text || '')
-    .split(/(?=https?:\/\/)/gi)
-    .map(function(x) { return x.trim(); })
-    .filter(function(x) { return /^https?:\/\//i.test(x); });
+  var source = String(text || '');
+  var matches = source.match(/(?:https?:\/\/|www\.|(?:tiktok\.com|youtube\.com|youtu\.be|instagram\.com|facebook\.com|fb\.watch|reddit\.com|pinterest\.com|pin\.it|x\.com|twitter\.com)[^\s,;<>"']*)[^\s,;<>"']*/gi) || [];
+  return matches.map(normalizeInputLink).filter(Boolean);
+}
+function normalizeInputLink(value) {
+  var link = String(value || '').trim().replace(/^[(\[<{]+|[)\]}>,]+$/g, '');
+  link = link.replace(/[.!?;:]+$/g, '');
+  if (!link) return '';
+  if (/^www\./i.test(link)) link = 'https://' + link;
+  else if (/^(?:tiktok\.com|youtube\.com|youtu\.be|instagram\.com|facebook\.com|fb\.watch|reddit\.com|pinterest\.com|pin\.it|x\.com|twitter\.com)\//i.test(link)) link = 'https://' + link;
+  return link;
 }
 function normalizeLinkKey(url) {
   var raw = String(url || '').trim();
@@ -875,13 +882,13 @@ function normalizeSubmittedLinks(text) {
 }
 function isProbablyUrl(link) {
   try {
-    var u = new URL(link);
+    var u = new URL(normalizeInputLink(link));
     return u.protocol === 'http:' || u.protocol === 'https:';
   } catch(e) { return false; }
 }
 function getSupportedPlatform(link) {
   try {
-    var host = new URL(link).hostname.toLowerCase().replace(/^www\./, '');
+    var host = new URL(normalizeInputLink(link)).hostname.toLowerCase().replace(/^www\./, '');
     if (host.indexOf('tiktok.com') >= 0) return 'TikTok';
     if (host.indexOf('youtube.com') >= 0 || host.indexOf('youtu.be') >= 0) return 'YouTube';
     if (host.indexOf('instagram.com') >= 0) return 'Instagram';
@@ -2025,9 +2032,9 @@ async function submitShowcase() {
   var status = document.getElementById('showcase-status');
   var btn = document.getElementById('btn-showcase-submit');
   if (!linkEl || !status || !btn) return;
-  var link = linkEl.value.trim();
+  var link = normalizeInputLink(linkEl.value);
   if (!link) { status.textContent = '❌ Paste your showcase link'; status.style.color = '#e74c3c'; return; }
-  if (!/^https?:\/\//i.test(link)) { status.textContent = '❌ Enter a valid link (http/https)'; status.style.color = '#e74c3c'; return; }
+  if (!isProbablyUrl(link)) { status.textContent = '❌ Enter a valid link (http/https)'; status.style.color = '#e74c3c'; return; }
   if (!currentUser || !currentUser.uid) { status.textContent = '❌ Please log in first'; status.style.color = '#e74c3c'; return; }
 
   btn.disabled = true;
