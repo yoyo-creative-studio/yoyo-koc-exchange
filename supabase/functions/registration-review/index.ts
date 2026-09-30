@@ -331,6 +331,43 @@ serve(async (req) => {
       return json({ ok: true, updated: welcomeIds.length, ids: welcomeIds });
     }
 
+    if (action === "restore_published_order_status") {
+      const period = String(data.period || "").trim();
+      if (!/^\d{4}-\d{2}$/.test(period)) return json({ ok: false, error: "Valid period is required" }, 400);
+      const { data: fulfillmentRows, error: fulfillmentError } = await db.from("reward_fulfillments")
+        .select("order_id,published_at").eq("period", period).eq("is_published", true);
+      if (fulfillmentError) return json({ ok: false, error: fulfillmentError.message }, 400);
+      const orderIds = (fulfillmentRows || []).map((row) => Number(row.order_id)).filter(Boolean);
+      if (!orderIds.length) return json({ ok: true, updated: 0, ids: [] });
+      const { error: updateError } = await db.from("redemption_orders").update({ status: "shipped", processed_at: new Date().toISOString(), processed_by: "reward_fulfillment_publish" }).in("id", orderIds);
+      if (updateError) return json({ ok: false, error: updateError.message }, 400);
+      return json({ ok: true, updated: orderIds.length, ids: orderIds });
+    }
+
+    if (action === "reclassify_published_welcome_orders") {
+      const fromPeriod = String(data.from_period || "").trim();
+      const toPeriod = String(data.to_period || "").trim();
+      if (!/^\d{4}-\d{2}$/.test(fromPeriod) || !/^\d{4}-\d{2}$/.test(toPeriod)) {
+        return json({ ok: false, error: "Valid source and target periods are required" }, 400);
+      }
+      const { data: fulfillmentRows, error: fulfillmentError } = await db.from("reward_fulfillments")
+        .select("id,order_id").eq("period", fromPeriod).eq("is_published", true);
+      if (fulfillmentError) return json({ ok: false, error: fulfillmentError.message }, 400);
+      const orderIds = (fulfillmentRows || []).map((row) => Number(row.order_id)).filter(Boolean);
+      if (!orderIds.length) return json({ ok: true, updated: 0, ids: [] });
+      const { data: orders, error: orderError } = await db.from("redemption_orders")
+        .select("id,option_type,option_name,admin_notes,status,period").in("id", orderIds);
+      if (orderError) return json({ ok: false, error: orderError.message }, 400);
+      const welcomeIds = (orders || []).filter((order) => order.option_type === "merch" && order.period === fromPeriod && order.status === "shipped" && /welcome|新人|入职/i.test(`${order.option_name || ""} ${order.admin_notes || ""}`)).map((order) => order.id);
+      if (!welcomeIds.length) return json({ ok: true, updated: 0, ids: [] });
+      const { error: orderUpdateError } = await db.from("redemption_orders").update({ period: toPeriod }).in("id", welcomeIds);
+      if (orderUpdateError) return json({ ok: false, error: orderUpdateError.message }, 400);
+      const fulfillmentIds = (fulfillmentRows || []).filter((row) => welcomeIds.includes(Number(row.order_id))).map((row) => Number(row.id));
+      const { error: fulfillmentUpdateError } = await db.from("reward_fulfillments").update({ period: toPeriod }).in("id", fulfillmentIds);
+      if (fulfillmentUpdateError) return json({ ok: false, error: fulfillmentUpdateError.message }, 400);
+      return json({ ok: true, updated: welcomeIds.length, ids: welcomeIds });
+    }
+
     if (action === "list_reward_fulfillments") {
       const period = String(data.period || "").trim();
       let query = db.from("reward_fulfillments").select("*").order("updated_at", { ascending: false });
