@@ -818,10 +818,7 @@ function getCreatorNewbieMonth(creator) {
   if (notesObj.newbie_month && /^\d{4}-\d{2}$/.test(notesObj.newbie_month)) return notesObj.newbie_month;
   var legacyMatch = notes.match(/["']?newbie_month["']?\s*[:=]\s*["']?(\d{4}-\d{2})/);
   if (legacyMatch) return legacyMatch[1];
-  if (!creator.created_at) return '';
-  var registeredAt = new Date(creator.created_at);
-  if (isNaN(registeredAt.getTime())) return '';
-  return getNextMonthPeriod(registeredAt);
+  return '';
 }
 function isOldCreator(creator) {
   if (!creator) return false;

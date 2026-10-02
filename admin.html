@@ -7030,12 +7030,7 @@ function resolveCreatorNewbieMonth(koc) {
   if (notesObj.newbie_month && /^\d{4}-\d{2}$/.test(notesObj.newbie_month)) return notesObj.newbie_month;
   var legacyMatch = notes.match(/["']?newbie_month["']?\s*[:=]\s*["']?(\d{4}-\d{2})/);
   if (legacyMatch) return legacyMatch[1];
-  if (!koc.created_at) return '';
-  var registeredAt = new Date(koc.created_at);
-  if (isNaN(registeredAt.getTime())) return '';
-  registeredAt.setDate(1);
-  registeredAt.setMonth(registeredAt.getMonth() + 1);
-  return registeredAt.getFullYear() + '-' + String(registeredAt.getMonth() + 1).padStart(2, '0');
+  return '';
 }
 
 function countMonthlyWorkLinksByUid(submissions) {
