@@ -3212,7 +3212,9 @@ function exportCurrentTable() {
 }
 
 function exportSubmissionsFile() {
-  var pending = allSubmissions.filter(function(s) { return s.status === 'pending'; });
+  var monthSubmissions = allSubmissions.filter(function(s) { return getRowPeriod(s) === currentPeriod; });
+  var pending = monthSubmissions.filter(function(s) { return s.status === 'pending' && s.submission_type !== 'showcase'; });
+  var bonusSubmissions = monthSubmissions.filter(function(s) { return s.submission_type === 'showcase'; });
   if (pending.length === 0) {
     showToast('No pending submissions to export', 'error');
     return;
@@ -3221,6 +3223,22 @@ function exportSubmissionsFile() {
   var data = {
     batch: currentPeriod,
     rules: SCORING_RULES_TEXT,
+    bonus_content_review: {
+      handling: 'Admin-reviewed bonus content. Do not score these links and do not include these points in the 20/40 content-point cap.',
+      total: bonusSubmissions.length,
+      pending: bonusSubmissions.filter(function(s) { return s.status === 'pending'; }).length,
+      approved: bonusSubmissions.filter(function(s) { return s.status === 'scored'; }).length,
+      rejected: bonusSubmissions.filter(function(s) { return s.status === 'rejected'; }).length,
+      approved_bonuses: bonusSubmissions.filter(function(s) { return s.status === 'scored'; }).map(function(s) {
+        return {
+          id: s.id,
+          discord_name: s.discord_name,
+          uid: s.uid,
+          bonus_points: Number(s.points_earned || 1),
+          status: s.status
+        };
+      })
+    },
     submissions: pending.map(function(s) {
       var engagementLinks = splitSubmissionLinks(s.links_engagement);
       var viewLinks = splitSubmissionLinks(s.links_views);
@@ -3244,7 +3262,7 @@ function exportSubmissionsFile() {
   a.download = 'koc-submissions-' + currentPeriod + '.json';
   a.click();
   URL.revokeObjectURL(url);
-  showToast('✅ 已导出 ' + pending.length + ' 条待审核到文件', 'success');
+  showToast('✅ 已导出 ' + pending.length + ' 条待算分作品，并附 ' + bonusSubmissions.length + ' 条加分内容审核汇总', 'success');
 }
 
 async function copyAgentPrompt() {
