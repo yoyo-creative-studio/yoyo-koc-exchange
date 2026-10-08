@@ -10,6 +10,7 @@ Production system for the MLT Creator Program. It covers creator registration, s
 | Admin Console | `admin.html` | Registration review, KOC records, scoring, fulfillment, broadcasts, reports |
 | System Flowcharts | `flowcharts.html` | End-to-end creator and admin workflow |
 | Project Portfolio | `portfolio.html` | Product case study and implementation summary |
+| Planned Creator Verification | `CREATOR_ONBOARDING_VERIFICATION_PLAN.md` | Deferred MochiBot onboarding quiz and role-access implementation handoff |
 | Backend | Supabase | PostgreSQL, RLS, RPCs, scheduled jobs, Edge Functions |
 
 Production site: <https://yoyo-creative-studio.github.io/yoyo-koc-exchange/>
