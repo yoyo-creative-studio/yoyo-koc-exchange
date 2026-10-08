@@ -3620,7 +3620,7 @@ async function confirmScoreImport() {
                       method: 'PATCH', body: JSON.stringify({ notes: notes2 })
                     });
                     if (!noteResp.ok) throw new Error('CC note update failed: ' + noteResp.status);
-                    var checkCC = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?uid=eq.' + encodeURIComponent(sub.uid) + '&period=eq.' + encodeURIComponent(currentPeriod) + '&option_name=eq.' + encodeURIComponent('CC:' + currentPeriod) + '&select=id');
+                    var checkCC = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?uid=eq.' + encodeURIComponent(sub.uid) + '&period=eq.' + encodeURIComponent(currentPeriod) + '&option_name=eq.' + encodeURIComponent('CC:' + currentPeriod) + '&select=id,status');
                     if (checkCC.ok) {
                       var existingCC = await checkCC.json();
                       if (!existingCC || existingCC.length === 0) {
@@ -3634,7 +3634,7 @@ async function confirmScoreImport() {
                             option_name: 'CC:' + currentPeriod,
                             points_spent: 0,
                             reward_amount: '\u6708\u5361x1 + \u8717\u58f3\u5e01x500 + \u91d1\u5e01x1000',
-                            status: 'pending',
+                            status: 'processing',
                             period: currentPeriod,
                             request_id: 'cc:' + currentPeriod + ':' + sub.uid,
                             admin_notes: 'CC:' + currentPeriod + ' - Consistent Creation Reward',
@@ -3642,6 +3642,12 @@ async function confirmScoreImport() {
                           })
                         });
                         if (!ccAutoResp.ok && ccAutoResp.status !== 409) throw new Error('CC reward order create failed: ' + ccAutoResp.status);
+                      } else if (existingCC[0].status === 'pending') {
+                        var ccQueueResp = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?id=eq.' + existingCC[0].id, {
+                          method: 'PATCH',
+                          body: JSON.stringify({ status: 'processing', processed_by: 'auto_cc' })
+                        });
+                        if (!ccQueueResp.ok) throw new Error('CC reward order queue failed: ' + ccQueueResp.status);
                       }
                     } else {
                       throw new Error('CC order duplicate check failed: ' + checkCC.status);
@@ -5867,7 +5873,7 @@ function toggleCC(uid, notes) {
                 points_spent: 0,
                 reward_amount: 'Premium Monthly Card x1 + Shelly Coins x500 + Gold x1000',
                 contact_info: currentPeriod,
-                status: 'pending',
+                status: 'processing',
                 period: currentPeriod,
                 admin_notes: 'CC:' + currentPeriod + ' - Consistent Creation Reward - ' + currentPeriod,
                 created_at: new Date().toISOString()
@@ -7113,15 +7119,17 @@ function ensureCCEligibilityForCurrentPeriod(force) {
         var koc = allKocs[i];
         if (!koc || koc.status !== 'active' || (workCounts[koc.uid] || 0) < 15) continue;
         var ccTag = 'CC:' + period;
-        if ((koc.notes || '').includes(ccTag)) continue;
-        var updatedNotes = appendKocNoteTag(koc.notes, ccTag);
-        var noteResponse = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(koc.uid), {
-          method: 'PATCH',
-          body: JSON.stringify({ notes: updatedNotes })
-        });
-        if (!noteResponse.ok) continue;
-        koc.notes = updatedNotes;
-        var existingResponse = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?uid=eq.' + encodeURIComponent(koc.uid) + '&period=eq.' + encodeURIComponent(period) + '&option_name=eq.' + encodeURIComponent(ccTag) + '&select=id');
+        if (!(koc.notes || '').includes(ccTag)) {
+          var updatedNotes = appendKocNoteTag(koc.notes, ccTag);
+          var noteResponse = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(koc.uid), {
+            method: 'PATCH',
+            body: JSON.stringify({ notes: updatedNotes })
+          });
+          if (!noteResponse.ok) continue;
+          koc.notes = updatedNotes;
+          changed = true;
+        }
+        var existingResponse = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?uid=eq.' + encodeURIComponent(koc.uid) + '&period=eq.' + encodeURIComponent(period) + '&option_name=eq.' + encodeURIComponent(ccTag) + '&select=id,status');
         var existing = existingResponse.ok ? await existingResponse.json() || [] : [];
         if (!existing.length) {
           var orderResponse = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders', {
@@ -7135,15 +7143,22 @@ function ensureCCEligibilityForCurrentPeriod(force) {
               points_spent: 0,
               reward_amount: 'Premium Monthly Card x1 + Shelly Coins x500 + Gold x1000',
               contact_info: period,
-              status: 'pending',
+              status: 'processing',
               period: period,
               admin_notes: ccTag + ' - Auto-enabled (≥15 submitted works)',
               created_at: new Date().toISOString()
             })
           });
           if (!orderResponse.ok) continue;
+          changed = true;
+        } else if (existing[0].status === 'pending') {
+          var queueResponse = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?id=eq.' + existing[0].id, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: 'processing', processed_by: 'auto_cc' })
+          });
+          if (!queueResponse.ok) continue;
+          changed = true;
         }
-        changed = true;
       }
     } catch(e) {
       console.error('Auto CC check error:', e);
@@ -7295,7 +7310,7 @@ function renderScoringTable() {
             return '<div class="order-row" style="display:flex;align-items:center;gap:4px;margin:2px 0;font-size:12px;">' +
               '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + optName + '</span>' +
               ' <span class="badge badge-' + o.status + '">' + (o.status === 'shipped' ? '\u2705 ' : '\u23F3 ') + o.status + '</span> ' +
-              (o.status === 'pending' ? '<span class="btn btn-success btn-sm" onclick="shipOrder(event,' + o.id + ')" title="分配到对应奖励模块，不扣积分" style="padding:1px 6px;font-size:11px;cursor:pointer;">分配</span>' : '') +
+              (o.status === 'pending' && String(o.option_name || '').indexOf('CC:') !== 0 ? '<span class="btn btn-success btn-sm" onclick="shipOrder(event,' + o.id + ')" title="分配到对应奖励模块，不扣积分" style="padding:1px 6px;font-size:11px;cursor:pointer;">分配</span>' : '') +
             '</div>';
           }).join('') +
           (orders.length > 10 ? '<div style="font-size:11px;color:var(--text-light);">+' + (orders.length-10) + ' more</div>' : '') +
