@@ -5160,7 +5160,7 @@ async function confirmBroadcast() {
       var r = await sendMochiDM(csvTargets[j].discord_name, mochiSupportFooter(csvTargets[j].message), csvTargets[j].discord_id, csvTargets[j].guild_id);
       if (r.ok) sentCsv++; else { failedCsv++; failedCsvDetails.push(csvTargets[j].discord_name + ': ' + r.reason); }
       statusElCsv.textContent = '⏳ CSV进度: ' + (j+1) + '/' + csvTargets.length + ' (成功' + sentCsv + ', 失败' + failedCsv + (r.ok ? '' : '：' + csvTargets[j].discord_name + ' ' + r.reason) + ')';
-      if (j < csvTargets.length - 1) await new Promise(function(resolve){ setTimeout(resolve, 15000); });
+      if (j < csvTargets.length - 1) await new Promise(function(resolve){ setTimeout(resolve, 3000); });
     }
     statusElCsv.textContent = '✅ CSV完成！成功: ' + sentCsv + ', 失败: ' + failedCsv + (failedCsvDetails.length ? '｜' + failedCsvDetails.join('；') : '');
     showBroadcastSendResult('CSV 完成 · 成功: ' + sentCsv + ' · 失败: ' + failedCsv, failedCsvDetails);
@@ -5197,7 +5197,7 @@ async function confirmBroadcast() {
     var result = await sendMochiDM(targets[i].discord_name, msg, targets[i].discord_id, targets[i].guild_id);
     if (result.ok) { sent++; } else { failed++; failedDetails.push(targets[i].discord_name + ': ' + result.reason); }
     statusEl.textContent = '⏳ 进度: ' + (i+1) + '/' + targets.length + ' (成功' + sent + ', 失败' + failed + ')';
-    if (i < targets.length - 1) await new Promise(r => setTimeout(r, 15000));
+    if (i < targets.length - 1) await new Promise(r => setTimeout(r, 3000));
   }
   statusEl.textContent = '✅ 完成！成功: ' + sent + ', 失败: ' + failed + (failedDetails.length ? '｜' + failedDetails.join('；') : '');
   showBroadcastSendResult('完成 · 成功: ' + sent + ' · 失败: ' + failed, failedDetails);
@@ -5513,7 +5513,7 @@ async function checkNewMembers() {
         failedDetails.push(discordId + ': ' + (dmData.error || dmData.reason || '发送失败'));
         console.warn('新人欢迎发送失败:', discordId, dmData.error || dmData.reason || dmData);
       }
-      if (candidateIndex < candidates.length - 1) await new Promise(function(resolve) { setTimeout(resolve, 15000); });
+      if (candidateIndex < candidates.length - 1) await new Promise(function(resolve) { setTimeout(resolve, 3000); });
     }
 
     if (joinEvents.length) lastCheckedJoinId = joinEvents[joinEvents.length - 1].message.id;
