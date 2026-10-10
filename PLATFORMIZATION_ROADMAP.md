@@ -58,7 +58,7 @@ The system runs the full business loop, but historical time spent, failure rate,
 
 ## Migration Sequence
 
-Current status: Phase 1 is deployed. Phase 2 now includes project profiles and project-scoped reward configuration; only `mlt-global` is connected to production business data.
+Current status: Phase 1 is deployed. Phase 2 now includes project profiles, project-scoped reward configuration, and project-scoped campaign periods; only `mlt-global` is connected to production business data.
 
 ### Phase 1: Foundation
 
@@ -70,6 +70,7 @@ Current status: Phase 1 is deployed. Phase 2 now includes project profiles and p
 ### Phase 2: Configuration
 
 - Move brand, locale, timezone, Discord guild, reward catalog, tier rules, and campaign behavior into project configuration.
+- Enforce one current campaign period per project and resolve creator workflow windows from that project period.
 - Add a project selector to the admin console.
 - Keep the creator portal on the default project until validation is complete.
 

@@ -400,6 +400,7 @@ serve(async (req) => {
       const rpcName = String(data.rpc || "");
       const allowedRpcNames = new Set([
         "publish_campaign_period",
+        "publish_project_campaign_period",
         "add_point_log_once",
         "ship_redemption_order",
         "queue_redemption_order",

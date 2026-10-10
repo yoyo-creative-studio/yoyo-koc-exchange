@@ -2397,7 +2397,7 @@ async function syncDiscordIdentities() {
 async function loadSettleMonthDropdown() {
   try {
     var [configRes, snapshotRes] = await Promise.all([
-      supabaseFetch(SUPABASE_URL + '/rest/v1/campaign_config?select=period&order=period.asc'),
+      supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/get_project_campaign_periods', { method: 'POST', body: JSON.stringify({ p_project_key: 'mlt-global' }) }),
       supabaseFetch(SUPABASE_URL + '/rest/v1/monthly_report_snapshots?select=period&order=period.asc')
     ]);
     if (!configRes.ok) return;
@@ -2423,13 +2423,10 @@ async function loadSettleMonthDropdown() {
     });
 
     // 默认选中当前期
-    var currentRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/campaign_config?is_current_period=eq.true&select=period');
-    if (currentRes.ok) {
-      var currentData = await currentRes.json();
-      if (currentData && currentData.length > 0 && periodMap[currentData[0].period]) {
-        sel.value = currentData[0].period;
-        currentPeriod = currentData[0].period;
-      }
+    var currentData = data.filter(function(row) { return row.is_current_period === true; });
+    if (currentData.length === 1 && periodMap[currentData[0].period]) {
+      sel.value = currentData[0].period;
+      currentPeriod = currentData[0].period;
     }
 
     // 如果没有找到 is_current_period=true，回退到最新配置月份
@@ -6206,8 +6203,8 @@ async function loadDashboard() {
     var startTime = Date.now();
     var [kocRes, subRes, ordRes, plRes, snapshotRes] = await Promise.all([
       supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?select=uid,discord_name,tier,name,created_at,notes'),
-      supabaseFetch(SUPABASE_URL + '/rest/v1/submissions?select=uid,discord_name,status,points_earned,links_engagement,links_views,score_details,submission_type,created_at&order=created_at.desc'),
-      supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?select=uid,points_spent,status,created_at&order=created_at.desc&limit=500'),
+      supabaseFetch(SUPABASE_URL + '/rest/v1/submissions?select=uid,discord_name,status,points_earned,links_engagement,links_views,score_details,submission_type,period,created_at&order=created_at.desc'),
+      supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?select=uid,points_spent,status,period,created_at&order=created_at.desc&limit=500'),
       supabaseFetch(SUPABASE_URL + '/rest/v1/point_logs?select=change'),
       supabaseFetch(SUPABASE_URL + '/rest/v1/monthly_report_snapshots?period=eq.' + encodeURIComponent(currentPeriod) + '&select=payload&limit=1')
     ]);

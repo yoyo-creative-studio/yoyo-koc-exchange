@@ -944,7 +944,9 @@ function isFeatureWindowOpen(manualOpen, closeAt) {
 }
 
 async function fetchCurrentCampaignAccess() {
-  var res = await supabaseFetch(SUPABASE_URL + '/rest/v1/campaign_config?period=eq.' + encodeURIComponent(currentPeriod) + '&select=submissions_open,redemption_open,submissions_close_at,redemption_close_at');
+  var res = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/get_current_project_campaign', {
+    method: 'POST', body: JSON.stringify({ p_project_key: 'mlt-global' })
+  });
   if (!res.ok) throw new Error('Unable to verify campaign status');
   var data = await res.json();
   if (!data || data.length === 0) throw new Error('Campaign configuration not found');
@@ -962,7 +964,9 @@ let editingRedemption = null;
 // Load current period from campaign_config on page load
 async function loadCurrentPeriod() {
   try {
-    var res = await supabaseFetch(SUPABASE_URL + '/rest/v1/campaign_config?is_current_period=eq.true&select=period');
+    var res = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/get_current_project_campaign', {
+      method: 'POST', body: JSON.stringify({ p_project_key: 'mlt-global' })
+    });
     if (!res.ok) throw new Error('Current period request failed: HTTP ' + res.status);
     var data = await res.json();
     if (!data || data.length !== 1 || !/^\d{4}-\d{2}$/.test(String(data[0].period || ''))) {
