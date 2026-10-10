@@ -423,6 +423,7 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
           🔒 Redemption is not open yet<br><span style="font-size:11px;">Please wait for scoring to complete. You will be notified when redemption opens.</span>
         </div>
         <button class="btn btn-primary" id="btn-redeem" onclick="redeem()" disabled>Confirm Redemption</button>
+        <button class="btn" id="btn-cancel-edit" onclick="cancelRedemptionEdit()" style="display:none;margin-top:8px;background:#fff;border:1px solid var(--line);color:var(--pink-dark);">Cancel Editing</button>
         <div id="redeem-status" style="margin-top:10px;font-size:12px;color:var(--text-light);min-height:18px;"></div>
       </div>
 
@@ -954,6 +955,7 @@ async function fetchCurrentCampaignAccess() {
   };
 }
 let selections = {};
+let editingRedemption = null;
 
 // Load current period from campaign_config on page load
 async function loadCurrentPeriod() {
@@ -1018,6 +1020,7 @@ async function tryAutoLogin() {
 function initSelections() { selections = {}; REWARDS.forEach(r => selections[r.id] = 0); }
 function getSelCount() { return Object.values(selections).filter(q => q > 0).length; }
 function getTotalCost() { return REWARDS.reduce((s, r) => s + (selections[r.id] || 0) * r.cost, 0); }
+function getRedemptionBudget() { return (currentUser ? Number(currentUser.points) || 0 : 0) + (editingRedemption ? editingRedemption.oldTotal : 0); }
 function esc(s) { return s == null ? "" : String(s).replace(/[&<>]/g, function(c) { return ({"&":"&amp;","<":"&lt;",">":"&gt;"})[c]; }); }
 function escAttr(s) { return esc(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
@@ -1435,11 +1438,16 @@ async function loadCommunityMilestone() {
   }
 }
 
-function renderOptions() {
+function renderOptions(initialSelections) {
   const container = document.getElementById('options-container');
   container.innerHTML = '';
   document.getElementById('btn-redeem').disabled = true;
   initSelections();
+  if (initialSelections) {
+    REWARDS.forEach(function(reward) {
+      selections[reward.id] = Math.max(0, Number(initialSelections[reward.id]) || 0);
+    });
+  }
 
   REWARDS.forEach(function(opt) {
     const row = document.createElement('div');
@@ -1463,7 +1471,7 @@ function renderOptions() {
 function updateUI() {
   const selCount = getSelCount();
   const totalCost = getTotalCost();
-  const bal = currentUser ? currentUser.points : 0;
+  const bal = getRedemptionBudget();
 
   REWARDS.forEach(r => {
     const el = document.getElementById('q-' + r.id); if (el) el.textContent = selections[r.id] || 0;
@@ -1487,7 +1495,9 @@ function updateUI() {
   footer.innerHTML = '<div style="font-size:14px;font-weight:600;">Total: ' + totalCost + ' pts <span style="color:' + (rem >= 0 ? 'var(--pink-dark)' : '#e74c3c') + ';">(rem ' + rem + ' pts)</span></div>' +
     '<div style="font-size:12px;color:var(--text-light);margin:4px 0 8px;">' + chosen.map(s => s.name + ' ×' + selections[s.id]).join(' · ') + '</div>';
 
-  document.getElementById('btn-redeem').disabled = !redemptionOpen || totalCost === 0;
+  var redeemButton = document.getElementById('btn-redeem');
+  redeemButton.disabled = !redemptionOpen || totalCost === 0;
+  redeemButton.textContent = editingRedemption ? 'Save Reward Changes' : 'Confirm Redemption';
 }
 
 function changeQty(id, d) {
@@ -1495,14 +1505,51 @@ function changeQty(id, d) {
   const cur = selections[id] || 0; const nxt = cur + d;
   if (nxt < 0) return;
   const newTotal = getTotalCost() - cur * opt.cost + nxt * opt.cost;
-  if (newTotal > currentUser.points) return;
+  if (newTotal > getRedemptionBudget()) return;
   selections[id] = nxt; updateUI();
+}
+function cancelRedemptionEdit() {
+  editingRedemption = null;
+  initSelections();
+  var cancelButton = document.getElementById('btn-cancel-edit');
+  if (cancelButton) cancelButton.style.display = 'none';
+  var statusEl = document.getElementById('redeem-status');
+  if (statusEl) statusEl.textContent = '';
+  renderOptions();
+}
+
+async function editPendingRedemption(requestId) {
+  if (!currentUser || !redemptionOpen) {
+    showToast('Reward selections can only be edited while redemption is open.', 'error');
+    return;
+  }
+  try {
+    var response = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?uid=eq.' + encodeURIComponent(currentUser.uid) + '&period=eq.' + encodeURIComponent(currentPeriod) + '&request_id=eq.' + encodeURIComponent(requestId) + '&points_spent=gt.0&status=eq.pending&select=id,request_id,option_type,points_spent');
+    if (!response.ok) throw new Error('Unable to load your pending reward selection.');
+    var rows = await response.json() || [];
+    if (!rows.length) throw new Error('This reward selection is no longer pending and cannot be edited.');
+    var oldTotal = rows.reduce(function(sum, row) { return sum + (Number(row.points_spent) || 0); }, 0);
+    var loadedSelections = {};
+    rows.forEach(function(row) {
+      var reward = REWARDS.find(function(item) { return item.id === row.option_type; });
+      if (reward && reward.cost > 0) loadedSelections[reward.id] = Math.max(0, Math.round((Number(row.points_spent) || 0) / reward.cost));
+    });
+    editingRedemption = { requestId: requestId, oldTotal: oldTotal };
+    renderOptions(loadedSelections);
+    var cancelButton = document.getElementById('btn-cancel-edit');
+    if (cancelButton) cancelButton.style.display = 'block';
+    var statusEl = document.getElementById('redeem-status');
+    if (statusEl) statusEl.innerHTML = '<div style="background:#fff8fb;border:1px solid #f3c4d8;border-radius:10px;padding:10px;color:#765466;line-height:1.6;"><strong>Editing your pending reward selection</strong><br>Your current ' + oldTotal + '-point selection has been loaded. Saving will replace the entire pending selection.</div>';
+    document.getElementById('options-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
 }
 async function redeem() {
   if (!redemptionOpen) { showToast('🔒 Redemption Not Open，Please wait for notification', 'error'); return; }
   const totalCost = getTotalCost();
   if (totalCost === 0 || !currentUser) return;
-  if (totalCost > currentUser.points) { showToast('Insufficient points', 'error'); return; }
+  if (totalCost > getRedemptionBudget()) { showToast('Insufficient points', 'error'); return; }
 
   const btn = document.getElementById('btn-redeem');
   const statusEl = document.getElementById('redeem-status');
@@ -1521,20 +1568,24 @@ async function redeem() {
 
     const freshBalance = await getBalance(currentUser.uid);
     const pendingTotal = await getPendingRedemptionTotal(currentUser.uid);
-    var existingOrderResponse = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?uid=eq.' + encodeURIComponent(currentUser.uid) + '&period=eq.' + encodeURIComponent(currentPeriod) + '&points_spent=gt.0&status=neq.cancelled&select=id,option_name,status&limit=1');
-    if (!existingOrderResponse.ok) throw new Error('Unable to verify existing reward orders');
-    var existingOrders = await existingOrderResponse.json() || [];
-    if (existingOrders.length) {
-      await loadOrders();
-      throw new Error('You have already selected a reward for this redemption period. Check My Orders or contact support if you need to change it.');
-    }
     const available = Math.max(0, freshBalance - pendingTotal);
     currentUser.points = available;
-    if (totalCost > available) {
+    var editBudget = available + (editingRedemption ? editingRedemption.oldTotal : 0);
+    if (totalCost > editBudget) {
       document.getElementById('display-points').textContent = available;
-      renderOptions();
+      updateUI();
       showToast('Insufficient points after pending redemptions', 'error');
       return;
+    }
+
+    if (!editingRedemption) {
+      var existingOrderResponse = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?uid=eq.' + encodeURIComponent(currentUser.uid) + '&period=eq.' + encodeURIComponent(currentPeriod) + '&points_spent=gt.0&status=neq.cancelled&select=id,option_name,status&limit=1');
+      if (!existingOrderResponse.ok) throw new Error('Unable to verify existing reward orders');
+      var existingOrders = await existingOrderResponse.json() || [];
+      if (existingOrders.length) {
+        await loadOrders();
+        throw new Error('You already have a reward request for this period. Pending requests can be edited from My Orders.');
+      }
     }
 
     const contact = '';
@@ -1555,23 +1606,34 @@ async function redeem() {
     });
 
     var summary = chosen.map(function(opt) { return '• ' + opt.name + ' ×' + selections[opt.id] + ' = ' + (opt.cost * selections[opt.id]) + ' pts'; }).join('\n');
-    if (!confirm('Confirm redemption?\n\n' + summary + '\n\nTotal: ' + totalCost + ' pts\nRemaining balance: ' + (available - totalCost) + ' pts')) {
+    var oldTotal = editingRedemption ? editingRedemption.oldTotal : 0;
+    var confirmationTitle = editingRedemption ? 'Replace your pending reward selection?' : 'Confirm redemption?';
+    var differenceText = editingRedemption ? '\nPrevious total: ' + oldTotal + ' pts\nDifference: ' + (totalCost - oldTotal >= 0 ? '+' : '') + (totalCost - oldTotal) + ' pts' : '';
+    if (!confirm(confirmationTitle + '\n\n' + summary + '\n\nNew total: ' + totalCost + ' pts' + differenceText + '\nRemaining balance: ' + (editBudget - totalCost) + ' pts' + (editingRedemption ? '\n\nThis replaces your entire pending selection.' : ''))) {
       btn.disabled = false;
-      btn.textContent = 'Confirm Redemption';
+      btn.textContent = editingRedemption ? 'Save Reward Changes' : 'Confirm Redemption';
       return;
     }
 
     var requestId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : (currentUser.uid + '-' + Date.now() + '-' + Math.random().toString(16).slice(2));
-    var rpcResp = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/redeem_points', {
+    var rpcName = editingRedemption ? 'edit_pending_redemption' : 'redeem_points';
+    var rpcBody = {
+      p_uid: currentUser.uid,
+      p_account_id: currentUser.account_id,
+      p_period: currentPeriod,
+      p_items: items,
+      p_contact_info: contact,
+      p_request_id: requestId
+    };
+    if (editingRedemption) {
+      rpcBody.p_old_request_id = editingRedemption.requestId;
+      rpcBody.p_new_request_id = requestId;
+      delete rpcBody.p_request_id;
+    }
+    var wasEditing = !!editingRedemption;
+    var rpcResp = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/' + rpcName, {
       method: 'POST',
-      body: JSON.stringify({
-        p_uid: currentUser.uid,
-        p_account_id: currentUser.account_id,
-        p_period: currentPeriod,
-        p_items: items,
-        p_contact_info: contact,
-        p_request_id: requestId
-      })
+      body: JSON.stringify(rpcBody)
     });
 
     if (!rpcResp.ok) {
@@ -1580,18 +1642,21 @@ async function redeem() {
     }
 
     // Points reserved until admin ships the order
+    editingRedemption = null;
     initSelections();
+    var cancelButton = document.getElementById('btn-cancel-edit');
+    if (cancelButton) cancelButton.style.display = 'none';
     await refreshAvailableBalance();
     // Load orders independently so errors don't override success toast
     try { await loadOrders(); } catch(e) { console.error('loadOrders:', e); }
     if (statusEl) {
       statusEl.innerHTML = '<div style="background:#f1fff4;border:1px solid #a5d6a7;border-radius:14px;padding:12px;text-align:left;color:#2e7d32;line-height:1.7;">' +
-        '<div style="font-weight:800;font-size:14px;">✅ Redemption request submitted!</div>' +
+        '<div style="font-weight:800;font-size:14px;">✅ ' + (wasEditing ? 'Reward selection updated!' : 'Redemption request submitted!') + '</div>' +
         '<div><strong>' + totalCost + ' pts</strong> are now reserved for this pending reward order.</div>' +
         '<div style="font-size:11px;margin-top:6px;color:#4c8c4a;">Next: wait for admin processing. You can track it in <strong>My Orders</strong>; please screenshot this page if you need support.</div>' +
         '</div>';
     }
-    showToast('✅ Redemption submitted! Track it in My Orders.', 'success');
+    showToast(wasEditing ? '✅ Reward selection updated!' : '✅ Redemption submitted! Track it in My Orders.', 'success');
   } catch (e) {
     if (statusEl) {
       statusEl.innerHTML = '<div style="background:#fff3f3;border:1px solid #ffcdd2;border-radius:14px;padding:12px;text-align:left;color:#c62828;line-height:1.7;">' +
@@ -1602,7 +1667,7 @@ async function redeem() {
     }
     showToast('Error: ' + e.message, 'error');
   }
-  btn.disabled = false; btn.textContent = 'Confirm Redemption';
+  btn.disabled = false; btn.textContent = editingRedemption ? 'Save Reward Changes' : 'Confirm Redemption';
 }
 
 async function loadOrders() {
@@ -1618,7 +1683,7 @@ async function loadOrders() {
     return requestGeneration === ordersLoadGeneration && currentUser && String(currentUser.uid || '') === requestedUid;
   }
   try {
-    const res = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?uid=eq.' + encodeURIComponent(requestedUid) + '&order=created_at.desc&select=id,option_type,option_name,points_spent,status,reward_amount,period,created_at', { cache: 'no-store' });
+    const res = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?uid=eq.' + encodeURIComponent(requestedUid) + '&order=created_at.desc&select=id,request_id,option_type,option_name,points_spent,status,reward_amount,period,created_at', { cache: 'no-store' });
     if (!res.ok) return;
     var allOrders = await res.json();
     if (!isCurrentOrderRequest()) return;
@@ -1647,6 +1712,11 @@ async function loadOrders() {
       return;
     }
     if (card) card.style.display = 'block';
+    var editableRequestIds = {};
+    orders.forEach(function(order) {
+      if (redemptionOpen && order.period === currentPeriod && order.status === 'pending' && Number(order.points_spent) > 0 && order.request_id) editableRequestIds[order.request_id] = true;
+    });
+    var renderedEditButtons = {};
     container.innerHTML = '<div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">📅 Reward History · current campaign ' + currentMonth.replace('-', '/') + '</div>' +
     '<div style="background:#fff8fb;border:1px solid #f3c4d8;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:11px;color:#765466;line-height:1.6;">' +
       '<strong>Order status:</strong> <b>Pending</b> = waiting for admin review · <b>Processing</b> = admin is preparing your reward · <b>Completed</b> = reward has been sent · <b>Cancelled</b> = order will not be fulfilled.' +
@@ -1662,6 +1732,11 @@ async function loadOrders() {
       if (displayAmount === '随机周边 × 1' || displayAmount === 'Random Merchandise × 1') displayAmount = 'Random Merchandise × 1';
       if (/^CC:\d{4}-\d{2}$/i.test(o.option_name || '')) displayAmount = 'Premium Monthly Card ×1 · Shelly Coins ×500 · Gold ×1000';
       var fulfillment = fulfillmentMap[String(o.id)];
+      var editButton = '';
+      if (editableRequestIds[o.request_id] && !renderedEditButtons[o.request_id]) {
+        renderedEditButtons[o.request_id] = true;
+        editButton = '<button class="btn" onclick="editPendingRedemption(&quot;' + escAttr(o.request_id) + '&quot;)" style="margin-top:9px;padding:8px 12px;background:#fff;border:1px solid var(--line);color:var(--pink-dark);font-size:12px;">Edit Reward Selection</button>';
+      }
       return '<div class="order-item">' +
         '<div style="display:flex;justify-content:space-between;">' +
         '<span>' + esc(displayName) + (displayAmount ? '<br><small style="color:var(--text-light);">' + esc(displayAmount) + '</small>' : '') + '</span>' +
@@ -1670,7 +1745,7 @@ async function loadOrders() {
         '<div class="order-meta">' +
         '<span class="badge ' + statusClass + '">' + statusLabel + '</span>' +
         ' · ' + esc(orderMonth || '') + ' · ' + new Date(o.created_at).toLocaleDateString() +
-        '</div>' + renderCreatorFulfillment(fulfillment, o) + '</div>';
+        '</div>' + renderCreatorFulfillment(fulfillment, o) + editButton + '</div>';
     }).join('');
   } catch(e) {
     console.error('loadOrders error:', e);
@@ -2334,11 +2409,15 @@ function switchSubMonth(ym) {
 function logout() {
   ordersLoadGeneration += 1;
   currentUser = null;
+  editingRedemption = null;
+  initSelections();
   localStorage.removeItem('koc_session');
   var ordersList = document.getElementById('orders-list');
   var ordersCard = document.getElementById('orders-card');
   if (ordersList) ordersList.innerHTML = '<div style="color:var(--text-light);font-size:13px;">No orders yet</div>';
   if (ordersCard) ordersCard.style.display = 'none';
+  var cancelEditButton = document.getElementById('btn-cancel-edit');
+  if (cancelEditButton) cancelEditButton.style.display = 'none';
   document.getElementById('step-login').classList.remove('hidden');
   document.getElementById('step-dashboard').classList.add('hidden');
   document.getElementById('input-account-id').value = '';

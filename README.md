@@ -52,6 +52,7 @@ Current synchronization baseline (2026-09-18): 117 active KOCs, 112 bound, 0 dup
 ## Reward Invariants
 
 - A creator may submit one combined redemption order per redemption period; reward types belong to that order.
+- While the redemption window is open, creators may replace the full selection only when every paid row in that request is still `pending`; edits are atomic and recorded in `redemption_order_edits`.
 - Creator-facing order requests and rendering must be UID-bound and fetched with `cache: no-store`.
 - Account switching and logout must clear prior creator order state before loading another account.
 - Reward submission reserves/deducts the selected points immediately so the creator does not see spent points as available.
