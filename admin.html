@@ -3041,6 +3041,11 @@ var SCORING_RULES_TEXT = `# Yoyo KOC Exchange · Agent 算分任务（v2 · 2026
 ### 4. Showcase（周边晒图）
 - **不算分**！不要计入 agent 算分，由管理员在「作品审核」人工 +1
 
+### 5. 推荐奖励
+- 推荐奖励不得合并进 \`points_earned\`。
+- 如提供推荐奖励名单，请在该创作者结果中单独输出 \`referral_bonus\`，填写当月推荐奖励总额。
+- 同一创作者即使有多条 submission，也只能在一个结果对象中填写一次 \`referral_bonus\`，避免重复累加。
+
 ## 抓取要求（实战踩坑，必须遵守）
 
 1. **TikTok 必须点进作者主页找视频读播放量**：列表页/分享页数字不准；照片帖在主页也能看到播放量。短链接（\`vm.tiktok.com\` / \`tiktok.com/t/\`）先用 oembed/curl 解析成完整链接再抓。
@@ -3067,7 +3072,8 @@ var SCORING_RULES_TEXT = `# Yoyo KOC Exchange · Agent 算分任务（v2 · 2026
       "total_engagement": 0,
       "total_impressions": 0,
       "total_views": 0,
-      "points_earned": 0
+      "points_earned": 0,
+      "referral_bonus": 0
     }
   ]
 }
@@ -3405,6 +3411,7 @@ function previewScoreResult(text) {
       mergedMap[key]._merged_count = 1;
     } else {
       mergedMap[key].points_earned = (mergedMap[key].points_earned || 0) + (sub.points_earned || 0);
+      mergedMap[key].referral_bonus = (mergedMap[key].referral_bonus || 0) + (sub.referral_bonus || 0);
       mergedMap[key].total_engagement = (mergedMap[key].total_engagement || 0) + (sub.total_engagement || 0);
       mergedMap[key].total_views = (mergedMap[key].total_views || 0) + (sub.total_views || 0);
       mergedMap[key]._merged_count++;
@@ -3440,27 +3447,33 @@ function previewScoreResult(text) {
   document.getElementById('btn-confirm-import').disabled = false;
   
   var totalPts = 0;
-  mergedSubs.forEach(function(sub) { totalPts += sub.points_earned || 0; });
+  var totalReferralBonus = 0;
+  mergedSubs.forEach(function(sub) {
+    totalPts += Number(sub.points_earned) || 0;
+    totalReferralBonus += Number(sub.referral_bonus) || 0;
+  });
   
   var safeText = function(v) { return (v == null ? '' : String(v)).replace(/[&<>]/g, function(c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]; }); };
   
   document.getElementById('score-preview-stats').innerHTML =
     '\ud83d\udcca <strong>' + mergedSubs.length + '</strong> 人（合并 ' + rawResult.submissions.length + ' 条提交） \u00b7 ' +
-    '\ud83c\udfc6 <strong>' + totalPts + '</strong> 总积分';
+    '\ud83c\udfc6 <strong>' + totalPts + '</strong> 内容结算分 · ' +
+    '\ud83c\udf81 <strong>' + totalReferralBonus + '</strong> 推荐奖励分';
   
   var detailHtml = '<div style="font-size:11px;color:#e65100;margin-bottom:6px;">\u2192 同一人的多次提交已自动合并，链接+积分+互动数均相加</div>';
   mergedSubs.forEach(function(sub) {
     var name = sub.discord_name || '?';
     var pts = sub.points_earned || 0;
+    var referralBonus = Number(sub.referral_bonus) || 0;
     var mergeInfo = sub._merged_count > 1 ? '<span style="font-size:10px;color:#7b1fa2;"> \ud83d\udd04\u00d7' + sub._merged_count + '</span>' : '';
     var linkInfo = sub._link_count > 0 ? '<span style="font-size:10px;color:var(--text-light);"> \ud83d\udd17' + sub._link_count + '</span>' : '';
     detailHtml += '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f0f0f0;">' +
       '<span>' + safeText(name) + mergeInfo + linkInfo + '</span>' +
-      '<span><strong>' + pts + ' pts</strong></span></div>';
+      '<span><strong>' + pts + ' content pts</strong>' + (referralBonus > 0 ? ' · <strong style="color:#7b1fa2;">+' + referralBonus + ' referral</strong>' : '') + '</span></div>';
   });
   
   document.getElementById('score-preview-detail').innerHTML = detailHtml;
-  status.textContent = '\u2705 合并完成！' + mergedSubs.length + ' 位创作者，共 ' + totalPts + ' 分。确认后点击"确认应用积分"';
+  status.textContent = '\u2705 合并完成！' + mergedSubs.length + ' 位创作者，内容结算 ' + totalPts + ' 分，推荐奖励 ' + totalReferralBonus + ' 分。确认后点击"确认应用积分"';
   status.style.color = '#4caf50';
 }
 
@@ -3479,13 +3492,15 @@ async function confirmScoreImport() {
   if (!pendingScoreResult) { showToast('没有可导入的结果', 'error'); return; }
   var previewResult = pendingScoreResult;
   var importTotalPts = (previewResult.submissions || []).reduce(function(sum, sub) { return sum + (Number(sub.points_earned) || 0); }, 0);
+  var importReferralPts = (previewResult.submissions || []).reduce(function(sum, sub) { return sum + (Number(sub.referral_bonus) || 0); }, 0);
   var importUids = {};
   (previewResult.submissions || []).forEach(function(sub) { if (sub.uid) importUids[sub.uid] = true; });
   if (!confirmDanger('Apply score import and write points?', [
     'Period: ' + (previewResult.batch || currentPeriod),
     'Scored submissions: ' + ((previewResult._raw_submissions || previewResult.submissions || []).length),
     'Affected creators: ' + Object.keys(importUids).length,
-    'Total points to add: ' + importTotalPts,
+    'Content settlement points: ' + importTotalPts,
+    'Referral reward points: ' + importReferralPts,
     'This will mark submissions as scored and insert point_logs rows.'
   ])) return;
   // Prevent double-click race
@@ -3513,7 +3528,8 @@ async function confirmScoreImport() {
       // Update submission: score_details + status
       var scoreDetails = JSON.stringify({
         engagement_links: sub.engagement_links || [],
-        view_links: sub.view_links || []
+        view_links: sub.view_links || [],
+        referral_bonus: Number(sub.referral_bonus) || 0
       });
       var updatePayload = {
         score_details: scoreDetails,
@@ -3615,6 +3631,24 @@ async function confirmScoreImport() {
         } catch(e) {
           console.error('newbie bonus error:', e);
           errors.push((sub.uid || sub.discord_name || '?') + ': 新人奖励写入失败 - ' + e.message);
+        }
+      }
+
+      var referralBonus = Number(sub.referral_bonus) || 0;
+      if (sub.uid && referralBonus > 0) {
+        try {
+          await adminRpc('add_point_log_once', {
+            p_uid: sub.uid,
+            p_change: referralBonus,
+            p_source: 'manual',
+            p_reason: currentPeriod + ' Referral Reward',
+            p_period: currentPeriod,
+            p_created_by: 'admin_confirm',
+            p_operation_key: 'referral:' + currentPeriod + ':' + sub.uid
+          });
+        } catch(referralError) {
+          console.error('referral bonus error for ' + sub.uid, referralError);
+          errors.push((sub.uid || sub.discord_name || '?') + ': 推荐奖励写入失败 - ' + referralError.message);
         }
       }
       
