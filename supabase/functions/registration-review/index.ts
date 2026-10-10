@@ -205,6 +205,50 @@ serve(async (req) => {
 
     if (action === "login") return json({ ok: true });
 
+    if (action === "list_platform_projects") {
+      const { data: projects, error } = await db.from("platform_projects")
+        .select("id,project_key,name,status,default_locale,default_timezone,settings,created_at,updated_at")
+        .order("created_at", { ascending: true });
+      if (error) return json({ ok: false, error: error.message }, 400);
+      return json({ ok: true, projects: projects || [] });
+    }
+
+    if (action === "save_platform_project") {
+      const id = String(data.id || "").trim();
+      const projectKey = String(data.project_key || "").trim().toLowerCase();
+      const name = String(data.name || "").trim();
+      const status = String(data.status || "active").trim();
+      const defaultLocale = String(data.default_locale || "en").trim();
+      const defaultTimezone = String(data.default_timezone || "America/Los_Angeles").trim();
+      const settings = data.settings && typeof data.settings === "object" && !Array.isArray(data.settings) ? data.settings : {};
+      if (!/^[a-z0-9][a-z0-9-]{1,62}$/.test(projectKey)) return json({ ok: false, error: "Project key must use lowercase letters, numbers, and hyphens" }, 400);
+      if (!name || name.length > 120) return json({ ok: false, error: "Project name is required and must be 120 characters or fewer" }, 400);
+      if (!["active", "paused", "archived"].includes(status)) return json({ ok: false, error: "Invalid project status" }, 400);
+      if (!/^[a-z]{2}(?:-[A-Z]{2})?$/.test(defaultLocale)) return json({ ok: false, error: "Invalid locale" }, 400);
+      if (!/^[A-Za-z_]+(?:\/[A-Za-z0-9_+\-]+)+$/.test(defaultTimezone)) return json({ ok: false, error: "Invalid IANA timezone" }, 400);
+      const payload = {
+        project_key: projectKey,
+        name,
+        status,
+        default_locale: defaultLocale,
+        default_timezone: defaultTimezone,
+        settings,
+        updated_at: new Date().toISOString(),
+      };
+      if (id) {
+        const { data: existing, error: existingError } = await db.from("platform_projects").select("id,project_key").eq("id", id).maybeSingle();
+        if (existingError) return json({ ok: false, error: existingError.message }, 400);
+        if (!existing) return json({ ok: false, error: "Project not found" }, 404);
+        if (existing.project_key === "mlt-global" && projectKey !== "mlt-global") return json({ ok: false, error: "The production project key cannot be changed" }, 409);
+        const { data: saved, error } = await db.from("platform_projects").update(payload).eq("id", id).select("*").single();
+        if (error) return json({ ok: false, error: error.message }, 400);
+        return json({ ok: true, project: saved, created: false });
+      }
+      const { data: saved, error } = await db.from("platform_projects").insert(payload).select("*").single();
+      if (error) return json({ ok: false, error: error.message }, error.code === "23505" ? 409 : 400);
+      return json({ ok: true, project: saved, created: true });
+    }
+
     if (action === "sync_discord_identities") {
       const guildId = String(data.guild_id || "1458340952358785193").trim();
       const { data: welcomeState, error: stateError } = await db.from("mochi_auto_welcome_state")

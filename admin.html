@@ -1233,6 +1233,31 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
 
     <!-- ======== TAB: 规则配置 ======== -->
     <div id="tab-rules" class="tab-content">
+      <div class="card" style="border:2px solid #b39ddb;background:#fcfaff;">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span>🌍 项目配置中心 <small style="font-weight:500;color:var(--text-light);">平台化基础</small></span>
+          <button class="btn btn-sm btn-outline" onclick="startNewPlatformProject()">＋ 新建项目</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px;">
+          <div style="grid-column:1 / -1;">
+            <label>当前配置项目</label>
+            <select id="platform-project-select" onchange="this.value ? selectPlatformProject(this.value) : startNewPlatformProject()"><option value="">加载中...</option></select>
+          </div>
+          <div><label>项目标识</label><input id="platform-project-key" placeholder="例如：new-game-eu"></div>
+          <div><label>项目名称</label><input id="platform-project-name" placeholder="例如：New Game EU Creator Program"></div>
+          <div><label>状态</label><select id="platform-project-status"><option value="active">Active</option><option value="paused">Paused</option><option value="archived">Archived</option></select></div>
+          <div><label>默认语言</label><input id="platform-project-locale" value="en" placeholder="en / en-US"></div>
+          <div><label>默认时区</label><input id="platform-project-timezone" value="America/Los_Angeles" placeholder="America/Los_Angeles"></div>
+          <div><label>运营地区</label><input id="platform-project-region" placeholder="Global / Europe / Southeast Asia"></div>
+          <div><label>Discord Server ID</label><input id="platform-project-guild" placeholder="Discord Guild ID"></div>
+          <div style="grid-column:1 / -1;"><label>创作者门户地址</label><input id="platform-project-portal-url" placeholder="https://..."></div>
+        </div>
+        <div id="platform-project-scope" style="margin-top:12px;padding:10px;border:1px solid #d1c4e9;background:white;font-size:12px;line-height:1.6;color:#5e4b70;">正在读取项目配置...</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-top:12px;">
+          <button class="btn btn-primary" onclick="savePlatformProject()">保存项目配置</button>
+          <span id="platform-project-status-text" style="font-size:12px;color:var(--text-light);"></span>
+        </div>
+      </div>
       <div class="card">
         <div class="card-title">📐 积分规则配置</div>
         <div class="row">
@@ -1788,6 +1813,8 @@ let allKocs = [];
 let allOrders = [];
 let editingUid = null;
 let registrationApplications = [];
+let platformProjects = [];
+let selectedPlatformProjectId = '';
 
 async function registrationReviewFetch(action, data) {
   var response = await supabaseFetch(SUPABASE_URL + '/functions/v1/registration-review', {
@@ -1803,6 +1830,94 @@ async function registrationReviewFetch(action, data) {
 async function adminRpc(rpc, params) {
   var result = await registrationReviewFetch('admin_rpc', { rpc: rpc, params: params || {} });
   return result.result;
+}
+
+async function loadPlatformProjects(preferredId) {
+  var select = document.getElementById('platform-project-select');
+  if (!select) return;
+  try {
+    var result = await registrationReviewFetch('list_platform_projects');
+    platformProjects = result.projects || [];
+    select.innerHTML = '<option value="">＋ 新建项目配置</option>' + platformProjects.map(function(project) {
+      return '<option value="' + escAttr(project.id) + '">' + esc(project.name) + ' · ' + esc(project.project_key) + '</option>';
+    }).join('');
+    var targetId = preferredId || selectedPlatformProjectId || (platformProjects[0] && platformProjects[0].id) || '';
+    if (targetId) selectPlatformProject(targetId);
+    else startNewPlatformProject();
+  } catch(error) {
+    select.innerHTML = '<option value="">项目加载失败</option>';
+    var status = document.getElementById('platform-project-status-text');
+    if (status) status.textContent = error.message;
+  }
+}
+
+function selectPlatformProject(id) {
+  var project = platformProjects.find(function(item) { return item.id === id; });
+  if (!project) return;
+  selectedPlatformProjectId = project.id;
+  var settings = project.settings || {};
+  document.getElementById('platform-project-select').value = project.id;
+  document.getElementById('platform-project-key').value = project.project_key || '';
+  document.getElementById('platform-project-key').readOnly = project.project_key === 'mlt-global';
+  document.getElementById('platform-project-name').value = project.name || '';
+  document.getElementById('platform-project-status').value = project.status || 'active';
+  document.getElementById('platform-project-locale').value = project.default_locale || 'en';
+  document.getElementById('platform-project-timezone').value = project.default_timezone || 'America/Los_Angeles';
+  document.getElementById('platform-project-region').value = settings.operating_region || '';
+  document.getElementById('platform-project-guild').value = settings.discord_guild_id || '';
+  document.getElementById('platform-project-portal-url').value = settings.creator_portal_url || '';
+  var scope = document.getElementById('platform-project-scope');
+  scope.innerHTML = project.project_key === 'mlt-global'
+    ? '<strong>✅ 已连接生产业务</strong>：当前 KOC、投稿、积分、订单与履约数据仍属于此项目。'
+    : '<strong>🧩 配置草稿</strong>：该项目尚未连接创作者和订单数据，不会影响 MLT Global。';
+  document.getElementById('platform-project-status-text').textContent = '';
+}
+
+function startNewPlatformProject() {
+  selectedPlatformProjectId = '';
+  document.getElementById('platform-project-select').value = '';
+  document.getElementById('platform-project-key').readOnly = false;
+  document.getElementById('platform-project-key').value = '';
+  document.getElementById('platform-project-name').value = '';
+  document.getElementById('platform-project-status').value = 'active';
+  document.getElementById('platform-project-locale').value = 'en';
+  document.getElementById('platform-project-timezone').value = 'America/Los_Angeles';
+  document.getElementById('platform-project-region').value = '';
+  document.getElementById('platform-project-guild').value = '';
+  document.getElementById('platform-project-portal-url').value = '';
+  document.getElementById('platform-project-scope').innerHTML = '<strong>🆕 新项目配置</strong>：保存后只创建项目配置，不会复制或迁移当前生产数据。';
+  document.getElementById('platform-project-status-text').textContent = '';
+}
+
+async function savePlatformProject() {
+  var status = document.getElementById('platform-project-status-text');
+  var projectKey = document.getElementById('platform-project-key').value.trim().toLowerCase();
+  var name = document.getElementById('platform-project-name').value.trim();
+  if (!projectKey || !name) { showToast('请填写项目标识和项目名称', 'error'); return; }
+  status.textContent = '保存中...';
+  try {
+    var result = await registrationReviewFetch('save_platform_project', {
+      id: selectedPlatformProjectId,
+      project_key: projectKey,
+      name: name,
+      status: document.getElementById('platform-project-status').value,
+      default_locale: document.getElementById('platform-project-locale').value.trim(),
+      default_timezone: document.getElementById('platform-project-timezone').value.trim(),
+      settings: {
+        legacy_system: projectKey === 'mlt-global',
+        creator_portal_language: document.getElementById('platform-project-locale').value.trim(),
+        operating_region: document.getElementById('platform-project-region').value.trim(),
+        discord_guild_id: document.getElementById('platform-project-guild').value.trim(),
+        creator_portal_url: document.getElementById('platform-project-portal-url').value.trim()
+      }
+    });
+    status.textContent = result.created ? '✅ 项目已创建' : '✅ 配置已更新';
+    showToast(status.textContent, 'success');
+    await loadPlatformProjects(result.project.id);
+  } catch(error) {
+    status.textContent = '保存失败：' + error.message;
+    showToast(status.textContent, 'error');
+  }
 }
 
 async function loadRegistrationApplications() {
@@ -3873,7 +3988,7 @@ function switchTab(name) {
   if (name === 'submissions') loadSubmissions();
   if (name === 'feedback') loadFeedback();
   if (name === 'tiers') renderTiersTable();
-  if (name === 'rules') loadAllPeriods();
+  if (name === 'rules') { loadAllPeriods(); loadPlatformProjects(); }
   if (name === 'audit') loadAuditLog();
 }
 

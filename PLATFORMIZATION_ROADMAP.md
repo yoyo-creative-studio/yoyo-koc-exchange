@@ -58,6 +58,8 @@ The system runs the full business loop, but historical time spent, failure rate,
 
 ## Migration Sequence
 
+Current status: Phase 1 is deployed. The first Phase 2 admin surface is available for creating and editing project configuration drafts; only `mlt-global` is connected to production business data.
+
 ### Phase 1: Foundation
 
 - Create `platform_projects` with the existing MLT Global program as the default project.
