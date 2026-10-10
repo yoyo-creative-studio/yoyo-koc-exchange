@@ -79,6 +79,8 @@ Current status: Phase 1 and the first production-safe part of Phase 3 are deploy
 - Core creator, registration, submission, point, order, fulfillment, and redemption-edit records now have mandatory `project_id` ownership.
 - Existing production records are backfilled to `mlt-global`; browser reads automatically include the active project filter.
 - Parent-child project consistency is enforced for new records. Composite identity and tenant-aware uniqueness constraints remain the next migration.
+- Every creator now has an immutable `creator_id`; submissions, points, orders, fulfillment, and tier records retain this relationship even when a visible Game UID changes.
+- The legacy global UID primary key remains temporarily for compatibility. Removing that final constraint requires project-aware replacements for every public RPC and Edge Function.
 
 ### Phase 4: Roles And Templates
 
