@@ -25,6 +25,7 @@ This log records decisions that materially affect creator balances, monthly sett
 | PD-008 | Platformization starts with a project boundary, without rewriting live records. | A big-bang tenant migration creates unacceptable production risk. | `platform_projects` is introduced first; existing tables receive project ownership only after dual-read validation. |
 | PD-009 | Efficiency claims require event and metric evidence. | The current 80% time-saving figure is an informed estimate, not a measured series. | Operational events and monthly metric snapshots become the evidence source. |
 | PD-010 | Creator-facing surfaces remain English-only. | The active creator audience is international. | Admin tools may use Chinese; portal copy cannot. |
+| PD-011 | Reward prices are validated by project configuration in the database. | Browser-displayed prices can be modified by clients. | New paid orders must be an exact multiple of an active server-side reward unit cost. |
 
 ## How To Add A Decision
 

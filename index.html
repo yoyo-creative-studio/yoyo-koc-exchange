@@ -773,11 +773,35 @@ renderFAQ(EN_DATA);
 <script>/*v2*/
 const SUPABASE_URL = 'https://rryzofimrehmkijkckrm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_oyewqnQ8AnitAOD94Qg0nA_v6Zqkr7r';
-const REWARDS = [
+let REWARDS = [
   { id: 'diamonds', name: '450 Diamonds', cost: 1, desc: '1 Point = 450 Diamonds', amount: '450 Diamonds' },
   { id: 'gplay', name: '🎮 Google Play $10', cost: 2, desc: '2 Points = $10 Gift Card', amount: '$10 Google Play' },
   { id: 'merch', name: '📦 Merch Pack', cost: 5, desc: '5 Points = 3 random items', amount: 'Random Merch ×3' }
 ];
+
+async function loadRewardOptions() {
+  try {
+    var response = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/get_project_reward_options', {
+      method: 'POST', body: JSON.stringify({ p_project_key: 'mlt-global' })
+    });
+    if (!response.ok) throw new Error('Reward configuration unavailable');
+    var rows = await response.json();
+    REWARDS = (rows || []).map(function(row) {
+      return {
+        id: row.reward_key,
+        fulfillmentType: row.fulfillment_type,
+        name: row.display_name,
+        cost: Number(row.points_cost),
+        desc: row.description,
+        amount: row.amount_text
+      };
+    });
+    return true;
+  } catch(error) {
+    console.error('loadRewardOptions:', error);
+    return false;
+  }
+}
 
 function getSettlementPeriod(date) {
   var d = date ? new Date(date) : new Date();
@@ -1319,6 +1343,7 @@ function showDashboard() {
   // Fetch campaign config (manual switches + automatic UTC close times)
   (async function() {
     try {
+      await loadRewardOptions();
       var r = await supabaseFetch(SUPABASE_URL + '/rest/v1/campaign_config?period=eq.' + currentPeriod + '&select=submissions_open,redemption_open,submissions_close_at,redemption_close_at');
       if (r.ok) {
         var d = await r.json();
@@ -1466,7 +1491,7 @@ function updateUI() {
   if (!footer || !currentUser) return;
   const chosen = REWARDS.filter(r => selections[r.id] > 0);
   if (chosen.length === 0) {
-    footer.innerHTML = '<div style="font-size:13px;color:var(--text-light);text-align:center;padding:8px;">Select one or more reward types</div>';
+    footer.innerHTML = '<div style="font-size:13px;color:var(--text-light);text-align:center;padding:8px;">' + (REWARDS.length ? 'Select one or more reward types' : 'No rewards are currently available for redemption.') + '</div>';
     return;
   }
   const rem = bal - totalCost;

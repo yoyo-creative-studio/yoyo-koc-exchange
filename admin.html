@@ -1257,6 +1257,17 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
           <button class="btn btn-primary" onclick="savePlatformProject()">保存项目配置</button>
           <span id="platform-project-status-text" style="font-size:12px;color:var(--text-light);"></span>
         </div>
+        <div style="margin-top:16px;padding-top:14px;border-top:2px solid #e8def5;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+            <strong style="color:#6a1b9a;">🎁 项目奖励配置</strong>
+            <span style="font-size:11px;color:var(--text-light);">名称、积分价格与发放内容按项目保存</span>
+          </div>
+          <div id="platform-reward-options"><div style="padding:10px;color:var(--text-light);">请先选择项目</div></div>
+          <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
+            <button class="btn btn-sm" style="background:#7e57c2;color:white;" onclick="saveProjectRewardOptions()">保存奖励配置</button>
+            <span id="platform-reward-status" style="font-size:12px;color:var(--text-light);"></span>
+          </div>
+        </div>
       </div>
       <div class="card">
         <div class="card-title">📐 积分规则配置</div>
@@ -1815,6 +1826,7 @@ let editingUid = null;
 let registrationApplications = [];
 let platformProjects = [];
 let selectedPlatformProjectId = '';
+let projectRewardOptions = [];
 
 async function registrationReviewFetch(action, data) {
   var response = await supabaseFetch(SUPABASE_URL + '/functions/v1/registration-review', {
@@ -1871,6 +1883,7 @@ function selectPlatformProject(id) {
     ? '<strong>✅ 已连接生产业务</strong>：当前 KOC、投稿、积分、订单与履约数据仍属于此项目。'
     : '<strong>🧩 配置草稿</strong>：该项目尚未连接创作者和订单数据，不会影响 MLT Global。';
   document.getElementById('platform-project-status-text').textContent = '';
+  loadProjectRewardOptions(project.id);
 }
 
 function startNewPlatformProject() {
@@ -1887,6 +1900,8 @@ function startNewPlatformProject() {
   document.getElementById('platform-project-portal-url').value = '';
   document.getElementById('platform-project-scope').innerHTML = '<strong>🆕 新项目配置</strong>：保存后只创建项目配置，不会复制或迁移当前生产数据。';
   document.getElementById('platform-project-status-text').textContent = '';
+  projectRewardOptions = [];
+  renderProjectRewardOptions();
 }
 
 async function savePlatformProject() {
@@ -1914,6 +1929,69 @@ async function savePlatformProject() {
     status.textContent = result.created ? '✅ 项目已创建' : '✅ 配置已更新';
     showToast(status.textContent, 'success');
     await loadPlatformProjects(result.project.id);
+  } catch(error) {
+    status.textContent = '保存失败：' + error.message;
+    showToast(status.textContent, 'error');
+  }
+}
+
+async function loadProjectRewardOptions(projectId) {
+  var root = document.getElementById('platform-reward-options');
+  if (!root || !projectId) return;
+  root.innerHTML = '<div style="padding:10px;color:var(--text-light);">加载奖励配置...</div>';
+  try {
+    var result = await registrationReviewFetch('list_project_reward_options', { project_id: projectId });
+    projectRewardOptions = result.rewards || [];
+    renderProjectRewardOptions();
+  } catch(error) {
+    root.innerHTML = '<div style="padding:10px;color:#c62828;">奖励配置加载失败：' + esc(error.message) + '</div>';
+  }
+}
+
+function renderProjectRewardOptions() {
+  var root = document.getElementById('platform-reward-options');
+  if (!root) return;
+  if (!projectRewardOptions.length) {
+    root.innerHTML = '<div style="padding:10px;color:var(--text-light);">保存项目后将自动生成钻石、Google Play 和周边三种默认奖励。</div>';
+    return;
+  }
+  root.innerHTML = projectRewardOptions.map(function(reward, index) {
+    return '<div class="platform-reward-row" data-index="' + index + '" style="display:grid;grid-template-columns:110px minmax(140px,1.2fr) 90px minmax(160px,1fr) minmax(150px,1fr) 70px;gap:8px;align-items:end;padding:10px;background:white;border:1px solid #e4d8ef;margin-bottom:8px;">' +
+      '<div><label>发放类型</label><input value="' + escAttr(reward.fulfillment_type) + '" disabled></div>' +
+      '<div><label>显示名称</label><input data-field="display_name" value="' + escAttr(reward.display_name) + '"></div>' +
+      '<div><label>积分价格</label><input data-field="points_cost" type="number" min="1" value="' + Number(reward.points_cost || 1) + '"></div>' +
+      '<div><label>兑换说明</label><input data-field="description" value="' + escAttr(reward.description || '') + '"></div>' +
+      '<div><label>实际发放内容</label><input data-field="amount_text" value="' + escAttr(reward.amount_text || '') + '"></div>' +
+      '<label style="display:flex;align-items:center;gap:5px;padding-bottom:10px;"><input data-field="is_active" type="checkbox" ' + (reward.is_active !== false ? 'checked' : '') + '>启用</label>' +
+    '</div>';
+  }).join('');
+}
+
+async function saveProjectRewardOptions() {
+  if (!selectedPlatformProjectId || !projectRewardOptions.length) { showToast('请先选择一个已保存的项目', 'error'); return; }
+  var rows = Array.from(document.querySelectorAll('.platform-reward-row'));
+  var payload = projectRewardOptions.map(function(reward, index) {
+    var row = rows[index];
+    return Object.assign({}, reward, {
+      display_name: row.querySelector('[data-field="display_name"]').value.trim(),
+      points_cost: Number(row.querySelector('[data-field="points_cost"]').value),
+      description: row.querySelector('[data-field="description"]').value.trim(),
+      amount_text: row.querySelector('[data-field="amount_text"]').value.trim(),
+      is_active: row.querySelector('[data-field="is_active"]').checked
+    });
+  });
+  if (payload.some(function(item) { return !item.display_name || !Number.isInteger(item.points_cost) || item.points_cost <= 0; })) {
+    showToast('奖励名称不能为空，积分价格必须是正整数', 'error'); return;
+  }
+  if (!confirmDanger('保存项目奖励配置？', ['项目：' + (platformProjects.find(function(item) { return item.id === selectedPlatformProjectId; }) || {}).name, '新的兑换提交将立即使用这些积分价格。'])) return;
+  var status = document.getElementById('platform-reward-status');
+  status.textContent = '保存中...';
+  try {
+    var result = await registrationReviewFetch('save_project_reward_options', { project_id: selectedPlatformProjectId, rewards: payload });
+    projectRewardOptions = result.rewards || payload;
+    renderProjectRewardOptions();
+    status.textContent = '✅ 奖励配置已保存';
+    showToast(status.textContent, 'success');
   } catch(error) {
     status.textContent = '保存失败：' + error.message;
     showToast(status.textContent, 'error');

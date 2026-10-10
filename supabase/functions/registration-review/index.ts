@@ -249,6 +249,57 @@ serve(async (req) => {
       return json({ ok: true, project: saved, created: true });
     }
 
+    if (action === "list_project_reward_options") {
+      const projectId = String(data.project_id || "").trim();
+      if (!projectId) return json({ ok: false, error: "Project is required" }, 400);
+      const { data: rewards, error } = await db.from("project_reward_options")
+        .select("id,project_id,reward_key,fulfillment_type,display_name,points_cost,description,amount_text,currency,is_active,sort_order,settings")
+        .eq("project_id", projectId).order("sort_order", { ascending: true });
+      if (error) return json({ ok: false, error: error.message }, 400);
+      return json({ ok: true, rewards: rewards || [] });
+    }
+
+    if (action === "save_project_reward_options") {
+      const projectId = String(data.project_id || "").trim();
+      const rewards = Array.isArray(data.rewards) ? data.rewards : [];
+      if (!projectId || !rewards.length) return json({ ok: false, error: "Project and reward options are required" }, 400);
+      const { data: project, error: projectError } = await db.from("platform_projects").select("id").eq("id", projectId).maybeSingle();
+      if (projectError || !project) return json({ ok: false, error: projectError?.message || "Project not found" }, 404);
+      const allowedTypes = new Set(["diamonds", "gplay", "merch"]);
+      const payload = [];
+      const seen = new Set<string>();
+      for (let index = 0; index < rewards.length; index += 1) {
+        const item = rewards[index] || {};
+        const rewardKey = String(item.reward_key || "").trim().toLowerCase();
+        const fulfillmentType = String(item.fulfillment_type || "").trim();
+        const displayName = String(item.display_name || "").trim();
+        const pointsCost = Number(item.points_cost);
+        if (!/^[a-z0-9][a-z0-9_-]{1,62}$/.test(rewardKey) || seen.has(rewardKey)) return json({ ok: false, error: "Reward keys must be unique lowercase identifiers" }, 400);
+        if (!allowedTypes.has(fulfillmentType)) return json({ ok: false, error: "Invalid fulfillment type" }, 400);
+        if (!displayName || displayName.length > 120) return json({ ok: false, error: "Reward display name is required" }, 400);
+        if (!Number.isInteger(pointsCost) || pointsCost <= 0 || pointsCost > 10000) return json({ ok: false, error: "Reward point cost must be a positive integer" }, 400);
+        seen.add(rewardKey);
+        payload.push({
+          project_id: projectId,
+          reward_key: rewardKey,
+          fulfillment_type: fulfillmentType,
+          display_name: displayName,
+          points_cost: pointsCost,
+          description: String(item.description || "").trim(),
+          amount_text: String(item.amount_text || "").trim(),
+          currency: String(item.currency || "").trim().toUpperCase(),
+          is_active: item.is_active !== false,
+          sort_order: Number.isInteger(Number(item.sort_order)) ? Number(item.sort_order) : (index + 1) * 10,
+          settings: item.settings && typeof item.settings === "object" && !Array.isArray(item.settings) ? item.settings : {},
+          updated_at: new Date().toISOString(),
+        });
+      }
+      const { data: saved, error } = await db.from("project_reward_options")
+        .upsert(payload, { onConflict: "project_id,reward_key" }).select("*");
+      if (error) return json({ ok: false, error: error.message }, 400);
+      return json({ ok: true, rewards: saved || [] });
+    }
+
     if (action === "sync_discord_identities") {
       const guildId = String(data.guild_id || "1458340952358785193").trim();
       const { data: welcomeState, error: stateError } = await db.from("mochi_auto_welcome_state")
