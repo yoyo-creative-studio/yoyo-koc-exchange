@@ -7,6 +7,7 @@ const migration = fs.readFileSync('supabase/migrations/20261010213000_core_proje
 const identityMigration = fs.readFileSync('supabase/migrations/20261010230000_stable_creator_identity.sql', 'utf8');
 const portalRpcMigration = fs.readFileSync('supabase/migrations/20261011010000_project_creator_portal_rpcs.sql', 'utf8');
 const campaignWindowMigration = fs.readFileSync('supabase/migrations/20261011011500_project_campaign_window_helper.sql', 'utf8');
+const adminRpcMigration = fs.readFileSync('supabase/migrations/20261011030000_project_creator_admin_rpcs.sql', 'utf8');
 
 for (const table of ['kocs', 'registration_applications', 'submissions', 'point_logs', 'redemption_orders', 'reward_fulfillments', 'redemption_order_edits']) {
   assert(migration.includes(`ALTER TABLE public.${table} ADD COLUMN IF NOT EXISTS project_id`), `${table} must receive project ownership`);
@@ -28,5 +29,7 @@ for (const rpc of ['submit_project_creator_work', 'submit_project_creator_showca
 }
 assert(portalRpcMigration.includes('creator_id = v_creator.creator_id'), 'portal RPCs must scope business records by immutable creator identity');
 assert(campaignWindowMigration.includes('FUNCTION public.is_project_campaign_window_open'), 'project-aware portal RPCs require a project campaign-window guard');
+assert(adminRpcMigration.includes('FUNCTION public.change_project_creator_uid'), 'UID changes must resolve the project creator');
+assert(adminRpcMigration.includes('WHERE creator_id = v_creator.creator_id'), 'profile propagation must use immutable creator identity');
 
 console.log('Project isolation checks passed.');

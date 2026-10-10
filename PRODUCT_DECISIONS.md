@@ -30,6 +30,7 @@ This log records decisions that materially affect creator balances, monthly sett
 | PD-013 | Core business records carry mandatory project ownership. | Month isolation alone cannot prevent records from different programs appearing together. | Creator, submission, point, order, and fulfillment reads are project-filtered and child records must match their parent project. |
 | PD-014 | `creator_id` is the immutable internal creator identity. | Game UID and Discord names may change and cannot safely own cross-table relationships. | Business records retain `uid` for display and compatibility but also reference the stable creator UUID. |
 | PD-015 | Creator-facing writes resolve `project_key` before `creator_id`. | A UID can eventually exist in more than one project. | Submission and redemption RPCs never aggregate or mutate records by UID alone. |
+| PD-016 | Admin and Discord identity operations resolve project ownership before creator mutation. | A display UID is not sufficient for tenant-safe administration. | Profile changes, registration, manual rewards, identity sync, and auto-welcome cannot inspect or update another project's creators. |
 
 ## How To Add A Decision
 

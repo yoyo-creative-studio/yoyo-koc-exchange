@@ -94,8 +94,12 @@ serve(async (request) => {
     const members = await listMembers(state.bot_token);
     const known = new Set((state.known_member_ids || []).map(String));
     const newMembers = members.filter((member: any) => !known.has(String(member.user.id)));
+    const { data: project, error: projectError } = await supabase.from("platform_projects")
+      .select("id").eq("project_key", "mlt-global").eq("status", "active").maybeSingle();
+    if (projectError || !project) throw projectError || new Error("MLT Global project not found");
     const { data: kocs, error: kocError } = await supabase.from("kocs")
-      .select("discord_name,discord_user_id,discord_username,discord_display_name,discord_aliases").eq("status", "active");
+      .select("discord_name,discord_user_id,discord_username,discord_display_name,discord_aliases")
+      .eq("project_id", project.id).eq("status", "active");
     if (kocError) throw kocError;
     const registered = new Set<string>();
     (kocs || []).forEach((koc: any) => {

@@ -83,6 +83,9 @@ Current status: Phase 1 and the first production-safe part of Phase 3 are deploy
 - The legacy global UID primary key remains temporarily for compatibility. Removing that final constraint requires project-aware replacements for every public RPC and Edge Function.
 - Creator login data, work submissions, Showcase submissions, reward redemption, pending-order edits, published reward status, and tier progress now resolve the project and immutable creator identity before reading or writing business records.
 - Legacy creator RPCs remain available only as a rollback path while the `mlt-global` portal validates the project-aware V2 endpoints.
+- Admin UID changes and profile propagation now resolve the project and update related records by `creator_id`.
+- Registration review, manual creator/reward creation, missing-order reconstruction, Discord identity sync, and Mochi auto-welcome creator lookups are project-scoped.
+- Point adjustment and tier settlement RPCs remain the final blockers before removing the legacy global UID primary key.
 
 ### Phase 4: Roles And Templates
 

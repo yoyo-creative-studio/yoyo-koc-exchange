@@ -1830,10 +1830,11 @@ let projectRewardOptions = [];
 window.ACTIVE_PROJECT_ID = '';
 
 async function registrationReviewFetch(action, data) {
+  data = Object.assign({ project_key: 'mlt-global' }, data || {});
   var response = await supabaseFetch(SUPABASE_URL + '/functions/v1/registration-review', {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + SUPABASE_KEY },
-    body: JSON.stringify({ action: action, data: data || {}, admin_password: ADMIN_PASSWORD })
+    body: JSON.stringify({ action: action, data: data, admin_password: ADMIN_PASSWORD })
   });
   var result = await response.json().catch(function() { return { ok: false, error: 'Invalid server response' }; });
   if (!response.ok || !result.ok) throw new Error(result.error || ('HTTP ' + response.status));

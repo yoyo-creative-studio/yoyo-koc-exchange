@@ -314,6 +314,7 @@ serve(async (req) => {
     }
 
     if (action === "sync_discord_identities") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const guildId = String(data.guild_id || "1458340952358785193").trim();
       const { data: welcomeState, error: stateError } = await db.from("mochi_auto_welcome_state")
         .select("bot_token").eq("id", 1).single();
@@ -336,8 +337,8 @@ serve(async (req) => {
         for (const key of [...new Set(keys)]) membersByKey.set(key, [...(membersByKey.get(key) || []), member]);
       }
       const { data: creators, error: creatorError } = await db.from("kocs")
-        .select("uid,discord_name,discord_user_id,discord_username,discord_display_name,discord_aliases")
-        .neq("uid", "__config__").eq("status", "active").order("discord_name");
+        .select("creator_id,uid,discord_name,discord_user_id,discord_username,discord_display_name,discord_aliases")
+        .eq("project_id", projectId).neq("uid", "__config__").eq("status", "active").order("discord_name");
       if (creatorError) return json({ ok: false, error: creatorError.message }, 400);
       const matched: any[] = [];
       const unmatched: any[] = [];
@@ -379,7 +380,7 @@ serve(async (req) => {
           discord_display_name: member.nick || member.global_name || member.username,
           discord_aliases: aliases,
           discord_identity_synced_at: new Date().toISOString(),
-        }).eq("uid", creator.uid);
+        }).eq("project_id", projectId).eq("creator_id", creator.creator_id);
         if (updateError) {
           ambiguous.push({ uid: creator.uid, discord_name: creator.discord_name, error: updateError.message, candidates: [member] });
           continue;
@@ -390,21 +391,23 @@ serve(async (req) => {
     }
 
     if (action === "change_creator_uid") {
+      const projectKey = String(data.project_key || "mlt-global");
       const oldUid = String(data.old_uid || "").trim();
       const newUid = String(data.new_uid || "").trim();
       if (!oldUid || !/^[A-Za-z0-9]+$/.test(newUid)) return json({ ok: false, error: "Invalid creator UID" }, 400);
-      const { error } = await db.rpc("change_creator_uid", { p_old_uid: oldUid, p_new_uid: newUid });
+      const { error } = await db.rpc("change_project_creator_uid", { p_project_key: projectKey, p_old_uid: oldUid, p_new_uid: newUid });
       if (error) return json({ ok: false, error: error.message }, 400);
       return json({ ok: true });
     }
 
     if (action === "update_creator_profile") {
+      const projectKey = String(data.project_key || "mlt-global");
       const uid = String(data.uid || "").trim();
       const changes = data.changes;
       if (!uid || !changes || typeof changes !== "object" || Array.isArray(changes)) {
         return json({ ok: false, error: "Invalid creator profile" }, 400);
       }
-      const { error } = await db.rpc("update_creator_profile", { p_uid: uid, p_changes: changes });
+      const { error } = await db.rpc("update_project_creator_profile", { p_project_key: projectKey, p_uid: uid, p_changes: changes });
       if (error) return json({ ok: false, error: error.message }, 400);
       return json({ ok: true });
     }
@@ -492,16 +495,17 @@ serve(async (req) => {
     }
 
     if (action === "reconcile_period_welcome_orders") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const period = String(data.period || "").trim();
       if (!/^\d{4}-\d{2}$/.test(period)) return json({ ok: false, error: "Valid period is required" }, 400);
       const nextPeriod = getNextPeriod(period);
       const { data: creators, error: creatorError } = await db.from("kocs")
-        .select("uid,discord_name,name,created_at,address").eq("status", "active").neq("uid", "__config__")
+        .select("creator_id,uid,discord_name,name,created_at,address").eq("project_id", projectId).eq("status", "active").neq("uid", "__config__")
         .gte("created_at", `${period}-01T00:00:00.000Z`).lt("created_at", `${nextPeriod}-01T00:00:00.000Z`);
       if (creatorError) return json({ ok: false, error: creatorError.message }, 400);
       const expected = new Map((creators || []).map((creator) => [String(creator.uid), creator]));
       const { data: orders, error: orderError } = await db.from("redemption_orders")
-        .select("id,uid,option_type,option_name,admin_notes,status,period,points_spent").eq("period", period).eq("option_type", "merch");
+        .select("id,uid,option_type,option_name,admin_notes,status,period,points_spent").eq("project_id", projectId).eq("period", period).eq("option_type", "merch");
       if (orderError) return json({ ok: false, error: orderError.message }, 400);
       const welcomeOrders = (orders || []).filter((order) => Number(order.points_spent || 0) === 0 && /welcome|新人|入职/i.test(`${order.option_name || ""} ${order.admin_notes || ""}`));
       const activeByUid = new Map(welcomeOrders.filter((order) => order.status !== "cancelled").map((order) => [String(order.uid), order]));
@@ -514,6 +518,7 @@ serve(async (req) => {
       for (const creator of creators || []) {
         if (activeByUid.has(String(creator.uid))) continue;
         const { data: order, error } = await db.from("redemption_orders").insert({
+          project_id: projectId, creator_id: creator.creator_id,
           uid: creator.uid, discord_name: creator.discord_name || "", koc_name: creator.name || creator.discord_name || "",
           option_type: "merch", option_name: "🎁 New Creator Welcome Gift", points_spent: 0,
           reward_amount: "Random Merchandise × 1", contact_info: creator.address || "", status: "processing",
@@ -591,6 +596,7 @@ serve(async (req) => {
     }
 
     if (action === "create_manual_reward_order") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const type = String(data.type || "").trim();
       const period = String(data.period || "").trim();
       const uid = String(data.uid || "").trim();
@@ -598,7 +604,7 @@ serve(async (req) => {
       const rewardContent = String(data.reward_content || "").trim();
       if (!["diamonds", "gplay", "merch"].includes(type)) return json({ ok: false, error: "Unsupported reward type" }, 400);
       if (!/^\d{4}-\d{2}$/.test(period) || !uid || !discordName || !rewardContent) return json({ ok: false, error: "Required reward information is incomplete" }, 400);
-      const { data: creator, error: creatorError } = await db.from("kocs").select("uid,status").eq("uid", uid).maybeSingle();
+      const { data: creator, error: creatorError } = await db.from("kocs").select("creator_id,uid,status").eq("project_id", projectId).eq("uid", uid).maybeSingle();
       if (creatorError) return json({ ok: false, error: creatorError.message }, 400);
       if (!creator || creator.status !== "active") return json({ ok: false, error: "Active creator not found" }, 404);
       const accountId = String(data.account_id || "").trim();
@@ -616,10 +622,11 @@ serve(async (req) => {
       if (country) kocUpdate.country = country;
       if (phone) kocUpdate.phone = phone;
       if (address) kocUpdate.address = address;
-      const { error: updateError } = await db.from("kocs").update(kocUpdate).eq("uid", uid);
+      const { error: updateError } = await db.from("kocs").update(kocUpdate).eq("project_id", projectId).eq("creator_id", creator.creator_id);
       if (updateError) return json({ ok: false, error: updateError.message }, 400);
       const optionName = type === "diamonds" ? "💎 手动端内奖励" : type === "gplay" ? rewardContent : "📦 " + rewardContent;
       const { data: order, error } = await db.from("redemption_orders").insert({
+        project_id: projectId, creator_id: creator.creator_id,
         uid,
         discord_name: discordName,
         koc_name: discordName,
@@ -639,17 +646,19 @@ serve(async (req) => {
     }
 
     if (action === "create_manual_koc") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const uid = String(data.uid || "").trim();
       const discordName = String(data.discord || "").trim();
       const accountId = String(data.account || "").trim();
       const name = String(data.name || "").trim();
       const server = String(data.server || "").trim();
       if (!uid || !discordName || !/^6\d{18}$/.test(accountId) || !name || !server) return json({ ok: false, error: "Required creator information is incomplete" }, 400);
-      const { data: duplicates, error: duplicateError } = await db.from("kocs").select("uid,account_id").or(`uid.eq.${uid},account_id.eq.${accountId}`).limit(1);
+      const { data: duplicates, error: duplicateError } = await db.from("kocs").select("uid,account_id").eq("project_id", projectId).or(`uid.eq.${uid},account_id.eq.${accountId}`).limit(1);
       if (duplicateError) return json({ ok: false, error: duplicateError.message }, 400);
       if (duplicates?.length) return json({ ok: false, error: "Game UID or Account ID already exists" }, 409);
       const tier = ["certified", "gold", "platinum"].includes(String(data.tier || "")) ? String(data.tier) : "certified";
       const { data: creator, error } = await db.from("kocs").insert({
+        project_id: projectId,
         uid,
         discord_name: discordName,
         account_id: accountId,
@@ -671,6 +680,7 @@ serve(async (req) => {
       let welcomeGift = null;
       if (data.welcome_gift !== false) {
         const { data: gift, error: giftError } = await db.from("redemption_orders").insert({
+          project_id: projectId, creator_id: creator.creator_id,
           uid,
           discord_name: discordName,
           koc_name: discordName,
@@ -684,7 +694,7 @@ serve(async (req) => {
           period: getBusinessPeriod(new Date()),
         }).select("*").single();
         if (giftError) {
-          await db.from("kocs").delete().eq("uid", uid);
+          await db.from("kocs").delete().eq("project_id", projectId).eq("creator_id", creator.creator_id);
           return json({ ok: false, error: `Welcome gift creation failed: ${giftError.message}` }, 400);
         }
         welcomeGift = gift;
@@ -693,6 +703,7 @@ serve(async (req) => {
     }
 
     if (action === "save_reward_fulfillments") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const rows = Array.isArray(data.rows) ? data.rows : [];
       if (!rows.length) return json({ ok: false, error: "No fulfillment rows supplied" }, 400);
       for (const row of rows as Record<string, unknown>[]) {
@@ -704,10 +715,10 @@ serve(async (req) => {
           return json({ ok: false, error: "Invalid missing reward order request" }, 400);
         }
         const { data: creator, error: creatorError } = await db.from("kocs")
-          .select("uid,discord_name,name,address").eq("uid", uid).maybeSingle();
+          .select("creator_id,uid,discord_name,name,address").eq("project_id", projectId).eq("uid", uid).maybeSingle();
         if (creatorError || !creator) return json({ ok: false, error: `Creator ${uid} not found` }, 404);
         const { data: existingOrders, error: existingOrderError } = await db.from("redemption_orders")
-          .select("id,period,option_name,reward_amount,admin_notes").eq("uid", uid).eq("option_type", rewardType).neq("status", "cancelled")
+          .select("id,period,option_name,reward_amount,admin_notes").eq("project_id", projectId).eq("creator_id", creator.creator_id).eq("option_type", rewardType).neq("status", "cancelled")
           .order("id", { ascending: false });
         if (existingOrderError) return json({ ok: false, error: existingOrderError.message }, 400);
         const existingOrder = rewardType === "merch"
@@ -720,6 +731,7 @@ serve(async (req) => {
         const giftCodes = Array.isArray(row.gift_codes) ? row.gift_codes.map((code: unknown) => String(code || "").trim()).filter(Boolean) : [];
         const isGplay = rewardType === "gplay";
         const { data: createdOrder, error: createOrderError } = await db.from("redemption_orders").insert({
+          project_id: projectId, creator_id: creator.creator_id,
           uid,
           discord_name: creator.discord_name || "",
           koc_name: creator.name || "",
@@ -870,17 +882,20 @@ serve(async (req) => {
     }
 
     if (action === "list") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const { data: applications, error } = await db.from("registration_applications")
         .select("*")
+        .eq("project_id", projectId)
         .order("created_at", { ascending: false });
       if (error) return json({ ok: false, error: error.message }, 400);
       return json({ ok: true, applications: applications || [] });
     }
 
     if (action === "approve") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const applicationId = Number(data.id);
       const { data: application, error: loadError } = await db.from("registration_applications")
-        .select("*").eq("id", applicationId).single();
+        .select("*").eq("project_id", projectId).eq("id", applicationId).single();
       if (loadError || !application) return json({ ok: false, error: "Application not found" }, 404);
       if (application.status !== "pending") return json({ ok: false, error: "Application has already been reviewed" }, 409);
 
@@ -891,7 +906,8 @@ serve(async (req) => {
       const approvedNotes = buildApprovedNotes(String(application.notes || ""), approvedAtIso, newbieMonth);
       const orderPeriod = approvalPeriod;
 
-      const { error: insertError } = await db.from("kocs").insert({
+      const { data: approvedCreator, error: insertError } = await db.from("kocs").insert({
+        project_id: projectId,
         uid: application.uid,
         discord_name: application.discord_name,
         name: application.name,
@@ -906,10 +922,12 @@ serve(async (req) => {
         notes: approvedNotes,
         status: "active",
         created_at: approvedAtIso,
-      });
+      }).select("creator_id").single();
       if (insertError) return json({ ok: false, error: `Unable to create creator account: ${insertError.message}` }, 400);
 
       const { data: giftOrder, error: giftError } = await db.from("redemption_orders").insert({
+        project_id: projectId,
+        creator_id: approvedCreator.creator_id,
         uid: application.uid,
         discord_name: application.discord_name,
         koc_name: application.name,
@@ -924,7 +942,7 @@ serve(async (req) => {
         created_at: approvedAtIso,
       }).select("id").single();
       if (giftError) {
-        await db.from("kocs").delete().eq("uid", application.uid);
+        await db.from("kocs").delete().eq("project_id", projectId).eq("creator_id", approvedCreator.creator_id);
         return json({ ok: false, error: `Unable to create mandatory welcome gift: ${giftError.message}` }, 400);
       }
 
@@ -933,23 +951,24 @@ serve(async (req) => {
         reviewed_at: approvedAtIso,
         reviewed_by: "admin",
         review_notes: String(data.review_notes || ""),
-      }).eq("id", applicationId);
+      }).eq("project_id", projectId).eq("id", applicationId);
       if (updateError) {
         if (giftOrder?.id) await db.from("redemption_orders").delete().eq("id", giftOrder.id);
-        await db.from("kocs").delete().eq("uid", application.uid);
+        await db.from("kocs").delete().eq("project_id", projectId).eq("creator_id", approvedCreator.creator_id);
         return json({ ok: false, error: updateError.message }, 400);
       }
       return json({ ok: true });
     }
 
     if (action === "reject") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const applicationId = Number(data.id);
       const { error } = await db.from("registration_applications").update({
         status: "rejected",
         reviewed_at: new Date().toISOString(),
         reviewed_by: "admin",
         review_notes: String(data.review_notes || "Not approved"),
-      }).eq("id", applicationId).eq("status", "pending");
+      }).eq("project_id", projectId).eq("id", applicationId).eq("status", "pending");
       if (error) return json({ ok: false, error: error.message }, 400);
       return json({ ok: true });
     }
