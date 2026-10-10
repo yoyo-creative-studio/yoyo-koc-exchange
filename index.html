@@ -1631,8 +1631,9 @@ async function redeem() {
     }
 
     var requestId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : (currentUser.uid + '-' + Date.now() + '-' + Math.random().toString(16).slice(2));
-    var rpcName = editingRedemption ? 'edit_pending_redemption' : 'redeem_points';
+    var rpcName = editingRedemption ? 'edit_project_pending_redemption' : 'redeem_project_points';
     var rpcBody = {
+      p_project_key: 'mlt-global',
       p_uid: currentUser.uid,
       p_account_id: currentUser.account_id,
       p_period: currentPeriod,
@@ -1708,7 +1709,7 @@ async function loadOrders() {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + SUPABASE_KEY },
         cache: 'no-store',
-        body: JSON.stringify({ action: 'creator_reward_status', data: { uid: requestedUid, account_id: requestedAccountId } })
+        body: JSON.stringify({ action: 'creator_reward_status', data: { project_key: 'mlt-global', uid: requestedUid, account_id: requestedAccountId } })
       });
       var fulfillmentResult = await fulfillmentResponse.json();
       if (!isCurrentOrderRequest()) return;
@@ -1959,6 +1960,7 @@ async function registerCreator() {
     };
 
     var payload = {
+      project_key: 'mlt-global',
       uid: gameUid,
       discord_name: discord,
       name: fullname,
@@ -2039,9 +2041,10 @@ async function submitWorks() {
       btn.textContent = '🔒 Submission Closed';
       return;
     }
-    var resp = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/submit_creator_work', {
+    var resp = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/submit_project_creator_work', {
       method: 'POST',
       body: JSON.stringify({
+        p_project_key: 'mlt-global',
         p_uid: currentUser.uid,
         p_account_id: currentUser.account_id,
         p_period: currentPeriod,
@@ -2132,9 +2135,10 @@ async function submitShowcase() {
   try {
     var access = await fetchCurrentCampaignAccess();
     if (!access.submissionsOpen) throw new Error('Submission is closed or its deadline has passed.');
-    var resp = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/submit_creator_showcase', {
+    var resp = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/submit_project_creator_showcase', {
       method: 'POST',
       body: JSON.stringify({
+        p_project_key: 'mlt-global',
         p_uid: currentUser.uid,
         p_account_id: currentUser.account_id,
         p_period: currentPeriod,

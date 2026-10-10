@@ -90,15 +90,23 @@ serve(async (req) => {
     const db = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
     const { action, data = {}, admin_password = "" } = await req.json();
 
+    async function resolveProjectId(projectKey = "mlt-global") {
+      const { data: project, error } = await db.from("platform_projects")
+        .select("id").eq("project_key", projectKey).eq("status", "active").maybeSingle();
+      if (error || !project) throw new Error(error?.message || "Active project not found");
+      return String(project.id);
+    }
+
     if (action === "creator_reward_status") {
       const uid = String(data.uid || "").trim();
       const accountId = String(data.account_id || "").trim();
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       if (!uid || !/^6\d{18}$/.test(accountId)) return json({ ok: false, error: "Valid creator credentials are required" }, 400);
-      const { data: creator } = await db.from("kocs").select("uid").eq("uid", uid).eq("account_id", accountId).eq("status", "active").maybeSingle();
+      const { data: creator } = await db.from("kocs").select("creator_id,uid").eq("project_id", projectId).eq("uid", uid).eq("account_id", accountId).eq("status", "active").maybeSingle();
       if (!creator) return json({ ok: false, error: "Creator credentials do not match" }, 403);
       const { data: fulfillments, error } = await db.from("reward_fulfillments")
         .select("order_id,period,reward_type,fulfillment_status,gift_codes,carrier,tracking_number,reward_note,published_at")
-        .eq("uid", uid).eq("is_published", true).order("published_at", { ascending: false });
+        .eq("project_id", projectId).eq("creator_id", creator.creator_id).eq("is_published", true).order("published_at", { ascending: false });
       if (error) return json({ ok: false, error: error.message }, 400);
       return json({ ok: true, fulfillments: fulfillments || [] });
     }
@@ -107,14 +115,15 @@ serve(async (req) => {
       const uid = String(data.uid || "").trim();
       const accountId = String(data.account_id || "").trim();
       const requestedPeriod = String(data.period || getBusinessPeriod(new Date())).trim();
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       if (!uid || !/^6\d{18}$/.test(accountId) || !/^\d{4}-\d{2}$/.test(requestedPeriod)) {
         return json({ ok: false, error: "Valid creator credentials and period are required" }, 400);
       }
-      const { data: creator } = await db.from("kocs").select("uid,tier").eq("uid", uid).eq("account_id", accountId).eq("status", "active").maybeSingle();
+      const { data: creator } = await db.from("kocs").select("creator_id,uid,tier").eq("project_id", projectId).eq("uid", uid).eq("account_id", accountId).eq("status", "active").maybeSingle();
       if (!creator) return json({ ok: false, error: "Creator credentials do not match" }, 403);
       const { data: scores, error } = await db.from("creator_monthly_tier_scores")
         .select("period,historical_final_score,content_raw_points,content_capped_points")
-        .eq("uid", uid).order("period", { ascending: true });
+        .eq("project_id", projectId).eq("creator_id", creator.creator_id).order("period", { ascending: true });
       if (error) return json({ ok: false, error: error.message }, 400);
       const isLegacy = requestedPeriod < "2026-09";
       const ruleVersion = isLegacy ? "legacy-through-2026-08" : "content-from-2026-09";
@@ -152,7 +161,9 @@ serve(async (req) => {
     }
 
     if (action === "submit") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const application = {
+        project_id: projectId,
         discord_name: String(data.discord_name || "").trim(),
         account_id: String(data.account_id || "").trim(),
         uid: String(data.uid || "").trim(),
@@ -170,11 +181,12 @@ serve(async (req) => {
         return json({ ok: false, error: "Required registration information is incomplete" }, 400);
       }
 
-      const { data: existingKoc } = await db.from("kocs").select("uid").or(`uid.eq.${application.uid},account_id.eq.${application.account_id}`).limit(1);
+      const { data: existingKoc } = await db.from("kocs").select("uid").eq("project_id", projectId).or(`uid.eq.${application.uid},account_id.eq.${application.account_id}`).limit(1);
       if (existingKoc?.length) return json({ ok: false, error: "This creator is already registered. Please use Creator Login." }, 409);
 
       const { data: existingApplication } = await db.from("registration_applications")
         .select("id,status,review_notes")
+        .eq("project_id", projectId)
         .or(`uid.eq.${application.uid},account_id.eq.${application.account_id}`)
         .in("status", ["pending", "approved"])
         .order("created_at", { ascending: false })
@@ -190,6 +202,7 @@ serve(async (req) => {
       if (error?.code === "23505") {
         const { data: concurrentApplication } = await db.from("registration_applications")
           .select("id,status,review_notes")
+          .eq("project_id", projectId)
           .or(`uid.eq.${application.uid},account_id.eq.${application.account_id}`)
           .in("status", ["pending", "approved"])
           .order("created_at", { ascending: false })

@@ -81,6 +81,8 @@ Current status: Phase 1 and the first production-safe part of Phase 3 are deploy
 - Parent-child project consistency is enforced for new records. Composite identity and tenant-aware uniqueness constraints remain the next migration.
 - Every creator now has an immutable `creator_id`; submissions, points, orders, fulfillment, and tier records retain this relationship even when a visible Game UID changes.
 - The legacy global UID primary key remains temporarily for compatibility. Removing that final constraint requires project-aware replacements for every public RPC and Edge Function.
+- Creator login data, work submissions, Showcase submissions, reward redemption, pending-order edits, published reward status, and tier progress now resolve the project and immutable creator identity before reading or writing business records.
+- Legacy creator RPCs remain available only as a rollback path while the `mlt-global` portal validates the project-aware V2 endpoints.
 
 ### Phase 4: Roles And Templates
 

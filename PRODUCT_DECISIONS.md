@@ -29,6 +29,7 @@ This log records decisions that materially affect creator balances, monthly sett
 | PD-012 | Current campaign periods belong to projects. | A reusable platform cannot share one global working month. | Each project has one current period; current workspaces use explicit `period` values while history remains queryable. |
 | PD-013 | Core business records carry mandatory project ownership. | Month isolation alone cannot prevent records from different programs appearing together. | Creator, submission, point, order, and fulfillment reads are project-filtered and child records must match their parent project. |
 | PD-014 | `creator_id` is the immutable internal creator identity. | Game UID and Discord names may change and cannot safely own cross-table relationships. | Business records retain `uid` for display and compatibility but also reference the stable creator UUID. |
+| PD-015 | Creator-facing writes resolve `project_key` before `creator_id`. | A UID can eventually exist in more than one project. | Submission and redemption RPCs never aggregate or mutate records by UID alone. |
 
 ## How To Add A Decision
 
