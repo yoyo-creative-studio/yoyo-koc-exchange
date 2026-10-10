@@ -1656,14 +1656,16 @@ async function loadOrders() {
       var statusLabel = o.status === 'shipped' ? 'Completed · Reward sent' : o.status === 'processing' ? 'Processing · Admin preparing reward' : o.status === 'pending' ? 'Pending · Awaiting admin review' : 'Cancelled · Not processed';
       var displayName = o.option_name || o.option_type;
       if (displayName === '🎁 新人入职周边' || displayName === '🎁 New Creator Welcome Gift') displayName = '🎁 New Creator Welcome Gift';
+      if (/^CC:\d{4}-\d{2}$/i.test(displayName)) displayName = '🏆 Continuous Creation Reward';
       var displayAmount = o.reward_amount || '';
       var orderMonth = o.period || String(o.created_at || '').slice(0, 7);
       if (displayAmount === '随机周边 × 1' || displayAmount === 'Random Merchandise × 1') displayAmount = 'Random Merchandise × 1';
+      if (/^CC:\d{4}-\d{2}$/i.test(o.option_name || '')) displayAmount = 'Premium Monthly Card ×1 · Shelly Coins ×500 · Gold ×1000';
       var fulfillment = fulfillmentMap[String(o.id)];
       return '<div class="order-item">' +
         '<div style="display:flex;justify-content:space-between;">' +
         '<span>' + esc(displayName) + (displayAmount ? '<br><small style="color:var(--text-light);">' + esc(displayAmount) + '</small>' : '') + '</span>' +
-        '<span>' + o.points_spent + ' pts</span>' +
+        (Number(o.points_spent) > 0 ? '<span>' + o.points_spent + ' pts</span>' : '') +
         '</div>' +
         '<div class="order-meta">' +
         '<span class="badge ' + statusClass + '">' + statusLabel + '</span>' +
