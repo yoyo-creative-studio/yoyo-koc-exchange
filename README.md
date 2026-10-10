@@ -11,6 +11,8 @@ Production system for the MLT Creator Program. It covers creator registration, s
 | System Flowcharts | `flowcharts.html` | End-to-end creator and admin workflow |
 | Project Portfolio | `portfolio.html` | Product case study and implementation summary |
 | Planned Creator Verification | `CREATOR_ONBOARDING_VERIFICATION_PLAN.md` | Deferred MochiBot onboarding quiz and role-access implementation handoff |
+| Product Decisions | `PRODUCT_DECISIONS.md` | Durable business, lifecycle, identity, and platform decisions |
+| Platform Roadmap | `PLATFORMIZATION_ROADMAP.md` | Production audit, metrics, and multi-project migration plan |
 | Backend | Supabase | PostgreSQL, RLS, RPCs, scheduled jobs, Edge Functions |
 
 Production site: <https://yoyo-creative-studio.github.io/yoyo-koc-exchange/>
@@ -22,6 +24,7 @@ Production site: <https://yoyo-creative-studio.github.io/yoyo-koc-exchange/>
 - Edge Functions handle privileged Discord and registration operations: `discord-proxy`, `registration-review`, and `mochi-auto-welcome`.
 - Tier rules shared by both frontends live in `tier-rules.js`.
 - Shared admin utilities live in `admin-shared.js`.
+- Platformization begins with `platform_projects`, `operational_events`, and `monthly_metric_snapshots_v2`; existing production records remain on the legacy path until dual-read validation is complete.
 
 Never add service-role keys, Discord bot tokens, or administrator credentials to committed frontend code. Supabase publishable keys may be public only when RLS and RPC authorization are correctly enforced.
 

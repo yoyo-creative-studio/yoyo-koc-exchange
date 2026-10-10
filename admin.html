@@ -4572,7 +4572,7 @@ async function loadFeedback() {
 // Init submissions on page load
 document.addEventListener('DOMContentLoaded', function() {
   // Auto-restore session from localStorage
-  if (localStorage.getItem('admin_session') === 'logged_in') {
+  if (localStorage.getItem('admin_session') === 'logged_in' && ADMIN_PASSWORD) {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('admin-panel').classList.remove('hidden');
     setTimeout(async function() {
@@ -8667,7 +8667,7 @@ document.addEventListener('click', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
   try {
     restoreAutoWelcome();
-    if (localStorage.getItem('admin_session') === 'logged_in') {
+    if (localStorage.getItem('admin_session') === 'logged_in' && ADMIN_PASSWORD) {
       var loginScreen = document.getElementById('login-screen');
       var adminPanel = document.getElementById('admin-panel');
       if (loginScreen && adminPanel && !loginScreen.classList.contains('hidden')) {
@@ -8689,7 +8689,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 // 监听页面重新可见时保持登录状态
 document.addEventListener('visibilitychange', function() {
-  if (!document.hidden && localStorage.getItem('admin_session') === 'logged_in') {
+  if (!document.hidden && localStorage.getItem('admin_session') === 'logged_in' && ADMIN_PASSWORD) {
     var loginScreen = document.getElementById('login-screen');
     var adminPanel = document.getElementById('admin-panel');
     if (loginScreen && adminPanel && loginScreen.classList.contains('hidden') === false) {
