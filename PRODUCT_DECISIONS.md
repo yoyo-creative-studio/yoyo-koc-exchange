@@ -27,6 +27,7 @@ This log records decisions that materially affect creator balances, monthly sett
 | PD-010 | Creator-facing surfaces remain English-only. | The active creator audience is international. | Admin tools may use Chinese; portal copy cannot. |
 | PD-011 | Reward prices are validated by project configuration in the database. | Browser-displayed prices can be modified by clients. | New paid orders must be an exact multiple of an active server-side reward unit cost. |
 | PD-012 | Current campaign periods belong to projects. | A reusable platform cannot share one global working month. | Each project has one current period; current workspaces use explicit `period` values while history remains queryable. |
+| PD-013 | Core business records carry mandatory project ownership. | Month isolation alone cannot prevent records from different programs appearing together. | Creator, submission, point, order, and fulfillment reads are project-filtered and child records must match their parent project. |
 
 ## How To Add A Decision
 

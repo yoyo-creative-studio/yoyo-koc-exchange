@@ -1827,6 +1827,7 @@ let registrationApplications = [];
 let platformProjects = [];
 let selectedPlatformProjectId = '';
 let projectRewardOptions = [];
+window.ACTIVE_PROJECT_ID = '';
 
 async function registrationReviewFetch(action, data) {
   var response = await supabaseFetch(SUPABASE_URL + '/functions/v1/registration-review', {
@@ -2424,6 +2425,7 @@ async function loadSettleMonthDropdown() {
 
     // 默认选中当前期
     var currentData = data.filter(function(row) { return row.is_current_period === true; });
+    if (data.length && data[0].project_id) window.ACTIVE_PROJECT_ID = data[0].project_id;
     if (currentData.length === 1 && periodMap[currentData[0].period]) {
       sel.value = currentData[0].period;
       currentPeriod = currentData[0].period;

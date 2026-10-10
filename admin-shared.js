@@ -1,5 +1,10 @@
 function supabaseFetch(url, opts) {
   opts = opts || {};
+  var projectId = window.ACTIVE_PROJECT_ID || '';
+  var method = String(opts.method || 'GET').toUpperCase();
+  if (method !== 'POST' && projectId && /\/rest\/v1\/(kocs|registration_applications|submissions|point_logs|redemption_orders|reward_fulfillments|redemption_order_edits)(\?|$)/.test(url) && !/[?&]project_id=/.test(url)) {
+    url += (url.indexOf('?') >= 0 ? '&' : '?') + 'project_id=eq.' + encodeURIComponent(projectId);
+  }
   return fetch(url, Object.assign({}, opts, {
     headers: Object.assign({ 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, opts.headers || {})
   }));

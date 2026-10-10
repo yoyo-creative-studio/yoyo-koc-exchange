@@ -928,6 +928,7 @@ function getSubmissionPeriod(item) {
   return currentPeriod;
 }
 var currentPeriod = '';
+window.ACTIVE_PROJECT_ID = '';
 let currentUser = null;
 let redemptionOpen = false;
 let ordersLoadGeneration = 0;
@@ -950,7 +951,8 @@ async function fetchCurrentCampaignAccess() {
   if (!res.ok) throw new Error('Unable to verify campaign status');
   var data = await res.json();
   if (!data || data.length === 0) throw new Error('Campaign configuration not found');
-  var cfg = data[0];
+    var cfg = data[0];
+    if (cfg.project_id) window.ACTIVE_PROJECT_ID = cfg.project_id;
   return {
     submissionsOpen: isFeatureWindowOpen(cfg.submissions_open, cfg.submissions_close_at),
     redemptionOpen: isFeatureWindowOpen(cfg.redemption_open, cfg.redemption_close_at),
@@ -973,6 +975,7 @@ async function loadCurrentPeriod() {
       throw new Error('Exactly one published settlement period is required');
     }
     currentPeriod = data[0].period;
+    window.ACTIVE_PROJECT_ID = data[0].project_id || window.ACTIVE_PROJECT_ID;
     console.log('Loaded current period from config:', currentPeriod);
     return true;
   } catch(e) {
@@ -1031,6 +1034,11 @@ function esc(s) { return s == null ? "" : String(s).replace(/[&<>]/g, function(c
 function escAttr(s) { return esc(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
 
 function supabaseFetch(url, opts = {}) {
+  var projectId = window.ACTIVE_PROJECT_ID || '';
+  var method = String(opts.method || 'GET').toUpperCase();
+  if (method !== 'POST' && projectId && /\/rest\/v1\/(kocs|registration_applications|submissions|point_logs|redemption_orders|reward_fulfillments|redemption_order_edits)(\?|$)/.test(url) && !/[?&]project_id=/.test(url)) {
+    url += (url.indexOf('?') >= 0 ? '&' : '?') + 'project_id=eq.' + encodeURIComponent(projectId);
+  }
   return fetch(url, { ...opts, headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json', ...opts.headers } });
 }
 

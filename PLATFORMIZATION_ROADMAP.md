@@ -58,7 +58,7 @@ The system runs the full business loop, but historical time spent, failure rate,
 
 ## Migration Sequence
 
-Current status: Phase 1 is deployed. Phase 2 now includes project profiles, project-scoped reward configuration, and project-scoped campaign periods; only `mlt-global` is connected to production business data.
+Current status: Phase 1 and the first production-safe part of Phase 3 are deployed. Project profiles, rewards, campaign periods, and core business-record ownership are project-scoped; only `mlt-global` is connected to production business data.
 
 ### Phase 1: Foundation
 
@@ -76,9 +76,9 @@ Current status: Phase 1 is deployed. Phase 2 now includes project profiles, proj
 
 ### Phase 3: Data Ownership
 
-- Add nullable `project_id` to core business tables.
-- Backfill all existing production records to `mlt-global`.
-- Add dual-read checks, then make project ownership mandatory and update uniqueness constraints.
+- Core creator, registration, submission, point, order, fulfillment, and redemption-edit records now have mandatory `project_id` ownership.
+- Existing production records are backfilled to `mlt-global`; browser reads automatically include the active project filter.
+- Parent-child project consistency is enforced for new records. Composite identity and tenant-aware uniqueness constraints remain the next migration.
 
 ### Phase 4: Roles And Templates
 
