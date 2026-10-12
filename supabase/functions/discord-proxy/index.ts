@@ -1,8 +1,16 @@
 // Supabase Edge Function: Discord API 代理
 // 解决浏览器端 CORS 拦截问题
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const DISCORD_API = "https://discord.com/api/v10";
+
+async function sha256(value: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+const roleRank: Record<string, number> = { viewer: 10, operator: 20, admin: 30, project_owner: 40, platform_owner: 50 };
 
 serve(async (req) => {
   // CORS 头（允许浏览器访问）
@@ -17,12 +25,57 @@ serve(async (req) => {
   }
 
   try {
-    const { action, data, token } = await req.json();
-    if (!token) {
-      return new Response(JSON.stringify({ ok: false, error: "缺少 Bot Token" }), {
-        status: 400, headers,
-      });
+    const { action, data = {}, admin_session = "", project_id = "", project_key = "mlt-global" } = await req.json();
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    if (!supabaseUrl || !serviceRoleKey) throw new Error("Server configuration missing");
+    const db = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+    const tokenHash = await sha256(String(admin_session));
+    const { data: session } = await db.from("platform_admin_sessions")
+      .select("admin_id").eq("token_hash", tokenHash).gt("expires_at", new Date().toISOString()).maybeSingle();
+    if (!session) return new Response(JSON.stringify({ ok: false, error: "管理员会话已失效" }), { status: 403, headers });
+    const { data: admin } = await db.from("platform_admins")
+      .select("id,role,status").eq("id", session.admin_id).eq("status", "active").maybeSingle();
+    if (!admin || (roleRank[admin.role] || 0) < roleRank.operator) {
+      return new Response(JSON.stringify({ ok: false, error: "当前账号没有 MochiBot 操作权限" }), { status: 403, headers });
     }
+    let resolvedProjectId = String(project_id || "").trim();
+    if (!resolvedProjectId) {
+      const { data: project } = await db.from("platform_projects").select("id").eq("project_key", String(project_key || "mlt-global")).maybeSingle();
+      resolvedProjectId = String(project?.id || "");
+    }
+    if (!resolvedProjectId) return new Response(JSON.stringify({ ok: false, error: "项目不存在" }), { status: 404, headers });
+    if (admin.role !== "platform_owner") {
+      const { data: access } = await db.from("platform_admin_project_access")
+        .select("project_id").eq("admin_id", admin.id).eq("project_id", resolvedProjectId).maybeSingle();
+      if (!access) return new Response(JSON.stringify({ ok: false, error: "无权访问该项目" }), { status: 403, headers });
+    }
+
+    if (action === "bot_token_status") {
+      const { data: secret } = await db.from("platform_project_secrets").select("discord_bot_token,updated_at").eq("project_id", resolvedProjectId).maybeSingle();
+      return new Response(JSON.stringify({ ok: true, data: { configured: Boolean(String(secret?.discord_bot_token || "").trim()), updated_at: secret?.updated_at || null } }), { status: 200, headers });
+    }
+
+    if (action === "save_project_bot_token") {
+      if ((roleRank[admin.role] || 0) < roleRank.project_owner) {
+        return new Response(JSON.stringify({ ok: false, error: "只有 Project Owner 或 Platform Owner 可以更新 Token" }), { status: 403, headers });
+      }
+      const submittedToken = String(data.token || "").trim();
+      if (submittedToken.length < 40) return new Response(JSON.stringify({ ok: false, error: "Bot Token 格式无效" }), { status: 400, headers });
+      const { error } = await db.from("platform_project_secrets").upsert({
+        project_id: resolvedProjectId,
+        discord_bot_token: submittedToken,
+        updated_by: admin.id,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "project_id" });
+      if (error) return new Response(JSON.stringify({ ok: false, error: error.message }), { status: 400, headers });
+      await db.from("platform_admin_audit_log").insert({ admin_id: admin.id, project_id: resolvedProjectId, action: "project.discord_token_updated" });
+      return new Response(JSON.stringify({ ok: true, data: { configured: true } }), { status: 200, headers });
+    }
+
+    const { data: secret } = await db.from("platform_project_secrets").select("discord_bot_token").eq("project_id", resolvedProjectId).maybeSingle();
+    const token = String(secret?.discord_bot_token || "").trim();
+    if (!token) return new Response(JSON.stringify({ ok: false, error: "当前项目尚未配置 MochiBot Token" }), { status: 400, headers });
 
     const authHeaders = {
       "Authorization": `Bot ${token}`,

@@ -107,7 +107,9 @@ Current status: Phases 1-3 and the production-safe template, portal, launch-gate
 - The admin console includes account creation, role assignment, project assignment, password reset, enable/disable controls, and role-specific navigation.
 - Legacy creator-facing anonymous table reads remain until portal reads are fully migrated to credential-checked RPCs; sensitive-field read permissions are the next security hardening boundary.
 - Provide reusable onboarding, scoring, redemption, fulfillment, and notification templates.
-- Replace browser-held bot credentials with server-side project secrets.
+- Discord bot credentials are stored in the service-role-only `platform_project_secrets` table per project. The browser keeps only a configured/not-configured flag and never receives the saved token.
+- Discord proxy, identity sync, message recall, broadcasts, and cloud auto-welcome resolve the active project's token on the server and enforce administrator session, role, and project membership.
+- Legacy browser `localStorage` token values and the old auto-welcome token field are cleared during rollout.
 
 ### Phase 5: Portfolio Demo
 

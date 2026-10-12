@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const headers = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, x-admin-password, x-cron-secret",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, apikey, x-cron-secret",
   "Content-Type": "application/json",
 };
 const guildId = "1458340952358785193";
@@ -34,6 +34,11 @@ async function listMembers(token: string) {
   return (await response.json()).filter((member: any) => !member.user?.bot);
 }
 
+async function sha256(value: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
 const welcomeMessage = `🎉 **Welcome to the MLT Creator Program!**
 
 Your **Newcomer Month** is the first full calendar month after your registration is approved. Earn at least **5 base points** during that month to receive **+2 bonus points**. We believe you can do it! ✨
@@ -60,20 +65,36 @@ serve(async (request) => {
     const { data: state, error: stateError } = await supabase.from("mochi_auto_welcome_state").select("*").eq("id", 1).single();
     if (stateError) throw stateError;
 
+    async function requireAdmin(minimumRole: "operator" | "project_owner") {
+      const ranks = { viewer: 10, operator: 20, admin: 30, project_owner: 40, platform_owner: 50 } as Record<string, number>;
+      const sessionHash = await sha256(String(body.admin_session || ""));
+      const { data: session } = await supabase.from("platform_admin_sessions").select("admin_id").eq("token_hash", sessionHash).gt("expires_at", new Date().toISOString()).maybeSingle();
+      if (!session) throw new Error("Administrator session expired");
+      const { data: admin } = await supabase.from("platform_admins").select("id,role,status").eq("id", session.admin_id).eq("status", "active").maybeSingle();
+      if (!admin || (ranks[admin.role] || 0) < ranks[minimumRole]) throw new Error("Insufficient permission");
+      return admin;
+    }
+
+    const { data: project, error: projectError } = await supabase.from("platform_projects")
+      .select("id").eq("project_key", String(body.project_key || "mlt-global")).eq("status", "active").maybeSingle();
+    if (projectError || !project) throw projectError || new Error("Project not found");
+    const { data: secret } = await supabase.from("platform_project_secrets").select("discord_bot_token").eq("project_id", project.id).maybeSingle();
+    const botToken = String(secret?.discord_bot_token || "").trim();
+
     if (action === "configure") {
-      if (request.headers.get("x-admin-password") !== Deno.env.get("REGISTRATION_ADMIN_PASSWORD")) {
-        return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), { status: 401, headers });
+      const admin = await requireAdmin("project_owner");
+      if (admin.role !== "platform_owner") {
+        const { data: access } = await supabase.from("platform_admin_project_access").select("project_id").eq("admin_id", admin.id).eq("project_id", project.id).maybeSingle();
+        if (!access) throw new Error("No access to this project");
       }
       if (!body.enabled) {
         await supabase.from("mochi_auto_welcome_state").update({ enabled: false, updated_at: new Date().toISOString() }).eq("id", 1);
         return new Response(JSON.stringify({ ok: true, enabled: false }), { headers });
       }
-      const token = String(body.token || state.bot_token || "").trim();
-      if (!token) throw new Error("Missing Discord Bot Token");
-      const members = await listMembers(token);
+      if (!botToken) throw new Error("Missing server-side Discord Bot Token");
+      const members = await listMembers(botToken);
       await supabase.from("mochi_auto_welcome_state").update({
         enabled: true,
-        bot_token: token,
         known_member_ids: members.map((member: any) => String(member.user.id)),
         last_checked_at: new Date().toISOString(),
         last_result: { baseline: members.length, sent: 0, failed: 0 },
@@ -86,17 +107,22 @@ serve(async (request) => {
       return new Response(JSON.stringify({ ok: true, enabled: state.enabled, last_checked_at: state.last_checked_at, last_result: state.last_result }), { headers });
     }
 
-    const adminScan = action === "scan_now" && request.headers.get("x-admin-password") === Deno.env.get("REGISTRATION_ADMIN_PASSWORD");
+    let adminScan = false;
+    if (action === "scan_now") {
+      const admin = await requireAdmin("operator");
+      if (admin.role !== "platform_owner") {
+        const { data: access } = await supabase.from("platform_admin_project_access").select("project_id").eq("admin_id", admin.id).eq("project_id", project.id).maybeSingle();
+        if (!access) throw new Error("No access to this project");
+      }
+      adminScan = true;
+    }
     const cronScan = action === "scan" && request.headers.get("x-cron-secret") === state.cron_secret;
     if (!adminScan && !cronScan) return new Response(JSON.stringify({ ok: false, error: "Unauthorized" }), { status: 401, headers });
-    if (!state.enabled || !state.bot_token) return new Response(JSON.stringify({ ok: true, skipped: "disabled" }), { headers });
+    if (!state.enabled || !botToken) return new Response(JSON.stringify({ ok: true, skipped: "disabled" }), { headers });
 
-    const members = await listMembers(state.bot_token);
+    const members = await listMembers(botToken);
     const known = new Set((state.known_member_ids || []).map(String));
     const newMembers = members.filter((member: any) => !known.has(String(member.user.id)));
-    const { data: project, error: projectError } = await supabase.from("platform_projects")
-      .select("id").eq("project_key", "mlt-global").eq("status", "active").maybeSingle();
-    if (projectError || !project) throw projectError || new Error("MLT Global project not found");
     const { data: kocs, error: kocError } = await supabase.from("kocs")
       .select("discord_name,discord_user_id,discord_username,discord_display_name,discord_aliases")
       .eq("project_id", project.id).eq("status", "active");
@@ -118,10 +144,10 @@ serve(async (request) => {
         skippedRegistered.push(member.user?.username || member.user?.id);
         continue;
       }
-      const dmResponse = await discordFetch("/users/@me/channels", state.bot_token, { method: "POST", body: JSON.stringify({ recipient_id: member.user.id }) });
+      const dmResponse = await discordFetch("/users/@me/channels", botToken, { method: "POST", body: JSON.stringify({ recipient_id: member.user.id }) });
       if (!dmResponse.ok) { failures.push(`${member.user?.username}: DM ${dmResponse.status}`); continue; }
       const dm = await dmResponse.json();
-      const sendResponse = await discordFetch(`/channels/${dm.id}/messages`, state.bot_token, { method: "POST", body: JSON.stringify({ content: welcomeMessage }) });
+      const sendResponse = await discordFetch(`/channels/${dm.id}/messages`, botToken, { method: "POST", body: JSON.stringify({ content: welcomeMessage }) });
       if (sendResponse.ok) sent++; else failures.push(`${member.user?.username}: send ${sendResponse.status}`);
       await new Promise((resolve) => setTimeout(resolve, 1200));
     }

@@ -613,10 +613,10 @@ serve(async (req) => {
     if (action === "sync_discord_identities") {
       const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const guildId = String(data.guild_id || "1458340952358785193").trim();
-      const { data: welcomeState, error: stateError } = await db.from("mochi_auto_welcome_state")
-        .select("bot_token").eq("id", 1).single();
-      const botToken = String(data.bot_token || welcomeState?.bot_token || "").trim();
-      if ((stateError && !data.bot_token) || !botToken) return json({ ok: false, error: "MochiBot token is not configured" }, 400);
+      const { data: projectSecret, error: secretError } = await db.from("platform_project_secrets")
+        .select("discord_bot_token").eq("project_id", projectId).maybeSingle();
+      const botToken = String(projectSecret?.discord_bot_token || "").trim();
+      if (secretError || !botToken) return json({ ok: false, error: "MochiBot token is not configured for this project" }, 400);
       const memberResponse = await fetch(`https://discord.com/api/v10/guilds/${guildId}/members?limit=1000`, {
         headers: { Authorization: `Bot ${botToken}` },
       });

@@ -1719,10 +1719,10 @@ Bonuses and carry-over do not count. Existing tiers only move up.</textarea>
 <div id="mochi-modal" class="modal-overlay hidden" onclick="if(event.target===this)closeMochiModal()">
   <div class="modal" style="max-width:560px;">
     <h3>💬 Mochi 消息中心</h3>
-    <label>Bot Token <span style="font-size:11px;color:var(--text-light);">（首次使用填写）</span></label>
+    <label>Bot Token <span id="mochi-token-status" style="font-size:11px;color:var(--text-light);">（从服务端读取状态）</span></label>
     <div style="display:flex;gap:4px;margin-bottom:8px;">
-      <input type="password" id="mochi-token-input" style="flex:1;" placeholder="Enter Mochi Bot Token" autocomplete="off">
-      <button class="btn btn-sm" style="background:#5865F2;color:white;white-space:nowrap;" onclick="saveMochiToken()">💾 保存</button>
+      <input type="password" id="mochi-token-input" style="flex:1;" placeholder="输入新 Token 后覆盖服务端配置" autocomplete="new-password">
+      <button id="mochi-token-save-btn" class="btn btn-sm" style="background:#5865F2;color:white;white-space:nowrap;" onclick="saveMochiToken()">💾 保存到服务端</button>
     </div>
 
     <div style="background:#f4f7ff;border:1px solid #cbd5ff;border-radius:10px;padding:10px;margin-bottom:10px;">
@@ -1831,23 +1831,37 @@ let ADMIN_USER = JSON.parse(sessionStorage.getItem('platform_admin_user') || 'nu
 
 // ===== Mochi Discord Bot =====
 const DISCORD_GUILD_ID = '1458340952358785193';
-// ⚠️ Token is stored in localStorage for security. Enter it once in the Mochi settings.
-var MOCHI_TOKEN = localStorage.getItem('mochi_token') || '';
+// Browser only stores whether the active project has a server-side token.
+localStorage.removeItem('mochi_token');
+var MOCHI_TOKEN = '';
 
-function setMochiToken(token) {
-  MOCHI_TOKEN = token;
-  localStorage.setItem('mochi_token', token);
-  showToast('✅ Mochi token saved', 'success');
-
+async function loadProjectBotTokenStatus() {
+  var status = document.getElementById('mochi-token-status');
+  try {
+    var result = await discordProxyFetch('bot_token_status', {});
+    MOCHI_TOKEN = result.ok && result.data && result.data.configured ? 'server-configured' : '';
+    if (status) status.textContent = MOCHI_TOKEN ? '（✅ 已安全保存在服务端）' : '（⚠️ 当前项目未配置）';
+    var saveButton = document.getElementById('mochi-token-save-btn');
+    if (saveButton) saveButton.style.display = hasAdminRole('project_owner') ? '' : 'none';
+    var input = document.getElementById('mochi-token-input');
+    if (input) input.style.display = hasAdminRole('project_owner') ? '' : 'none';
+  } catch(error) {
+    MOCHI_TOKEN = '';
+    if (status) status.textContent = '（状态读取失败）';
+  }
 }
 
-function saveMochiToken() {
+async function saveMochiToken() {
   var input = document.getElementById('mochi-token-input');
   if (input && input.value.trim()) {
-    setMochiToken(input.value.trim());
-    input.value = '';
-    showToast('✅ Token 已保存', 'success');
-    if (localStorage.getItem('mochi_auto_welcome') === 'enabled' && !autoWelcomeInterval) restoreAutoWelcome();
+    try {
+      var result = await discordProxyFetch('save_project_bot_token', { token: input.value.trim() });
+      if (!result.ok) throw new Error(result.error || '保存失败');
+      input.value = '';
+      await loadProjectBotTokenStatus();
+      showToast('✅ Token 已安全保存到当前项目', 'success');
+      if (localStorage.getItem('mochi_auto_welcome') === 'enabled' && !autoWelcomeInterval) restoreAutoWelcome();
+    } catch(error) { showToast('Token 保存失败：' + error.message, 'error'); }
   } else {
     showToast('请输入 Token', 'error');
   }
@@ -2056,6 +2070,7 @@ async function initializeActiveProject() {
   window.ACTIVE_PROJECT_KEY = project.project_key;
   var select = document.getElementById('active-project-select');
   if (select) select.value = project.id;
+  await loadProjectBotTokenStatus();
 }
 
 async function switchActiveProject(projectId) {
@@ -2064,6 +2079,7 @@ async function switchActiveProject(projectId) {
   window.ACTIVE_PROJECT_ID = project.id;
   window.ACTIVE_PROJECT_KEY = project.project_key;
   localStorage.setItem('admin_active_project_id', project.id);
+  await loadProjectBotTokenStatus();
   allKocs = [];
   allOrders = [];
   allSubmissions = [];
@@ -2407,7 +2423,7 @@ async function rejectRegistrationApplication(id) {
 }
 
 // Discord proxy via XHR (avoids Safari CORS issue with Edge Functions)
-function discordProxyFetch(action, data, token) {
+function discordProxyFetch(action, data) {
   return new Promise(function(resolve, reject) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", SUPABASE_URL + "/functions/v1/discord-proxy", true);
@@ -2424,7 +2440,13 @@ function discordProxyFetch(action, data, token) {
     xhr.onerror = function() {
       reject(new Error("Network error"));
     };
-    xhr.send(JSON.stringify({action: action, data: data, token: token}));
+    xhr.send(JSON.stringify({
+      action: action,
+      data: data,
+      admin_session: ADMIN_SESSION,
+      project_id: window.ACTIVE_PROJECT_ID,
+      project_key: getActiveProjectKey()
+    }));
   });
 }
 
@@ -2677,10 +2699,6 @@ async function applyLegacyTierUpgradePreview() {
 }
 
 async function syncTiersFromDiscord() {
-  if (!MOCHI_TOKEN) {
-    var tokenInput = document.getElementById('mochi-token-input');
-    if (tokenInput && tokenInput.value.trim()) MOCHI_TOKEN = tokenInput.value.trim();
-  }
   if (!MOCHI_TOKEN) { showToast('请先填写 MochiBot Token', 'error'); return; }
   if (!confirm('从 Discord 当前创作者等级角色同步权益？仅同步升级，不会自动降级。')) return;
   try {
@@ -2728,9 +2746,7 @@ async function syncDiscordIdentities() {
   if (!confirm('从当前 Discord 服务器同步 User ID、用户名、昵称和历史别名？唯一匹配才会写入，歧义记录不会自动修改。')) return;
   try {
     showToast('正在同步 Discord 身份...', 'info');
-    var tokenInput = document.getElementById('mochi-token-input');
-    var token = MOCHI_TOKEN || (tokenInput && tokenInput.value.trim()) || '';
-    var result = await registrationReviewFetch('sync_discord_identities', { guild_id: DISCORD_GUILD_ID, bot_token: token });
+    var result = await registrationReviewFetch('sync_discord_identities', { guild_id: DISCORD_GUILD_ID });
     var unmatched = result.unmatched || [];
     var ambiguous = result.ambiguous || [];
     await loadData();
@@ -3095,7 +3111,6 @@ function splitDiscordMessage(message, maxLength) {
 // Send a DM to a user by their Discord username (resolves member first)
 async function sendMochiDM(discordUsername, message, discordId, guildId) {
   if (!discordUsername && !discordId) return { ok: false, reason: '缺少 Discord 用户' };
-  if (!MOCHI_TOKEN) MOCHI_TOKEN = document.getElementById('mochi-token-input').value;
   if (!MOCHI_TOKEN) return { ok: false, reason: '未保存 MochiBot Token' };
   try {
     var member = discordId ? { id: discordId } : null;
@@ -5322,11 +5337,6 @@ function clearMochiCsvBroadcastState() {
 }
 
 async function previewBroadcast(type) {
-  // Read token from input if not set
-  if (!MOCHI_TOKEN) {
-    var inp = document.getElementById('mochi-token-input');
-    if (inp && inp.value.trim()) MOCHI_TOKEN = inp.value.trim();
-  }
   if (!MOCHI_TOKEN) { showToast('请先填写 Bot Token', 'error'); return; }
 
   clearMochiCsvBroadcastState();
@@ -5718,10 +5728,9 @@ async function confirmBroadcast() {
     showToast('审核通过通知模板仅供查看，不能从广播窗口发送', 'info');
     return;
   }
-  if (!MOCHI_TOKEN && !document.getElementById('mochi-token-input').value) {
+  if (!MOCHI_TOKEN) {
     showToast('请先填写 Bot Token', 'error'); return;
   }
-  if (!MOCHI_TOKEN) MOCHI_TOKEN = document.getElementById('mochi-token-input').value;
 
   if (mochiBroadcastType === 'csv') {
     if (!mochiCsvTargets.length) previewMochiCsvBroadcast();
@@ -5909,11 +5918,6 @@ async function saveLastCheckedJoinId() {
 }
 
 async function startAutoWelcome(skipConfirmation) {
-  var tokenInput = document.getElementById('mochi-token-input');
-  if (!MOCHI_TOKEN && tokenInput && tokenInput.value.trim()) {
-    MOCHI_TOKEN = tokenInput.value.trim();
-    localStorage.setItem('mochi_token', MOCHI_TOKEN);
-  }
   if (!MOCHI_TOKEN) {
     updateAutoWelcomeUi(skipConfirmation ? '等待恢复 · 请重新保存 Bot Token' : '请先保存 Bot Token');
     showToast('请先在 Mochi 消息中心保存 Bot Token', 'error');
@@ -5979,16 +5983,14 @@ async function startAutoWelcome(skipConfirmation) {
 
 async function toggleAutoWelcome() {
   var enable = !cloudAutoWelcomeEnabled;
-  var tokenInput = document.getElementById('mochi-token-input');
-  var token = (tokenInput && tokenInput.value.trim()) || MOCHI_TOKEN || localStorage.getItem('mochi_token') || '';
-  if (enable && !token) { showToast('请先保存有效的 Bot Token', 'error'); return; }
+  if (enable && !MOCHI_TOKEN) { showToast('请先保存有效的 Bot Token', 'error'); return; }
   if (!confirmDanger(enable ? '开启云端新人自动欢迎？' : '关闭云端新人自动欢迎？', [
     enable ? 'Supabase 将每 6 小时检查一次 Discord 新成员，并自动发送欢迎语。' : '关闭后云端将停止发送新人欢迎。',
     enable ? '首次开启只建立当前成员基线，不会补发历史成员。' : '',
     enable ? '已注册 KOC 重新入群时会被跳过。' : ''
   ])) return;
   try {
-    var result = await cloudAutoWelcomeFetch('configure', { enabled: enable, token: enable ? token : '' });
+    var result = await cloudAutoWelcomeFetch('configure', { enabled: enable });
     cloudAutoWelcomeEnabled = result.enabled === true;
     if (cloudAutoWelcomeEnabled) localStorage.setItem('mochi_auto_welcome', 'enabled');
     else localStorage.removeItem('mochi_auto_welcome');
@@ -5998,8 +6000,6 @@ async function toggleAutoWelcome() {
 }
 
 async function checkLatestNewMember() {
-  var tokenInput = document.getElementById('mochi-token-input');
-  if (!MOCHI_TOKEN && tokenInput && tokenInput.value.trim()) MOCHI_TOKEN = tokenInput.value.trim();
   if (!MOCHI_TOKEN) {
     updateAutoWelcomeUi('请先保存 Bot Token');
     showToast('请先保存 Bot Token', 'error');
@@ -6133,8 +6133,8 @@ async function restoreAutoWelcome() {
 async function cloudAutoWelcomeFetch(action, payload) {
   var response = await fetch(SUPABASE_URL + '/functions/v1/mochi-auto-welcome', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-admin-password': ADMIN_PASSWORD },
-    body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(Object.assign({ action: action, admin_session: ADMIN_SESSION, project_key: getActiveProjectKey() }, payload || {}))
   });
   var data = await response.json().catch(function() { return {}; });
   if (!response.ok || !data.ok) throw new Error(data.error || ('HTTP ' + response.status));
@@ -6218,16 +6218,14 @@ function selectMochiDuplicateCopies() {
 }
 
 async function scanMochiMessagesForRecall() {
-  var tokenInput = document.getElementById('mochi-token-input');
-  var token = (tokenInput && tokenInput.value.trim()) || MOCHI_TOKEN || localStorage.getItem('mochi_token') || '';
-  if (!token) { showToast('请先保存 Bot Token', 'error'); return; }
+  if (!MOCHI_TOKEN) { showToast('请先保存 Bot Token', 'error'); return; }
   var hours = Math.max(1, Number(document.getElementById('mochi-recall-hours').value) || 6);
   var button = document.getElementById('btn-scan-mochi-dms');
   var result = document.getElementById('mochi-recall-result');
   button.disabled = true; button.textContent = '扫描中...';
   if (result) result.style.display = 'none';
   try {
-    var response = await discordProxyFetch('scan_recent_dms', { since: new Date(Date.now() - hours * 3600000).toISOString(), guild_id: DISCORD_GUILD_ID }, token);
+    var response = await discordProxyFetch('scan_recent_dms', { since: new Date(Date.now() - hours * 3600000).toISOString(), guild_id: DISCORD_GUILD_ID });
     if (!response.ok) throw new Error(response.error || '扫描失败');
     var data = response.data || {};
     mochiRecallMessages = markMochiRecallDuplicates((data.candidates || []).slice().sort(function(a, b) { return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(); }));
@@ -6241,13 +6239,11 @@ async function deleteSelectedMochiMessages() {
   var selected = Array.from(document.querySelectorAll('.mochi-recall-checkbox:checked')).map(function(input) { return mochiRecallMessages[Number(input.dataset.index)]; }).filter(Boolean);
   if (!selected.length) return;
   if (!confirmDanger('确认撤回所选 MochiBot 私信？', ['消息数量: ' + selected.length, '涉及用户: ' + new Set(selected.map(function(message) { return message.user_id; })).size, '撤回后无法恢复，请确认只选择了重复副本。'])) return;
-  var tokenInput = document.getElementById('mochi-token-input');
-  var token = (tokenInput && tokenInput.value.trim()) || MOCHI_TOKEN || localStorage.getItem('mochi_token') || '';
   var button = document.getElementById('btn-delete-mochi-dms');
   var result = document.getElementById('mochi-recall-result');
   button.disabled = true; button.textContent = '撤回中...';
   try {
-    var response = await discordProxyFetch('delete_dm_messages', { messages: selected.map(function(message) { return { channel_id: message.channel_id, message_id: message.message_id }; }) }, token);
+    var response = await discordProxyFetch('delete_dm_messages', { messages: selected.map(function(message) { return { channel_id: message.channel_id, message_id: message.message_id }; }) });
     if (!response.ok) throw new Error(response.error || '撤回失败');
     var data = response.data || {};
     var deletedIds = new Set((data.deleted || []).map(function(message) { return String(message.channel_id) + ':' + String(message.message_id); }));
@@ -6968,10 +6964,6 @@ function refreshDashboard() {
 async function loadCommunityReport() {
   showToast('社群周报已移至外部链接，请在仪表盘顶部点击查看', 'info');
   return;
-  if (!MOCHI_TOKEN) {
-    var inp = document.getElementById('mochi-token-input');
-    if (inp && inp.value.trim()) MOCHI_TOKEN = inp.value.trim();
-  }
   if (!MOCHI_TOKEN) { showToast('请先在 Mochi 设置中填写 Bot Token', 'error'); return; }
 
   var now = new Date();
