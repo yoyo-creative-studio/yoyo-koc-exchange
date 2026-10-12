@@ -469,9 +469,9 @@ body::before {
 
 #admin-panel > .header {
   display: grid;
-  grid-template-columns: minmax(235px,1fr) auto minmax(350px,auto) auto;
+  grid-template-columns: minmax(235px,1fr) auto auto auto;
   align-items: center;
-  gap: 14px;
+  gap: 10px 14px;
   top: 8px;
   padding: 14px 16px;
   background: linear-gradient(90deg,#ff5a9d,#ff78ae);
@@ -542,13 +542,19 @@ body::before {
 }
 
 .admin-header-tools {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
   flex-wrap: nowrap;
   min-width: 0;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,.3);
 }
+
+.admin-header-meta { display: flex; align-items: center; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+#admin-role-badge { white-space: nowrap; border-radius: 3px; box-shadow: 2px 2px 0 rgba(91,39,111,.22); }
 
 .admin-header-logout { justify-self: end; white-space: nowrap; }
 
@@ -690,13 +696,13 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
     grid-column: 1;
     grid-row: 2;
     position: sticky;
-    top: 92px;
+    top: 142px;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     gap: 6px;
     width: 100%;
-    max-height: calc(100vh - 108px);
+    max-height: calc(100vh - 158px);
     margin: 0;
     padding: 8px;
     overflow-y: auto;
@@ -730,10 +736,12 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
   #admin-panel { display: block; }
   #admin-panel.hidden { display: none !important; }
   #admin-panel > .header { grid-template-columns: 1fr auto; border-radius: 4px; }
-  .admin-header-credit { justify-self: end; }
-  .admin-header-tools { grid-column: 1 / -1; justify-content: space-between; width: 100%; }
-  .admin-header-logout { grid-column: 2; grid-row: 2; align-self: center; }
-  .tabs { top: 112px; border-radius: 4px; }
+  #admin-panel > .header h1 { grid-column: 1; grid-row: 1; }
+  .admin-header-logout { grid-column: 2; grid-row: 1; align-self: center; }
+  .admin-header-credit { grid-column: 1; grid-row: 2; justify-self: start; }
+  .admin-header-meta { grid-column: 2; grid-row: 2; }
+  .admin-header-tools { grid-column: 1 / -1; grid-row: 3; justify-content: space-between; width: 100%; }
+  .tabs { top: 150px; border-radius: 4px; }
   .card { border-radius: 4px; }
 }
 
@@ -742,8 +750,10 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
   .container { width: 100%; max-width: 100%; margin: 0 auto; padding-inline: 10px; overflow: visible; }
   .tabs { top: 6px; }
   #admin-panel > .header { grid-template-columns: 1fr; gap: 11px; }
+  #admin-panel > .header h1, .admin-header-credit, .admin-header-meta, .admin-header-tools, .admin-header-logout { grid-column: 1; grid-row: auto; }
   .admin-header-credit { justify-self: stretch; width: 100%; }
-  .admin-header-tools { grid-column: auto; align-items: stretch; }
+  .admin-header-meta { justify-content: flex-start; }
+  .admin-header-tools { grid-column: auto; flex-wrap: wrap; align-items: stretch; }
   .admin-header-tools > div:first-child { flex: 1 1 100%; justify-content: center; }
   .admin-header-logout { grid-column: auto; grid-row: auto; justify-self: stretch; }
   #login-screen { border-width: 3px !important; box-shadow: 5px 5px 0 rgba(185,47,114,.40) !important; }
@@ -848,11 +858,13 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
           <span>YoYo assistant 💗 Mochi</span>
         </span>
       </div>
-      <div class="admin-header-links" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-        <a href="https://yoyo-creative-studio.github.io/yoyo-koc-exchange/flowcharts.html" target="_blank" rel="noopener" class="btn btn-sm btn-outline" style="text-decoration:none;">↗ Flowcharts</a>
-        <a href="https://yoyo-creative-studio.github.io/yoyo-koc-exchange/portfolio.html" target="_blank" rel="noopener" class="btn btn-sm btn-outline" style="text-decoration:none;">↗ Portfolio</a>
+      <div class="admin-header-meta">
+        <div class="admin-header-links" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+          <a href="https://yoyo-creative-studio.github.io/yoyo-koc-exchange/flowcharts.html" target="_blank" rel="noopener" class="btn btn-sm btn-outline" style="text-decoration:none;">↗ Flowcharts</a>
+          <a href="https://yoyo-creative-studio.github.io/yoyo-koc-exchange/portfolio.html" target="_blank" rel="noopener" class="btn btn-sm btn-outline" style="text-decoration:none;">↗ Portfolio</a>
+        </div>
+        <div id="admin-role-badge" style="font-size:11px;font-weight:800;color:#5e3377;background:#f3e5f5;border:1px solid #b39ddb;padding:6px 10px;">Loading permission...</div>
       </div>
-      <div id="admin-role-badge" style="font-size:11px;font-weight:800;color:#5e3377;background:#f3e5f5;border:1px solid #b39ddb;padding:6px 10px;">Loading permission...</div>
       <div class="admin-header-tools">
         <div style="display:flex;align-items:center;gap:6px;background:#f3e5f5;padding:6px 12px;border-radius:10px;border:2px solid #74408f;">
           <span style="font-size:13px;font-weight:700;color:#5e3377;">🧩 当前项目</span>
