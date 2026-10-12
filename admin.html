@@ -1267,6 +1267,12 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
           <div><label>页面背景色</label><input id="platform-background-color" type="color" value="#fff3f6" style="height:42px;padding:4px;"></div>
         </div>
         <div id="platform-project-scope" style="margin-top:12px;padding:10px;border:1px solid #d1c4e9;background:white;font-size:12px;line-height:1.6;color:#5e4b70;">正在读取项目配置...</div>
+        <div id="project-launch-wizard" style="margin-top:12px;padding:12px;border:2px solid #b39ddb;background:#fff;display:none;">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;"><strong style="color:#6a1b9a;">🚀 项目上线检查</strong><button class="btn btn-sm btn-outline" onclick="loadProjectLaunchReadiness()">重新检查</button></div>
+          <div id="project-launch-checks" style="display:grid;grid-template-columns:repeat(2,minmax(180px,1fr));gap:7px;margin-top:10px;"></div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;"><input id="project-portal-link" readonly style="flex:1;min-width:260px;margin:0;"><button class="btn btn-sm btn-outline" onclick="copyProjectPortalLink()">复制门户链接</button><button id="launch-platform-project-btn" class="btn btn-sm btn-success" onclick="launchPlatformProject()" disabled>启用项目</button></div>
+          <div id="project-launch-status" style="font-size:11px;color:var(--text-light);margin-top:7px;"></div>
+        </div>
         <div style="display:flex;align-items:center;gap:10px;margin-top:12px;">
           <button class="btn btn-primary" onclick="savePlatformProject()">保存项目配置</button>
           <button id="clone-platform-project-btn" class="btn btn-outline" onclick="clonePlatformProject()">复制项目模板</button>
@@ -1879,8 +1885,8 @@ async function loadPlatformProjects(preferredId) {
     platformProjects = result.projects || [];
     var activeSelect = document.getElementById('active-project-select');
     if (activeSelect) {
-      activeSelect.innerHTML = platformProjects.filter(function(project) { return project.status === 'active'; }).map(function(project) {
-        return '<option value="' + escAttr(project.id) + '">' + esc(project.name) + '</option>';
+      activeSelect.innerHTML = platformProjects.filter(function(project) { return project.status !== 'archived'; }).map(function(project) {
+        return '<option value="' + escAttr(project.id) + '">' + esc(project.name) + (project.status === 'paused' ? ' · Setup' : '') + '</option>';
       }).join('');
     }
     select.innerHTML = '<option value="">＋ 新建项目配置</option>' + platformProjects.map(function(project) {
@@ -1910,7 +1916,7 @@ async function initializeActiveProject() {
 }
 
 async function switchActiveProject(projectId) {
-  var project = platformProjects.find(function(item) { return item.id === projectId && item.status === 'active'; });
+  var project = platformProjects.find(function(item) { return item.id === projectId && item.status !== 'archived'; });
   if (!project || project.id === window.ACTIVE_PROJECT_ID) return;
   window.ACTIVE_PROJECT_ID = project.id;
   window.ACTIVE_PROJECT_KEY = project.project_key;
@@ -1956,6 +1962,7 @@ function selectPlatformProject(id) {
   document.getElementById('platform-project-status-text').textContent = '';
   document.getElementById('clone-platform-project-btn').disabled = false;
   loadProjectRewardOptions(project.id);
+  loadProjectLaunchReadiness(project.id);
 }
 
 function startNewPlatformProject() {
@@ -1964,7 +1971,7 @@ function startNewPlatformProject() {
   document.getElementById('platform-project-key').readOnly = false;
   document.getElementById('platform-project-key').value = '';
   document.getElementById('platform-project-name').value = '';
-  document.getElementById('platform-project-status').value = 'active';
+  document.getElementById('platform-project-status').value = 'paused';
   document.getElementById('platform-project-locale').value = 'en';
   document.getElementById('platform-project-timezone').value = 'America/Los_Angeles';
   document.getElementById('platform-project-region').value = '';
@@ -1982,6 +1989,7 @@ function startNewPlatformProject() {
   projectRewardOptions = [];
   renderProjectRewardOptions();
   document.getElementById('clone-platform-project-btn').disabled = true;
+  document.getElementById('project-launch-wizard').style.display = 'none';
 }
 
 async function savePlatformProject() {
@@ -2068,6 +2076,48 @@ async function clonePlatformProject() {
     status.textContent = '复制失败：' + error.message;
     showToast(status.textContent, 'error');
   }
+}
+
+async function loadProjectLaunchReadiness(projectId) {
+  projectId = projectId || selectedPlatformProjectId;
+  var wizard = document.getElementById('project-launch-wizard');
+  if (!projectId || !wizard) return;
+  wizard.style.display = 'block';
+  var checksRoot = document.getElementById('project-launch-checks');
+  checksRoot.innerHTML = '<div style="color:var(--text-light);">检查中...</div>';
+  try {
+    var result = await registrationReviewFetch('project_launch_readiness', { project_id: projectId });
+    var readiness = result.readiness || {};
+    checksRoot.innerHTML = (readiness.checks || []).map(function(check) {
+      return '<div style="padding:8px;border:1px solid ' + (check.ready ? '#a5d6a7' : '#ffcc80') + ';background:' + (check.ready ? '#f1fff4' : '#fff8e1') + ';font-size:11px;font-weight:700;color:' + (check.ready ? '#2e7d32' : '#a65d00') + ';">' + (check.ready ? '✓ ' : '○ ') + esc(check.label) + '</div>';
+    }).join('');
+    document.getElementById('project-portal-link').value = readiness.portal_url || '';
+    var launchButton = document.getElementById('launch-platform-project-btn');
+    launchButton.disabled = !readiness.ready || readiness.status === 'active';
+    launchButton.textContent = readiness.status === 'active' ? '已启用' : '启用项目';
+    document.getElementById('project-launch-status').textContent = readiness.ready ? (readiness.status === 'active' ? '项目已上线，创作者可以访问门户。' : '所有检查已通过，可以启用项目。') : '请完成未通过的配置项后重新检查。';
+  } catch(error) {
+    checksRoot.innerHTML = '<div style="color:#c62828;">检查失败：' + esc(error.message) + '</div>';
+  }
+}
+
+async function copyProjectPortalLink() {
+  var value = document.getElementById('project-portal-link').value;
+  if (!value) return;
+  await navigator.clipboard.writeText(value);
+  showToast('✅ 门户链接已复制', 'success');
+}
+
+async function launchPlatformProject() {
+  var project = platformProjects.find(function(item) { return item.id === selectedPlatformProjectId; });
+  if (!project) return;
+  if (!confirmDanger('启用这个项目？', ['项目：' + project.name, '启用后创作者可通过门户链接注册、登录和使用已开放的业务功能。'])) return;
+  try {
+    await registrationReviewFetch('launch_platform_project', { project_id: project.id });
+    await loadPlatformProjects(project.id);
+    await loadProjectLaunchReadiness(project.id);
+    showToast('✅ 项目已启用', 'success');
+  } catch(error) { showToast('启用失败：' + error.message, 'error'); }
 }
 
 async function loadProjectRewardOptions(projectId) {

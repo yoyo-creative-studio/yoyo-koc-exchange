@@ -30,6 +30,7 @@ const rewardValidationMigration = fs.readFileSync('supabase/migrations/202610121
 const projectCloneMigration = fs.readFileSync('supabase/migrations/20261012210000_clone_project_template.sql', 'utf8');
 const publicProjectConfigMigration = fs.readFileSync('supabase/migrations/20261012223000_public_project_portal_config.sql', 'utf8');
 const projectBrandingMigration = fs.readFileSync('supabase/migrations/20261012233000_project_portal_branding.sql', 'utf8');
+const projectLaunchMigration = fs.readFileSync('supabase/migrations/20261013003000_project_launch_wizard.sql', 'utf8');
 assert(pointTierMigration.includes('add_project_point_log_once'), 'project-scoped point adjustment RPC is required');
 assert(pointTierMigration.includes('logs.project_id = v_project_id AND logs.creator_id = v_creator_id'), 'point balances must be scoped by project and creator identity');
 assert(pointTierMigration.includes('preview_project_legacy_tier_upgrades'), 'project-scoped tier preview RPC is required');
@@ -71,6 +72,10 @@ for (const field of ['brand_name', 'portal_tagline', 'studio_name', 'support_cha
 }
 assert(admin.includes('id="platform-brand-name"'), 'admin must expose project branding fields');
 assert(portal.includes("rootStyle.setProperty('--pink'"), 'portal must apply the project theme');
+assert(projectLaunchMigration.includes('get_project_launch_readiness'), 'project launch requires a database readiness check');
+assert(projectLaunchMigration.includes('launch_platform_project'), 'project activation requires a guarded database RPC');
+assert(projectLaunchMigration.includes("NEW.status := 'paused'"), 'new non-production projects must start paused');
+assert(admin.includes('id="project-launch-wizard"'), 'admin must expose the project launch checklist');
 for (const rpc of ['submit_project_creator_work', 'submit_project_creator_showcase', 'redeem_project_points', 'edit_project_pending_redemption']) {
   assert(portalRpcMigration.includes(`FUNCTION public.${rpc}`), `${rpc} must be project-aware`);
   assert(portal.includes(`/rpc/${rpc}`) || portal.includes(`'${rpc}'`), `portal must call ${rpc}`);

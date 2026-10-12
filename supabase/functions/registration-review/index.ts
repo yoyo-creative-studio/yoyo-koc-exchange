@@ -230,7 +230,7 @@ serve(async (req) => {
       const id = String(data.id || "").trim();
       const projectKey = String(data.project_key || "").trim().toLowerCase();
       const name = String(data.name || "").trim();
-      const status = String(data.status || "active").trim();
+      const status = String(data.status || "paused").trim();
       const defaultLocale = String(data.default_locale || "en").trim();
       const defaultTimezone = String(data.default_timezone || "America/Los_Angeles").trim();
       const settings = data.settings && typeof data.settings === "object" && !Array.isArray(data.settings) ? data.settings : {};
@@ -249,10 +249,11 @@ serve(async (req) => {
         updated_at: new Date().toISOString(),
       };
       if (id) {
-        const { data: existing, error: existingError } = await db.from("platform_projects").select("id,project_key").eq("id", id).maybeSingle();
+        const { data: existing, error: existingError } = await db.from("platform_projects").select("id,project_key,status").eq("id", id).maybeSingle();
         if (existingError) return json({ ok: false, error: existingError.message }, 400);
         if (!existing) return json({ ok: false, error: "Project not found" }, 404);
         if (existing.project_key === "mlt-global" && projectKey !== "mlt-global") return json({ ok: false, error: "The production project key cannot be changed" }, 409);
+        if (existing.project_key !== "mlt-global" && existing.status !== "active" && status === "active") return json({ ok: false, error: "Complete the launch checklist before activating this project" }, 409);
         const { data: saved, error } = await db.from("platform_projects").update(payload).eq("id", id).select("*").single();
         if (error) return json({ ok: false, error: error.message }, 400);
         return json({ ok: true, project: saved, created: false });
@@ -260,6 +261,22 @@ serve(async (req) => {
       const { data: saved, error } = await db.from("platform_projects").insert(payload).select("*").single();
       if (error) return json({ ok: false, error: error.message }, error.code === "23505" ? 409 : 400);
       return json({ ok: true, project: saved, created: true });
+    }
+
+    if (action === "project_launch_readiness") {
+      const projectId = String(data.project_id || "").trim();
+      if (!projectId) return json({ ok: false, error: "Project is required" }, 400);
+      const { data: readiness, error } = await db.rpc("get_project_launch_readiness", { p_project_id: projectId });
+      if (error) return json({ ok: false, error: error.message }, 400);
+      return json({ ok: true, readiness });
+    }
+
+    if (action === "launch_platform_project") {
+      const projectId = String(data.project_id || "").trim();
+      if (!projectId) return json({ ok: false, error: "Project is required" }, 400);
+      const { data: readiness, error } = await db.rpc("launch_platform_project", { p_project_id: projectId });
+      if (error) return json({ ok: false, error: error.message }, 409);
+      return json({ ok: true, readiness });
     }
 
     if (action === "clone_platform_project") {
