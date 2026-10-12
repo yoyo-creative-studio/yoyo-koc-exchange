@@ -1257,6 +1257,14 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
           <div><label>运营地区</label><input id="platform-project-region" placeholder="Global / Europe / Southeast Asia"></div>
           <div><label>Discord Server ID</label><input id="platform-project-guild" placeholder="Discord Guild ID"></div>
           <div style="grid-column:1 / -1;"><label>创作者门户地址</label><input id="platform-project-portal-url" placeholder="https://..."></div>
+          <div style="grid-column:1 / -1;padding-top:8px;border-top:1px dashed #d1c4e9;"><strong style="color:#6a1b9a;">门户品牌配置</strong></div>
+          <div><label>门户品牌名称</label><input id="platform-brand-name" placeholder="Creator Program Name"></div>
+          <div><label>门户副标题</label><input id="platform-brand-tagline" placeholder="Check your points & redeem rewards"></div>
+          <div><label>工作室 / 发行方名称</label><input id="platform-studio-name" placeholder="Studio Name"></div>
+          <div><label>客服频道</label><input id="platform-support-channel" placeholder="town-service-station"></div>
+          <div><label>主色</label><input id="platform-primary-color" type="color" value="#d4749a" style="height:42px;padding:4px;"></div>
+          <div><label>强调色</label><input id="platform-accent-color" type="color" value="#8e6fd8" style="height:42px;padding:4px;"></div>
+          <div><label>页面背景色</label><input id="platform-background-color" type="color" value="#fff3f6" style="height:42px;padding:4px;"></div>
         </div>
         <div id="platform-project-scope" style="margin-top:12px;padding:10px;border:1px solid #d1c4e9;background:white;font-size:12px;line-height:1.6;color:#5e4b70;">正在读取项目配置...</div>
         <div style="display:flex;align-items:center;gap:10px;margin-top:12px;">
@@ -1934,6 +1942,13 @@ function selectPlatformProject(id) {
   document.getElementById('platform-project-region').value = settings.operating_region || '';
   document.getElementById('platform-project-guild').value = settings.discord_guild_id || '';
   document.getElementById('platform-project-portal-url').value = settings.creator_portal_url || '';
+  document.getElementById('platform-brand-name').value = settings.brand_name || project.name || '';
+  document.getElementById('platform-brand-tagline').value = settings.portal_tagline || 'Check your points & redeem rewards';
+  document.getElementById('platform-studio-name').value = settings.studio_name || 'Yoyo Creative Studio';
+  document.getElementById('platform-support-channel').value = settings.support_channel || 'town-service-station';
+  document.getElementById('platform-primary-color').value = settings.primary_color || '#d4749a';
+  document.getElementById('platform-accent-color').value = settings.accent_color || '#8e6fd8';
+  document.getElementById('platform-background-color').value = settings.background_color || '#fff3f6';
   var scope = document.getElementById('platform-project-scope');
   scope.innerHTML = project.project_key === 'mlt-global'
     ? '<strong>✅ 已连接生产业务</strong>：当前 KOC、投稿、积分、订单与履约数据仍属于此项目。'
@@ -1955,6 +1970,13 @@ function startNewPlatformProject() {
   document.getElementById('platform-project-region').value = '';
   document.getElementById('platform-project-guild').value = '';
   document.getElementById('platform-project-portal-url').value = '';
+  document.getElementById('platform-brand-name').value = '';
+  document.getElementById('platform-brand-tagline').value = 'Check your points & redeem rewards';
+  document.getElementById('platform-studio-name').value = 'Yoyo Creative Studio';
+  document.getElementById('platform-support-channel').value = 'town-service-station';
+  document.getElementById('platform-primary-color').value = '#d4749a';
+  document.getElementById('platform-accent-color').value = '#8e6fd8';
+  document.getElementById('platform-background-color').value = '#fff3f6';
   document.getElementById('platform-project-scope').innerHTML = '<strong>🆕 新项目配置</strong>：保存后只创建项目配置，不会复制或迁移当前生产数据。';
   document.getElementById('platform-project-status-text').textContent = '';
   projectRewardOptions = [];
@@ -1967,6 +1989,8 @@ async function savePlatformProject() {
   var projectKey = document.getElementById('platform-project-key').value.trim().toLowerCase();
   var name = document.getElementById('platform-project-name').value.trim();
   if (!projectKey || !name) { showToast('请填写项目标识和项目名称', 'error'); return; }
+  var existingProject = platformProjects.find(function(item) { return item.id === selectedPlatformProjectId; });
+  var existingSettings = existingProject && existingProject.settings ? existingProject.settings : {};
   status.textContent = '保存中...';
   try {
     var result = await registrationReviewFetch('save_platform_project', {
@@ -1976,13 +2000,20 @@ async function savePlatformProject() {
       status: document.getElementById('platform-project-status').value,
       default_locale: document.getElementById('platform-project-locale').value.trim(),
       default_timezone: document.getElementById('platform-project-timezone').value.trim(),
-      settings: {
+      settings: Object.assign({}, existingSettings, {
         legacy_system: projectKey === 'mlt-global',
         creator_portal_language: document.getElementById('platform-project-locale').value.trim(),
         operating_region: document.getElementById('platform-project-region').value.trim(),
         discord_guild_id: document.getElementById('platform-project-guild').value.trim(),
-        creator_portal_url: document.getElementById('platform-project-portal-url').value.trim()
-      }
+        creator_portal_url: document.getElementById('platform-project-portal-url').value.trim(),
+        brand_name: document.getElementById('platform-brand-name').value.trim() || name,
+        portal_tagline: document.getElementById('platform-brand-tagline').value.trim() || 'Check your points & redeem rewards',
+        studio_name: document.getElementById('platform-studio-name').value.trim() || 'Yoyo Creative Studio',
+        support_channel: document.getElementById('platform-support-channel').value.trim().replace(/^#/, '') || 'town-service-station',
+        primary_color: document.getElementById('platform-primary-color').value,
+        accent_color: document.getElementById('platform-accent-color').value,
+        background_color: document.getElementById('platform-background-color').value
+      })
     });
     status.textContent = result.created ? '✅ 项目已创建' : '✅ 配置已更新';
     showToast(status.textContent, 'success');

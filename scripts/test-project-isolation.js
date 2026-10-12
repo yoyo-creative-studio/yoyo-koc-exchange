@@ -29,6 +29,7 @@ const uidIdentityMigration = fs.readFileSync('supabase/migrations/20261012150000
 const rewardValidationMigration = fs.readFileSync('supabase/migrations/20261012180000_project_reward_validation.sql', 'utf8');
 const projectCloneMigration = fs.readFileSync('supabase/migrations/20261012210000_clone_project_template.sql', 'utf8');
 const publicProjectConfigMigration = fs.readFileSync('supabase/migrations/20261012223000_public_project_portal_config.sql', 'utf8');
+const projectBrandingMigration = fs.readFileSync('supabase/migrations/20261012233000_project_portal_branding.sql', 'utf8');
 assert(pointTierMigration.includes('add_project_point_log_once'), 'project-scoped point adjustment RPC is required');
 assert(pointTierMigration.includes('logs.project_id = v_project_id AND logs.creator_id = v_creator_id'), 'point balances must be scoped by project and creator identity');
 assert(pointTierMigration.includes('preview_project_legacy_tier_upgrades'), 'project-scoped tier preview RPC is required');
@@ -65,6 +66,11 @@ assert(!publicProjectConfigMigration.includes("'discord_guild_id'"), 'public pro
 assert(portal.includes("new URLSearchParams(window.location.search).get('project')"), 'portal must resolve the project key from the URL');
 assert(!portal.includes("p_project_key: 'mlt-global'"), 'portal workflow RPCs must not hardcode the production project');
 assert(!portal.includes("project_key: 'mlt-global'"), 'portal Edge Function calls must not hardcode the production project');
+for (const field of ['brand_name', 'portal_tagline', 'studio_name', 'support_channel', 'primary_color', 'accent_color', 'background_color']) {
+  assert(projectBrandingMigration.includes(`'${field}'`), `public project branding must include ${field}`);
+}
+assert(admin.includes('id="platform-brand-name"'), 'admin must expose project branding fields');
+assert(portal.includes("rootStyle.setProperty('--pink'"), 'portal must apply the project theme');
 for (const rpc of ['submit_project_creator_work', 'submit_project_creator_showcase', 'redeem_project_points', 'edit_project_pending_redemption']) {
   assert(portalRpcMigration.includes(`FUNCTION public.${rpc}`), `${rpc} must be project-aware`);
   assert(portal.includes(`/rpc/${rpc}`) || portal.includes(`'${rpc}'`), `portal must call ${rpc}`);

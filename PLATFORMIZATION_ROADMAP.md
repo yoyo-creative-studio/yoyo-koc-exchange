@@ -70,6 +70,7 @@ Current status: Phase 1 and the first production-safe part of Phase 3 are deploy
 ### Phase 2: Configuration
 
 - Move brand, locale, timezone, Discord guild, reward catalog, tier rules, and campaign behavior into project configuration.
+- Project administrators can configure portal brand name, tagline, studio name, support channel, and primary/accent/background colors without changing portal code.
 - Enforce one current campaign period per project and resolve creator workflow windows from that project period.
 - Add a project selector to the admin console.
 - Keep the creator portal on the default project until validation is complete.

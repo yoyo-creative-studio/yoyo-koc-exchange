@@ -783,11 +783,11 @@ renderFAQ(EN_DATA);
       <span class="seraphina-card-copy">
         <span class="seraphina-card-label">SYSTEM CREATOR</span>
         <strong class="seraphina-card-name">Seraphina</strong>
-        <span class="seraphina-card-meta"><strong>Full-Stack Developer</strong><span>Yoyo Creative Studio</span></span>
+        <span class="seraphina-card-meta"><strong>Full-Stack Developer</strong><span id="portal-studio-name">Yoyo Creative Studio</span></span>
       </span>
     </aside>
     <div style="margin-top:14px;font-size:12px;color:var(--text-light);text-align:center;line-height:1.6;">
-      Questions or issues? Create a thread in <strong>｜town-service-station</strong> — we reply in submission order.
+      Questions or issues? Create a thread in <strong id="portal-support-channel">｜town-service-station</strong> — we reply in submission order.
     </div>
   </div>
 
@@ -822,6 +822,18 @@ async function initializeProjectContext() {
   var branding = config.branding || {};
   var brandName = branding.brand_name || config.name;
   var tagline = branding.portal_tagline || 'Check your points & redeem rewards';
+  var colorPattern = /^#[0-9a-f]{6}$/i;
+  var primaryColor = colorPattern.test(branding.primary_color || '') ? branding.primary_color : '#d4749a';
+  var accentColor = colorPattern.test(branding.accent_color || '') ? branding.accent_color : '#8e6fd8';
+  var backgroundColor = colorPattern.test(branding.background_color || '') ? branding.background_color : '#fff3f6';
+  var rootStyle = document.documentElement.style;
+  rootStyle.setProperty('--pink', primaryColor);
+  rootStyle.setProperty('--pink-dark', primaryColor);
+  rootStyle.setProperty('--hot', primaryColor);
+  rootStyle.setProperty('--rose', primaryColor);
+  rootStyle.setProperty('--purple', accentColor);
+  rootStyle.setProperty('--lav', accentColor);
+  rootStyle.setProperty('--bg', backgroundColor);
   document.title = brandName + ' · Creator Portal';
   ['portal-header-brand', 'portal-login-brand'].forEach(function(id) {
     var element = document.getElementById(id); if (element) element.textContent = brandName;
@@ -831,6 +843,10 @@ async function initializeProjectContext() {
   });
   var officialLink = document.getElementById('portal-official-link');
   if (officialLink) officialLink.textContent = 'Official link: ' + window.location.href.split('#')[0];
+  var studioName = document.getElementById('portal-studio-name');
+  if (studioName) studioName.textContent = branding.studio_name || 'Yoyo Creative Studio';
+  var supportChannel = document.getElementById('portal-support-channel');
+  if (supportChannel) supportChannel.textContent = '｜' + (branding.support_channel || 'town-service-station').replace(/^#|^｜/, '');
   return config;
 }
 
