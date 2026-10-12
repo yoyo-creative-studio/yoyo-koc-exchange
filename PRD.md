@@ -112,7 +112,7 @@
 
 | 表 | 作用 | 关键点 |
 |---|---|---|
-| `kocs` | 创作者主数据 | UID 唯一，`__config__` 行存系统配置 |
+| `kocs` | 创作者主数据 | `creator_id` 为不可变主键，Game UID 在单个项目内唯一；`__config__` 行存系统配置 |
 | `submissions` | 投稿记录 | work / showcase，带 period |
 | `point_logs` | 积分流水（真相源） | source: manual / redemption / auto_settlement |
 | `redemption_orders` | 兑换订单 | 带 period、status、points_spent |
@@ -155,5 +155,4 @@
 ---
 
 _文档随系统迭代更新。流程图见 `flowcharts.html`（浏览器打开可直接截图）。_
-
 

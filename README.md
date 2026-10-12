@@ -56,7 +56,7 @@ Current synchronization baseline (2026-09-18): 117 active KOCs, 112 bound, 0 dup
 
 - A creator may submit one combined redemption order per redemption period; reward types belong to that order.
 - While the redemption window is open, creators may replace the full selection only when every paid row in that request is still `pending`; edits are atomic and recorded in `redemption_order_edits`.
-- Creator-facing order requests and rendering must be UID-bound and fetched with `cache: no-store`.
+- Creator-facing order requests and rendering must resolve `project_key + creator_id`; Game UID remains a login/display field. Order reads use `cache: no-store`.
 - Account switching and logout must clear prior creator order state before loading another account.
 - Reward submission reserves/deducts the selected points immediately so the creator does not see spent points as available.
 - A failed or rejected fulfillment may restore points exactly once. Publishing a valid fulfillment must reconcile any earlier refund exactly once.

@@ -24,6 +24,7 @@ for (const table of ['submissions', 'point_logs', 'redemption_orders', 'reward_f
 }
 
 const pointTierMigration = fs.readFileSync('supabase/migrations/20261012120000_project_point_tier_rpcs.sql', 'utf8');
+const uidIdentityMigration = fs.readFileSync('supabase/migrations/20261012150000_remove_global_uid_identity.sql', 'utf8');
 assert(pointTierMigration.includes('add_project_point_log_once'), 'project-scoped point adjustment RPC is required');
 assert(pointTierMigration.includes('logs.project_id = v_project_id AND logs.creator_id = v_creator_id'), 'point balances must be scoped by project and creator identity');
 assert(pointTierMigration.includes('preview_project_legacy_tier_upgrades'), 'project-scoped tier preview RPC is required');
@@ -31,6 +32,11 @@ assert(pointTierMigration.includes('apply_project_legacy_tier_upgrade_preview'),
 assert(pointTierMigration.includes('batches.id = p_batch_id AND batches.project_id = v_project_id'), 'tier preview application must validate project ownership');
 assert(!fs.readFileSync('admin.html', 'utf8').includes("adminRpc('add_point_log_once'"), 'admin must not call the legacy point RPC');
 assert(!fs.readFileSync('supabase/functions/registration-review/index.ts', 'utf8').includes('db.rpc("add_point_log_once"'), 'edge function must not call the legacy point RPC');
+assert(uidIdentityMigration.includes('PRIMARY KEY USING INDEX idx_kocs_creator_id_unique'), 'creator_id must replace UID as the creator primary key');
+assert(uidIdentityMigration.includes("attributes.attname = 'uid'"), 'legacy UID foreign keys must be removed dynamically');
+assert(uidIdentityMigration.includes('PRIMARY KEY (project_id, creator_id, period)'), 'tier score identity must be project scoped');
+assert(uidIdentityMigration.includes('WHERE project_id = v_project_id AND creator_id = v_creator_id'), 'UID changes must propagate by immutable creator identity');
+assert(uidIdentityMigration.includes("'mlt-global', p_uid, p_account_id"), 'legacy creator RPCs must be explicit default-project wrappers');
 assert(identityMigration.includes("RAISE EXCEPTION 'creator identity does not match project and UID'"), 'database must reject mismatched creator references');
 for (const rpc of ['submit_project_creator_work', 'submit_project_creator_showcase', 'redeem_project_points', 'edit_project_pending_redemption']) {
   assert(portalRpcMigration.includes(`FUNCTION public.${rpc}`), `${rpc} must be project-aware`);

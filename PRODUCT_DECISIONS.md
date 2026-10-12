@@ -32,6 +32,7 @@ This log records decisions that materially affect creator balances, monthly sett
 | PD-015 | Creator-facing writes resolve `project_key` before `creator_id`. | A UID can eventually exist in more than one project. | Submission and redemption RPCs never aggregate or mutate records by UID alone. |
 | PD-016 | Admin and Discord identity operations resolve project ownership before creator mutation. | A display UID is not sufficient for tenant-safe administration. | Profile changes, registration, manual rewards, identity sync, and auto-welcome cannot inspect or update another project's creators. |
 | PD-017 | Point adjustments and tier settlement use project ownership plus immutable creator identity. | Operation keys, balances, preview batches, and tier writes must not collide when two projects use the same visible UID. | New RPCs require `project_key`; legacy RPC names are default-project compatibility wrappers only. |
+| PD-018 | `creator_id`, not Game UID, owns creator relationships. | Game UID is mutable and may be reused in another project. | `kocs.creator_id` is the primary key; UID remains a project-scoped display/login field and is propagated explicitly on profile changes. |
 
 ## How To Add A Decision
 

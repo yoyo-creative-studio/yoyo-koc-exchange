@@ -86,7 +86,8 @@ Current status: Phase 1 and the first production-safe part of Phase 3 are deploy
 - Admin UID changes and profile propagation now resolve the project and update related records by `creator_id`.
 - Registration review, manual creator/reward creation, missing-order reconstruction, Discord identity sync, and Mochi auto-welcome creator lookups are project-scoped.
 - Point adjustment and legacy tier preview/apply RPCs now resolve `project_key`, lock and aggregate by `project_id + creator_id`, and retain default-project wrappers only for rollback compatibility.
-- The next migration may remove the legacy global UID primary key only after replacing remaining UID foreign keys and project-scoping any legacy database triggers that still resolve creators by UID alone.
+- `creator_id` is now the creator primary key. Legacy UID foreign keys were removed, tier identities and unique indexes are project-scoped, UID display fields propagate explicitly by immutable creator identity, and legacy creator RPCs are default-project wrappers.
+- A visible Game UID may now be reused by different projects while remaining unique inside each project.
 
 ### Phase 4: Roles And Templates
 
