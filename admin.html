@@ -852,6 +852,12 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
         <a href="https://yoyo-creative-studio.github.io/yoyo-koc-exchange/portfolio.html" target="_blank" rel="noopener" class="btn btn-sm btn-outline" style="text-decoration:none;">↗ Portfolio</a>
       </div>
       <div class="admin-header-tools">
+        <div style="display:flex;align-items:center;gap:6px;background:#f3e5f5;padding:6px 12px;border-radius:10px;border:2px solid #74408f;">
+          <span style="font-size:13px;font-weight:700;color:#5e3377;">🧩 当前项目</span>
+          <select id="active-project-select" style="width:210px;padding:4px 8px;border:1.5px solid #74408f;border-radius:6px;font-size:12px;font-weight:700;background:white;cursor:pointer;" onchange="switchActiveProject(this.value)">
+            <option value="">加载项目...</option>
+          </select>
+        </div>
         <div style="display:flex;align-items:center;gap:6px;background:#fce4ec;padding:6px 14px;border-radius:10px;border:2px solid var(--pink);">
           <span style="font-size:13px;font-weight:600;color:var(--pink-dark);">📅 工作月份</span>
           <select id="settle-month" style="width:140px;padding:4px 8px;border:1.5px solid var(--pink);border-radius:6px;font-size:13px;font-weight:600;background:white;cursor:pointer;" onchange="changeSettlePeriod()">
@@ -1828,9 +1834,19 @@ let platformProjects = [];
 let selectedPlatformProjectId = '';
 let projectRewardOptions = [];
 window.ACTIVE_PROJECT_ID = '';
+window.ACTIVE_PROJECT_KEY = '';
+
+function getActiveProject() {
+  return platformProjects.find(function(project) { return project.id === window.ACTIVE_PROJECT_ID; }) || null;
+}
+
+function getActiveProjectKey() {
+  var project = getActiveProject();
+  return project ? project.project_key : (window.ACTIVE_PROJECT_KEY || 'mlt-global');
+}
 
 async function registrationReviewFetch(action, data) {
-  data = Object.assign({ project_key: 'mlt-global' }, data || {});
+  data = Object.assign({ project_key: getActiveProjectKey() }, data || {});
   var response = await supabaseFetch(SUPABASE_URL + '/functions/v1/registration-review', {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + SUPABASE_KEY },
@@ -1852,6 +1868,12 @@ async function loadPlatformProjects(preferredId) {
   try {
     var result = await registrationReviewFetch('list_platform_projects');
     platformProjects = result.projects || [];
+    var activeSelect = document.getElementById('active-project-select');
+    if (activeSelect) {
+      activeSelect.innerHTML = platformProjects.filter(function(project) { return project.status === 'active'; }).map(function(project) {
+        return '<option value="' + escAttr(project.id) + '">' + esc(project.name) + '</option>';
+      }).join('');
+    }
     select.innerHTML = '<option value="">＋ 新建项目配置</option>' + platformProjects.map(function(project) {
       return '<option value="' + escAttr(project.id) + '">' + esc(project.name) + ' · ' + esc(project.project_key) + '</option>';
     }).join('');
@@ -1863,6 +1885,37 @@ async function loadPlatformProjects(preferredId) {
     var status = document.getElementById('platform-project-status-text');
     if (status) status.textContent = error.message;
   }
+}
+
+async function initializeActiveProject() {
+  await loadPlatformProjects();
+  var savedId = localStorage.getItem('admin_active_project_id');
+  var project = platformProjects.find(function(item) { return item.id === savedId && item.status === 'active'; })
+    || platformProjects.find(function(item) { return item.project_key === 'mlt-global' && item.status === 'active'; })
+    || platformProjects.find(function(item) { return item.status === 'active'; });
+  if (!project) throw new Error('No active project is configured');
+  window.ACTIVE_PROJECT_ID = project.id;
+  window.ACTIVE_PROJECT_KEY = project.project_key;
+  var select = document.getElementById('active-project-select');
+  if (select) select.value = project.id;
+}
+
+async function switchActiveProject(projectId) {
+  var project = platformProjects.find(function(item) { return item.id === projectId && item.status === 'active'; });
+  if (!project || project.id === window.ACTIVE_PROJECT_ID) return;
+  window.ACTIVE_PROJECT_ID = project.id;
+  window.ACTIVE_PROJECT_KEY = project.project_key;
+  localStorage.setItem('admin_active_project_id', project.id);
+  allKocs = [];
+  allOrders = [];
+  allSubmissions = [];
+  registrationApplications = [];
+  rewardFulfillments = [];
+  currentPeriod = '';
+  showToast('正在切换到 ' + project.name + '...', 'info');
+  await loadSettleMonthDropdown();
+  await loadData();
+  showToast('✅ 已切换到 ' + project.name, 'success');
 }
 
 function selectPlatformProject(id) {
@@ -1883,7 +1936,7 @@ function selectPlatformProject(id) {
   var scope = document.getElementById('platform-project-scope');
   scope.innerHTML = project.project_key === 'mlt-global'
     ? '<strong>✅ 已连接生产业务</strong>：当前 KOC、投稿、积分、订单与履约数据仍属于此项目。'
-    : '<strong>🧩 配置草稿</strong>：该项目尚未连接创作者和订单数据，不会影响 MLT Global。';
+    : '<strong>🧩 独立业务空间</strong>：可单独管理创作者、投稿、积分、订单与履约数据，不会影响 MLT Global。';
   document.getElementById('platform-project-status-text').textContent = '';
   loadProjectRewardOptions(project.id);
 }
@@ -2135,6 +2188,7 @@ window.adminLogin = async function adminLogin() {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('admin-panel').classList.remove('hidden');
     setTimeout(async function() {
+      await initializeActiveProject();
       await loadSettleMonthDropdown();
       await loadData();
     }, 100);
@@ -2297,7 +2351,7 @@ var pendingLegacyTierPreview = null;
 
 async function previewLegacyTierUpgrades() {
   try {
-    var result = await adminRpc('preview_project_legacy_tier_upgrades', { p_project_key: 'mlt-global' });
+    var result = await adminRpc('preview_project_legacy_tier_upgrades', { p_project_key: getActiveProjectKey() });
     pendingLegacyTierPreview = result;
     var panel = document.getElementById('tier-upgrade-preview');
     var rows = result.upgrades || [];
@@ -2317,7 +2371,7 @@ async function applyLegacyTierUpgradePreview() {
   if (phrase !== 'CONFIRM 2026-08 TIER UPGRADES') { showToast('确认文字不匹配，未执行', 'error'); return; }
   try {
     var result = await adminRpc('apply_project_legacy_tier_upgrade_preview', {
-      p_project_key: 'mlt-global',
+      p_project_key: getActiveProjectKey(),
       p_batch_id: pendingLegacyTierPreview.batch_id,
       p_confirmation: phrase
     });
@@ -2400,8 +2454,10 @@ async function syncDiscordIdentities() {
 async function loadSettleMonthDropdown() {
   try {
     var [configRes, snapshotRes] = await Promise.all([
-      supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/get_project_campaign_periods', { method: 'POST', body: JSON.stringify({ p_project_key: 'mlt-global' }) }),
-      supabaseFetch(SUPABASE_URL + '/rest/v1/monthly_report_snapshots?select=period&order=period.asc')
+      supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/get_project_campaign_periods', { method: 'POST', body: JSON.stringify({ p_project_key: getActiveProjectKey() }) }),
+      getActiveProjectKey() === 'mlt-global'
+        ? supabaseFetch(SUPABASE_URL + '/rest/v1/monthly_report_snapshots?select=period&order=period.asc')
+        : Promise.resolve({ ok: true, json: function() { return Promise.resolve([]); } })
     ]);
     if (!configRes.ok) return;
     var data = await configRes.json();
@@ -2415,6 +2471,17 @@ async function loadSettleMonthDropdown() {
     var sel = document.getElementById('settle-month');
     sel.innerHTML = '';
 
+    if (!availablePeriods.length) {
+      currentPeriod = '';
+      sel.innerHTML = '<option value="">未配置活动月份</option>';
+      sel.disabled = true;
+      var emptyLabel = document.getElementById('settle-label');
+      if (emptyLabel) emptyLabel.textContent = '📅 未配置';
+      syncAdminPeriodSelectors('');
+      return;
+    }
+    sel.disabled = false;
+
     availablePeriods.forEach(function(period) {
       var opt = document.createElement('option');
       opt.value = period;
@@ -2427,7 +2494,6 @@ async function loadSettleMonthDropdown() {
 
     // 默认选中当前期
     var currentData = data.filter(function(row) { return row.is_current_period === true; });
-    if (data.length && data[0].project_id) window.ACTIVE_PROJECT_ID = data[0].project_id;
     if (currentData.length === 1 && periodMap[currentData[0].period]) {
       sel.value = currentData[0].period;
       currentPeriod = currentData[0].period;
@@ -2445,7 +2511,7 @@ async function loadSettleMonthDropdown() {
       lbl.textContent = '📅 ' + currentPeriod.replace('-', '年') + '月';
     }
 
-    changeSettlePeriod();
+    if (currentPeriod) changeSettlePeriod();
   } catch(e) { console.error('loadSettleMonthDropdown:', e); }
 }
 
@@ -2669,7 +2735,12 @@ async function saveCampaignConfig() {
     consistent_creation_bonus: { min_posts: 15 }
   };
   try {
-    await adminRpc('publish_campaign_period', { p_period: period, p_rules_json: JSON.stringify(rules), p_points_cap: pointsCap });
+    await adminRpc('publish_project_campaign_period', {
+      p_project_key: getActiveProjectKey(),
+      p_period: period,
+      p_rules_json: JSON.stringify(rules),
+      p_points_cap: pointsCap
+    });
 
     syncAdminPeriodSelectors(period);
 
@@ -3773,7 +3844,7 @@ async function confirmScoreImport() {
         var pts = sub.points_earned || 0;
         try {
           await adminRpc('add_project_point_log_once', {
-              p_project_key: 'mlt-global',
+              p_project_key: getActiveProjectKey(),
               p_uid: sub.uid,
               p_change: pts,
               p_source: 'auto_settlement',
@@ -3801,7 +3872,7 @@ async function confirmScoreImport() {
               var isOld2 = notes.indexOf('old_creator') >= 0 || notesObj2.old_creator === true || notesObj2.old_creator === 'true';
               if (!isOld2 && nbMonth2 === currentPeriod && !bonusClaimed2 && pts >= 5) {
                 await adminRpc('add_project_point_log_once', {
-                    p_project_key: 'mlt-global',
+                    p_project_key: getActiveProjectKey(),
                     p_uid: sub.uid,
                     p_change: 2,
                     p_source: 'auto_settlement',
@@ -3834,7 +3905,7 @@ async function confirmScoreImport() {
       if (sub.uid && referralBonus > 0) {
         try {
           await adminRpc('add_project_point_log_once', {
-            p_project_key: 'mlt-global',
+            p_project_key: getActiveProjectKey(),
             p_uid: sub.uid,
             p_change: referralBonus,
             p_source: 'manual',
@@ -4765,20 +4836,6 @@ async function loadFeedback() {
     listEl.innerHTML = '<div style="color:#c62828;padding:10px 0;">加载失败: ' + esc(e.message) + '</div>';
   }
 }
-
-// Init submissions on page load
-document.addEventListener('DOMContentLoaded', function() {
-  // Auto-restore session from localStorage
-  if (localStorage.getItem('admin_session') === 'logged_in' && ADMIN_PASSWORD) {
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('admin-panel').classList.remove('hidden');
-    setTimeout(async function() {
-      await loadSettleMonthDropdown();
-      await loadData();
-    }, 100);
-  }
-});
-
 
 function mochiSupportFooter(message) {
   var oldFooterText = '---\nPlease do not reply to MochiBot directly. Check the FAQ first, then post in #town-service-station if you still need help.';
@@ -8871,7 +8928,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loginScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
         setTimeout(function() {
-          loadSettleMonthDropdown().then(function() { return loadData(); }).then(function() {
+          initializeActiveProject().then(function() { return loadSettleMonthDropdown(); }).then(function() { return loadData(); }).then(function() {
             var savedTab = localStorage.getItem('admin_active_tab');
             if (savedTab && ['dashboard','koc-ledger','scoring','submissions','diamond','gplay','rules','audit'].indexOf(savedTab) >= 0) {
               switchTab(savedTab);

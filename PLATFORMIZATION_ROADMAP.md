@@ -88,6 +88,8 @@ Current status: Phase 1 and the first production-safe part of Phase 3 are deploy
 - Point adjustment and legacy tier preview/apply RPCs now resolve `project_key`, lock and aggregate by `project_id + creator_id`, and retain default-project wrappers only for rollback compatibility.
 - `creator_id` is now the creator primary key. Legacy UID foreign keys were removed, tier identities and unique indexes are project-scoped, UID display fields propagate explicitly by immutable creator identity, and legacy creator RPCs are default-project wrappers.
 - A visible Game UID may now be reused by different projects while remaining unique inside each project.
+- The admin console now has an active business-project selector. Switching projects reloads campaign periods, creators, registrations, submissions, points, orders, and fulfillment data under the selected project.
+- `creator-platform-sandbox` is the empty isolation environment. Cross-project testing confirmed that the same Game UID and a sandbox point adjustment do not change the production creator balance; temporary test records were removed afterward.
 
 ### Phase 4: Roles And Templates
 

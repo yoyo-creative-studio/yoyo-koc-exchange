@@ -531,8 +531,9 @@ serve(async (req) => {
     }
 
     if (action === "list_reward_fulfillments") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const period = String(data.period || "").trim();
-      let query = db.from("reward_fulfillments").select("*").order("updated_at", { ascending: false });
+      let query = db.from("reward_fulfillments").select("*").eq("project_id", projectId).order("updated_at", { ascending: false });
       if (period) query = query.eq("period", period);
       const { data: rows, error } = await query;
       if (error) return json({ ok: false, error: error.message }, 400);
@@ -540,21 +541,23 @@ serve(async (req) => {
     }
 
     if (action === "delete_reward_fulfillments") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const ids = (Array.isArray(data.ids) ? data.ids : []).map(Number).filter(Boolean);
       if (!ids.length) return json({ ok: false, error: "No fulfillment records selected" }, 400);
       const { data: rows, error: loadError } = await db.from("reward_fulfillments")
-        .select("id,is_published").in("id", ids);
+        .select("id,is_published").eq("project_id", projectId).in("id", ids);
       if (loadError) return json({ ok: false, error: loadError.message }, 400);
       if ((rows || []).length !== ids.length) return json({ ok: false, error: "Some fulfillment records were not found" }, 404);
       if ((rows || []).some((row) => row.is_published)) {
         return json({ ok: false, error: "Published fulfillment records cannot be deleted" }, 409);
       }
-      const { error } = await db.from("reward_fulfillments").delete().in("id", ids).eq("is_published", false);
+      const { error } = await db.from("reward_fulfillments").delete().eq("project_id", projectId).in("id", ids).eq("is_published", false);
       if (error) return json({ ok: false, error: error.message }, 400);
       return json({ ok: true, deleted: ids.length });
     }
 
     if (action === "update_reward_fulfillment_notes") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const updates = Array.isArray(data.updates) ? data.updates : [];
       if (!updates.length) return json({ ok: false, error: "No fulfillment note updates supplied" }, 400);
       let updated = 0;
@@ -563,7 +566,7 @@ serve(async (req) => {
         if (!id) return json({ ok: false, error: "Invalid fulfillment record id" }, 400);
         const { error } = await db.from("reward_fulfillments")
           .update({ reward_note: normalizeCreatorRewardNote(item.reward_note), updated_at: new Date().toISOString(), updated_by: "admin-copy-normalization" })
-          .eq("id", id);
+          .eq("project_id", projectId).eq("id", id);
         if (error) return json({ ok: false, error: error.message }, 400);
         updated += 1;
       }
@@ -571,26 +574,27 @@ serve(async (req) => {
     }
 
     if (action === "delete_reward_orders") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const ids = (Array.isArray(data.ids) ? data.ids : []).map(Number).filter(Boolean);
       if (!ids.length) return json({ ok: false, error: "No reward orders selected" }, 400);
       const { data: orders, error: loadError } = await db.from("redemption_orders")
-        .select("id,points_spent,status").in("id", ids);
+        .select("id,points_spent,status").eq("project_id", projectId).in("id", ids);
       if (loadError) return json({ ok: false, error: loadError.message }, 400);
       if ((orders || []).length !== ids.length) return json({ ok: false, error: "Some reward orders were not found" }, 404);
       if ((orders || []).some((order) => Number(order.points_spent) !== 0 || order.status !== "shipped")) {
         return json({ ok: false, error: "Only zero-point administrator rewards can be deleted" }, 409);
       }
       const { data: fulfillmentRows, error: fulfillmentError } = await db.from("reward_fulfillments")
-        .select("order_id,is_published").in("order_id", ids);
+        .select("order_id,is_published").eq("project_id", projectId).in("order_id", ids);
       if (fulfillmentError) return json({ ok: false, error: fulfillmentError.message }, 400);
       if ((fulfillmentRows || []).some((row) => row.is_published)) {
         return json({ ok: false, error: "Published rewards cannot be deleted" }, 409);
       }
       if ((fulfillmentRows || []).length) {
-        const { error: deleteFulfillmentError } = await db.from("reward_fulfillments").delete().in("order_id", ids).eq("is_published", false);
+        const { error: deleteFulfillmentError } = await db.from("reward_fulfillments").delete().eq("project_id", projectId).in("order_id", ids).eq("is_published", false);
         if (deleteFulfillmentError) return json({ ok: false, error: deleteFulfillmentError.message }, 400);
       }
-      const { error } = await db.from("redemption_orders").delete().in("id", ids).eq("points_spent", 0).eq("status", "shipped");
+      const { error } = await db.from("redemption_orders").delete().eq("project_id", projectId).in("id", ids).eq("points_spent", 0).eq("status", "shipped");
       if (error) return json({ ok: false, error: error.message }, 400);
       return json({ ok: true, deleted: ids.length });
     }
@@ -818,10 +822,11 @@ serve(async (req) => {
     }
 
     if (action === "publish_reward_fulfillments") {
+      const projectId = await resolveProjectId(String(data.project_key || "mlt-global"));
       const ids = (Array.isArray(data.ids) ? data.ids : []).map(Number).filter(Boolean);
       if (!ids.length) return json({ ok: false, error: "No fulfillment records selected" }, 400);
       const { data: selectedRows, error: selectedError } = await db.from("reward_fulfillments")
-        .select("id,order_id,reward_type,gift_codes,is_published").in("id", ids);
+        .select("id,order_id,reward_type,gift_codes,is_published").eq("project_id", projectId).in("id", ids);
       if (selectedError) return json({ ok: false, error: selectedError.message }, 400);
       if ((selectedRows || []).length !== ids.length) return json({ ok: false, error: "One or more fulfillment records were not found" }, 404);
       const selectedCodeOwners = new Map<string, number>();
@@ -840,7 +845,7 @@ serve(async (req) => {
       if (selectedCodeOwners.size) {
         const selectedOrderIds = (selectedRows || []).map((row) => Number(row.order_id));
         const { data: publishedCodeRows, error: publishedCodeError } = await db.from("reward_fulfillments")
-          .select("order_id,gift_codes").eq("is_published", true).not("order_id", "in", `(${selectedOrderIds.join(",")})`);
+          .select("order_id,gift_codes").eq("project_id", projectId).eq("is_published", true).not("order_id", "in", `(${selectedOrderIds.join(",")})`);
         if (publishedCodeError) return json({ ok: false, error: publishedCodeError.message }, 400);
         for (const publishedRow of publishedCodeRows || []) {
           for (const existingCode of Array.isArray(publishedRow.gift_codes) ? publishedRow.gift_codes : []) {
@@ -854,11 +859,11 @@ serve(async (req) => {
       if (error) return json({ ok: false, error: error.message }, 400);
       const selectedOrderIds = (selectedRows || []).map((row) => Number(row.order_id)).filter(Boolean);
       const { data: selectedOrders, error: selectedOrdersError } = await db.from("redemption_orders")
-        .select("id,uid,points_spent,period").in("id", selectedOrderIds);
+        .select("id,uid,points_spent,period").eq("project_id", projectId).in("id", selectedOrderIds);
       if (selectedOrdersError) return json({ ok: false, error: selectedOrdersError.message }, 400);
       const refundKeys = (selectedOrders || []).map((order) => `refund-pre-fulfillment:${order.id}`);
       const { data: refundRows, error: refundError } = refundKeys.length
-        ? await db.from("point_logs").select("operation_key").in("operation_key", refundKeys)
+        ? await db.from("point_logs").select("operation_key").eq("project_id", projectId).in("operation_key", refundKeys)
         : { data: [], error: null };
       if (refundError) return json({ ok: false, error: refundError.message }, 400);
       const refundedOrderIds = new Set((refundRows || []).map((row) => String(row.operation_key || "").split(":").pop()));

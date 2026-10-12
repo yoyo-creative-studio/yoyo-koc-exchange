@@ -33,6 +33,7 @@ This log records decisions that materially affect creator balances, monthly sett
 | PD-016 | Admin and Discord identity operations resolve project ownership before creator mutation. | A display UID is not sufficient for tenant-safe administration. | Profile changes, registration, manual rewards, identity sync, and auto-welcome cannot inspect or update another project's creators. |
 | PD-017 | Point adjustments and tier settlement use project ownership plus immutable creator identity. | Operation keys, balances, preview batches, and tier writes must not collide when two projects use the same visible UID. | New RPCs require `project_key`; legacy RPC names are default-project compatibility wrappers only. |
 | PD-018 | `creator_id`, not Game UID, owns creator relationships. | Game UID is mutable and may be reused in another project. | `kocs.creator_id` is the primary key; UID remains a project-scoped display/login field and is propagated explicitly on profile changes. |
+| PD-019 | The admin chooses one active business project before loading operational data. | A configuration editor selection is not a reliable tenant boundary. | Reads, direct writes, RPCs, registration review, and fulfillment actions inherit the explicit active project context. |
 
 ## How To Add A Decision
 

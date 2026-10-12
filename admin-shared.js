@@ -2,8 +2,21 @@ function supabaseFetch(url, opts) {
   opts = opts || {};
   var projectId = window.ACTIVE_PROJECT_ID || '';
   var method = String(opts.method || 'GET').toUpperCase();
-  if (method !== 'POST' && projectId && /\/rest\/v1\/(kocs|registration_applications|submissions|point_logs|redemption_orders|reward_fulfillments|redemption_order_edits)(\?|$)/.test(url) && !/[?&]project_id=/.test(url)) {
+  var projectTableMatch = url.match(/\/rest\/v1\/(kocs|registration_applications|submissions|point_logs|redemption_orders|reward_fulfillments|redemption_order_edits|creator_monthly_tier_scores|creator_tier_history|campaign_config)(\?|$)/);
+  if (method !== 'POST' && projectId && projectTableMatch && !/[?&]project_id=/.test(url)) {
     url += (url.indexOf('?') >= 0 ? '&' : '?') + 'project_id=eq.' + encodeURIComponent(projectId);
+  }
+  if (method === 'POST' && projectId && projectTableMatch && opts.body) {
+    try {
+      var parsedBody = typeof opts.body === 'string' ? JSON.parse(opts.body) : opts.body;
+      var rows = Array.isArray(parsedBody) ? parsedBody : [parsedBody];
+      rows.forEach(function(row) {
+        if (row && typeof row === 'object' && !row.project_id) row.project_id = projectId;
+      });
+      opts = Object.assign({}, opts, { body: JSON.stringify(parsedBody) });
+    } catch (error) {
+      throw new Error('Invalid project-scoped request body');
+    }
   }
   return fetch(url, Object.assign({}, opts, {
     headers: Object.assign({ 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, opts.headers || {})
