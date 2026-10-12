@@ -770,13 +770,13 @@
     <div class="hero-copy">
       <div class="eyebrow">♥ YOYO CREATIVE STUDIO · KOC OPERATIONS ♥</div>
       <h1>🎀 KOC 创作者管理系统 · 全流程图</h1>
-      <p>一页看懂创作者如何注册、投稿、查看积分和兑换奖励，以及管理员如何审核、结算、发奖和运营通知。创作者端与管理端通过 Supabase 实时连接，所有月份均由管理端的“当前活动月”统一控制。</p>
+      <p>一页看懂创作者项目如何从项目模板与上线检查开始，进入注册、投稿、结算、兑换和履约闭环。每个项目拥有独立品牌、规则、创作者、积分和订单，通过 Supabase 与 MochiBot 连接双端业务。</p>
       <div class="hero-meta">
         <span>创作者门户 index.html</span>
         <span>管理后台 admin.html</span>
         <span>Supabase 数据中心</span>
         <span>MochiBot 通知</span>
-        <span>更新：2026.08</span>
+        <span>更新：2026.10</span>
       </div>
     </div>
     <aside class="seraphina-card seraphina-card-hero" aria-label="System creator Seraphina, known to creators as YoYo assistant Mochi">
@@ -795,6 +795,30 @@
     <article class="overview-card"><div class="icon">☁️</div><strong>Supabase</strong><small>保存 KOC、投稿、积分流水、兑换订单、活动规则与审计记录，并同步双端数据。</small></article>
     <article class="overview-card"><div class="icon">🤖</div><strong>MochiBot</strong><small>发送新人欢迎、审批通过、投稿提醒、个性化结算和等级变动通知。</small></article>
   </section>
+
+  <div class="bottom-grid" aria-label="平台化项目初始化流程">
+    <section class="panel">
+      <h2>🧩 可复制项目模板</h2>
+      <p>从现有项目复制配置，不复制任何创作者或运营数据。</p>
+      <div class="data-flow">
+        <div class="data-box"><strong>复制模板</strong><small>品牌、奖励、活动与等级规则</small></div>
+        <div class="data-arrow">→</div>
+        <div class="data-box"><strong>独立项目</strong><small>自动生成 project_id 与门户链接</small></div>
+        <div class="data-arrow">→</div>
+        <div class="data-box"><strong>数据隔离</strong><small>人员、地址、投稿、积分与订单为空</small></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>🚀 上线门禁</h2>
+      <p>新项目默认暂停，完成 6 项检查后才能开放给创作者。</p>
+      <div class="rules">
+        <div class="rule"><strong>品牌与地区</strong>名称、门户文案、语言、时区和运营地区完整。</div>
+        <div class="rule"><strong>业务配置</strong>Discord、奖励、当前活动月、积分与等级规则齐全。</div>
+        <div class="rule"><strong>数据库门禁</strong>检查未通过时，即使绕过前端也无法激活项目。</div>
+        <div class="rule"><strong>独立入口</strong><code>?project=&lt;project_key&gt;</code> 路由到对应门户。</div>
+      </div>
+    </section>
+  </div>
 
   <section class="flow-board">
     <div class="board-head">
@@ -829,8 +853,8 @@
         <div class="cell"><div class="step creator-step"><span class="step-no">4</span><h3>查看 My Submissions</h3><p>按月份查看自己的链接、投稿数量和审核状态；被拒绝后可释放投稿机会。</p><span class="tag">Pending / Scored</span></div></div>
         <div class="cell"><div class="step manual-step"><span class="step-no">5</span><h3>等待当月统一算分</h3><p>外部算分 Agent 抓取互动与播放数据，生成积分结果和每人个性化通知 CSV。</p><span class="tag">人工结算环节</span></div></div>
         <div class="cell"><div class="step creator-step"><span class="step-no">6</span><h3>查看积分与等级</h3><p>结算导入后查看本月得分、历史余额、等级与新人奖励情况。</p><span class="tag">余额 = 积分流水求和</span></div></div>
-        <div class="cell"><div class="step creator-step"><span class="step-no">7</span><h3>选择奖励并提交</h3><p>兑换开放后选择钻石、Google Play 礼品卡或官方周边，生成待处理订单。</p><span class="tag">积分暂不立即扣除</span></div></div>
-        <div class="cell last"><div class="step creator-step"><span class="step-no">8</span><h3>查看订单结果</h3><p>在 My Orders 查看待处理与已发放状态；积分在管理员确认发货时正式扣除。</p><span class="tag">完成本月闭环</span></div></div>
+        <div class="cell"><div class="step creator-step"><span class="step-no">7</span><h3>选择奖励并提交</h3><p>兑换开放后选择钻石、Google Play 礼品卡或官方周边，生成待处理订单并立即占用对应积分。</p><span class="tag">提交后余额立即更新</span></div></div>
+        <div class="cell last"><div class="step creator-step"><span class="step-no">8</span><h3>查看订单结果</h3><p>在 My Orders 查看 Pending、Processing、Completed 或 Cancelled；失败或取消时按规则恢复积分。</p><span class="tag">完成本月闭环</span></div></div>
 
         <div class="lane-label system-lane"><b>☁️</b>系统数据层<small>Supabase + Automation</small></div>
         <div class="cell"><div class="step system-step"><span class="step-no">1</span><h3>识别新加入成员</h3><p>新人自动欢迎仅处理开关启用后新进入 Discord 的成员，避免追发历史成员。</p><span class="tag">欢迎通知</span></div></div>
@@ -840,7 +864,7 @@
         <div class="cell"><div class="step system-step"><span class="step-no">5</span><h3>接收结算导入</h3><p>预览匹配 KOC 后，将确认的月度结果写入积分流水，并保留导入记录。</p><span class="tag">score_imports → point_logs</span></div></div>
         <div class="cell"><div class="step system-step"><span class="step-no">6</span><h3>实时计算余额</h3><p>所有加分与扣分统一汇总；前端不依赖手写余额，避免两端数字不一致。</p><span class="tag">SUM(point_logs.change)</span></div></div>
         <div class="cell"><div class="step system-step"><span class="step-no">7</span><h3>校验兑换条件</h3><p>检查兑换窗口、可用积分和奖励数量，成功后创建 redemption_orders。</p><span class="tag">订单待处理</span></div></div>
-        <div class="cell last"><div class="step system-step"><span class="step-no">8</span><h3>扣分与操作留痕</h3><p>发货时写入负积分流水；重复发货不会重复扣分，关键操作进入审计日志。</p><span class="tag">point_logs + audit_logs</span></div></div>
+        <div class="cell last"><div class="step system-step"><span class="step-no">8</span><h3>履约对账与留痕</h3><p>发布发放结果时核对订单与积分流水；退款、补扣和重复操作均有幂等保护与审计记录。</p><span class="tag">point_logs + audit_logs</span></div></div>
 
         <div class="lane-label admin-lane"><b>🧑‍💻</b>管理端<small>Admin Dashboard</small></div>
         <div class="cell"><div class="step admin-step"><span class="step-no">1</span><h3>设置 Bot 与欢迎规则</h3><p>配置 MochiBot Token、自动欢迎开关和统一尾注；广播发送前必须预览确认。</p><span class="tag">运营配置</span></div></div>
@@ -857,7 +881,7 @@
     <div class="status-strip">
       <div class="status"><strong>📅 月份权威</strong>规则配置中的“当前活动月”决定创作者提交到哪个月；后台顶部月份只决定管理员正在查看哪个月。</div>
       <div class="status"><strong>⏰ 时区口径</strong>投稿与兑换截止时间统一按 UTC-7 解释，人工开关和自动到期关闭可以同时使用。</div>
-      <div class="status"><strong>💎 积分权威</strong>余额永远由 point_logs 流水求和；兑换订单建立时保留积分，管理员确认发放后才正式扣除。</div>
+      <div class="status"><strong>💎 积分权威</strong>余额永远由 point_logs 流水求和；提交兑换时立即占用并扣减，取消或失败可幂等恢复，发布履约结果时再次对账。</div>
       <div class="status"><strong>🎁 新人规则</strong>新人月是审核通过后的第一个完整自然月；达到基础 5 分可额外 +2，每人只能领取一次。</div>
       <div class="status"><strong>🔔 通知原则</strong>MochiBot 只发送系统通知；所有广播先预览、再确认，个性化结算按 UID 逐人匹配发送。</div>
     </div>
@@ -895,7 +919,7 @@
   </div>
 
   <footer class="footnote">
-    本图用于团队介绍、内部培训与全流程测试。实际月度运营顺序：设置活动月与窗口 → 收集投稿 → 审核与算分 → 导入积分 → 开放兑换 → 发奖扣分 → 数据复盘。
+    本图用于团队介绍、内部培训与全流程测试。项目上线顺序：复制/新建项目 → 完成配置 → 通过上线检查 → 开放独立门户；月度运营顺序：设置活动月与窗口 → 收集投稿 → 审核与算分 → 导入积分 → 开放兑换 → 奖励履约 → 数据复盘。
   </footer>
 </main>
 
