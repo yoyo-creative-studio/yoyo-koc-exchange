@@ -417,11 +417,11 @@ serve(async (req) => {
       const allowedRpcNames = new Set([
         "publish_campaign_period",
         "publish_project_campaign_period",
-        "add_point_log_once",
+        "add_project_point_log_once",
         "ship_redemption_order",
         "queue_redemption_order",
-        "preview_legacy_tier_upgrades",
-        "apply_legacy_tier_upgrade_preview",
+        "preview_project_legacy_tier_upgrades",
+        "apply_project_legacy_tier_upgrade_preview",
       ]);
       if (!allowedRpcNames.has(rpcName)) return json({ ok: false, error: "Admin operation is not allowed" }, 400);
       const { data: rpcResult, error: rpcError } = await db.rpc(rpcName, data.params || {});
@@ -866,7 +866,8 @@ serve(async (req) => {
       for (const order of selectedOrders || []) {
         const pointsSpent = Number(order.points_spent || 0);
         if (pointsSpent <= 0 || !refundedOrderIds.has(String(order.id))) continue;
-        const { data: correction, error: correctionError } = await db.rpc("add_point_log_once", {
+        const { data: correction, error: correctionError } = await db.rpc("add_project_point_log_once", {
+          p_project_key: String(data.project_key || "mlt-global"),
           p_uid: order.uid,
           p_change: -pointsSpent,
           p_source: "redemption",

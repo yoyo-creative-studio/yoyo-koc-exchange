@@ -2297,7 +2297,7 @@ var pendingLegacyTierPreview = null;
 
 async function previewLegacyTierUpgrades() {
   try {
-    var result = await adminRpc('preview_legacy_tier_upgrades', {});
+    var result = await adminRpc('preview_project_legacy_tier_upgrades', { p_project_key: 'mlt-global' });
     pendingLegacyTierPreview = result;
     var panel = document.getElementById('tier-upgrade-preview');
     var rows = result.upgrades || [];
@@ -2316,7 +2316,8 @@ async function applyLegacyTierUpgradePreview() {
   var phrase = prompt('此操作会写入已预览的等级升级，但不会发送 MochiBot 消息。\n请输入：CONFIRM 2026-08 TIER UPGRADES');
   if (phrase !== 'CONFIRM 2026-08 TIER UPGRADES') { showToast('确认文字不匹配，未执行', 'error'); return; }
   try {
-    var result = await adminRpc('apply_legacy_tier_upgrade_preview', {
+    var result = await adminRpc('apply_project_legacy_tier_upgrade_preview', {
+      p_project_key: 'mlt-global',
       p_batch_id: pendingLegacyTierPreview.batch_id,
       p_confirmation: phrase
     });
@@ -3771,7 +3772,8 @@ async function confirmScoreImport() {
         pushedUids[sub.uid] = true;
         var pts = sub.points_earned || 0;
         try {
-          await adminRpc('add_point_log_once', {
+          await adminRpc('add_project_point_log_once', {
+              p_project_key: 'mlt-global',
               p_uid: sub.uid,
               p_change: pts,
               p_source: 'auto_settlement',
@@ -3798,7 +3800,8 @@ async function confirmScoreImport() {
               var bonusClaimed2 = notes.indexOf('newbie_bonus:' + currentPeriod) >= 0 || notesObj2['newbie_bonus:' + currentPeriod] === true || notesObj2.newbie_bonus === currentPeriod;
               var isOld2 = notes.indexOf('old_creator') >= 0 || notesObj2.old_creator === true || notesObj2.old_creator === 'true';
               if (!isOld2 && nbMonth2 === currentPeriod && !bonusClaimed2 && pts >= 5) {
-                await adminRpc('add_point_log_once', {
+                await adminRpc('add_project_point_log_once', {
+                    p_project_key: 'mlt-global',
                     p_uid: sub.uid,
                     p_change: 2,
                     p_source: 'auto_settlement',
@@ -3830,7 +3833,8 @@ async function confirmScoreImport() {
       var referralBonus = Number(sub.referral_bonus) || 0;
       if (sub.uid && referralBonus > 0) {
         try {
-          await adminRpc('add_point_log_once', {
+          await adminRpc('add_project_point_log_once', {
+            p_project_key: 'mlt-global',
             p_uid: sub.uid,
             p_change: referralBonus,
             p_source: 'manual',

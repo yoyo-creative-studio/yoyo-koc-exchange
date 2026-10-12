@@ -22,6 +22,15 @@ assert(identityMigration.includes('idx_kocs_creator_id_unique'), 'creators must 
 for (const table of ['submissions', 'point_logs', 'redemption_orders', 'reward_fulfillments', 'redemption_order_edits', 'creator_monthly_tier_scores', 'creator_tier_history']) {
   assert(identityMigration.includes(`ALTER TABLE public.${table} ALTER COLUMN creator_id SET NOT NULL`), `${table}.creator_id must be required after backfill`);
 }
+
+const pointTierMigration = fs.readFileSync('supabase/migrations/20261012120000_project_point_tier_rpcs.sql', 'utf8');
+assert(pointTierMigration.includes('add_project_point_log_once'), 'project-scoped point adjustment RPC is required');
+assert(pointTierMigration.includes('logs.project_id = v_project_id AND logs.creator_id = v_creator_id'), 'point balances must be scoped by project and creator identity');
+assert(pointTierMigration.includes('preview_project_legacy_tier_upgrades'), 'project-scoped tier preview RPC is required');
+assert(pointTierMigration.includes('apply_project_legacy_tier_upgrade_preview'), 'project-scoped tier apply RPC is required');
+assert(pointTierMigration.includes('batches.id = p_batch_id AND batches.project_id = v_project_id'), 'tier preview application must validate project ownership');
+assert(!fs.readFileSync('admin.html', 'utf8').includes("adminRpc('add_point_log_once'"), 'admin must not call the legacy point RPC');
+assert(!fs.readFileSync('supabase/functions/registration-review/index.ts', 'utf8').includes('db.rpc("add_point_log_once"'), 'edge function must not call the legacy point RPC');
 assert(identityMigration.includes("RAISE EXCEPTION 'creator identity does not match project and UID'"), 'database must reject mismatched creator references');
 for (const rpc of ['submit_project_creator_work', 'submit_project_creator_showcase', 'redeem_project_points', 'edit_project_pending_redemption']) {
   assert(portalRpcMigration.includes(`FUNCTION public.${rpc}`), `${rpc} must be project-aware`);
