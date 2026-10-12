@@ -77,6 +77,51 @@ function discordIdentityKeys(value: unknown) {
   return [...new Set(output)];
 }
 
+async function sha256(value: string) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function randomSecret(bytes = 32) {
+  const value = crypto.getRandomValues(new Uint8Array(bytes));
+  return Array.from(value).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+const roleRank: Record<string, number> = {
+  viewer: 10,
+  operator: 20,
+  admin: 30,
+  project_owner: 40,
+  platform_owner: 50,
+};
+
+const actionMinimumRole: Record<string, string> = {
+  project_launch_readiness: "viewer",
+  list_project_reward_options: "viewer",
+  list_reward_fulfillments: "viewer",
+  list: "viewer",
+  sync_discord_identities: "operator",
+  create_manual_reward_order: "operator",
+  save_reward_fulfillments: "operator",
+  publish_reward_fulfillments: "operator",
+  update_reward_fulfillment_notes: "operator",
+  restore_welcome_orders: "admin",
+  restore_published_order_status: "admin",
+  reclassify_published_welcome_orders: "admin",
+  restore_current_welcome_orders: "admin",
+  reconcile_period_welcome_orders: "admin",
+  delete_reward_fulfillments: "admin",
+  delete_reward_orders: "admin",
+  create_manual_koc: "admin",
+  change_creator_uid: "admin",
+  update_creator_profile: "admin",
+  admin_rpc: "admin",
+  approve: "admin",
+  reject: "admin",
+  save_project_reward_options: "admin",
+  launch_platform_project: "project_owner",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
   if (req.method !== "POST") return json({ ok: false, error: "Method not allowed" }, 405);
@@ -88,13 +133,83 @@ serve(async (req) => {
     if (!supabaseUrl || !serviceRoleKey) return json({ ok: false, error: "Server configuration missing" }, 500);
 
     const db = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-    const { action, data = {}, admin_password = "" } = await req.json();
+    const { action, data = {}, admin_password = "", admin_session = "" } = await req.json();
 
     async function resolveProjectId(projectKey = "mlt-global") {
       const { data: project, error } = await db.from("platform_projects")
         .select("id").eq("project_key", projectKey).eq("status", "active").maybeSingle();
       if (error || !project) throw new Error(error?.message || "Active project not found");
       return String(project.id);
+    }
+
+    async function resolveAnyProjectId(projectKey = "mlt-global") {
+      const { data: project, error } = await db.from("platform_projects")
+        .select("id").eq("project_key", projectKey).maybeSingle();
+      if (error || !project) throw new Error(error?.message || "Project not found");
+      return String(project.id);
+    }
+
+    async function ensureSystemOwner() {
+      const { data: existing, error: existingError } = await db.from("platform_admins")
+        .select("id,username,display_name,role,status,is_system_owner")
+        .eq("is_system_owner", true).maybeSingle();
+      if (existingError) throw existingError;
+      if (existing) return existing;
+      const { data: created, error } = await db.from("platform_admins").insert({
+        username: "seraphina",
+        display_name: "Seraphina",
+        role: "platform_owner",
+        status: "active",
+        is_system_owner: true,
+      }).select("id,username,display_name,role,status,is_system_owner").single();
+      if (error) throw error;
+      return created;
+    }
+
+    async function issueAdminSession(adminId: string) {
+      const token = randomSecret();
+      const tokenHash = await sha256(token);
+      const expiresAt = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString();
+      await db.from("platform_admin_sessions").delete().lt("expires_at", new Date().toISOString());
+      const { error } = await db.from("platform_admin_sessions").insert({
+        admin_id: adminId,
+        token_hash: tokenHash,
+        expires_at: expiresAt,
+      });
+      if (error) throw error;
+      return { token, expires_at: expiresAt };
+    }
+
+    async function loadAdminPrincipal() {
+      if (admin_session) {
+        const tokenHash = await sha256(String(admin_session));
+        const { data: session, error } = await db.from("platform_admin_sessions")
+          .select("id,admin_id,expires_at").eq("token_hash", tokenHash).gt("expires_at", new Date().toISOString()).maybeSingle();
+        if (error || !session) return null;
+        const { data: admin } = await db.from("platform_admins")
+          .select("id,username,display_name,role,status,is_system_owner")
+          .eq("id", session.admin_id).eq("status", "active").maybeSingle();
+        if (!admin) return null;
+        await db.from("platform_admin_sessions").update({ last_seen_at: new Date().toISOString() }).eq("id", session.id);
+        const { data: access } = await db.from("platform_admin_project_access").select("project_id").eq("admin_id", admin.id);
+        return { ...admin, project_ids: (access || []).map((row) => String(row.project_id)) };
+      }
+      if (adminPassword && admin_password === adminPassword) {
+        const owner = await ensureSystemOwner();
+        return { ...owner, project_ids: [] };
+      }
+      return null;
+    }
+
+    function publicAdmin(admin: any) {
+      return {
+        id: admin.id,
+        username: admin.username,
+        display_name: admin.display_name,
+        role: admin.role,
+        is_system_owner: Boolean(admin.is_system_owner),
+        project_ids: admin.project_ids || [],
+      };
     }
 
     if (action === "creator_reward_status") {
@@ -214,16 +329,163 @@ serve(async (req) => {
       return json({ ok: true, application: inserted });
     }
 
-    if (!adminPassword || admin_password !== adminPassword) return json({ ok: false, error: "Admin verification failed" }, 403);
+    if (action === "login") {
+      const username = String(data.username || "seraphina").trim().toLowerCase();
+      const password = String(data.password || admin_password || "");
+      let admin: any = null;
+      if ((username === "seraphina" || username === "owner") && adminPassword && password === adminPassword) {
+        admin = await ensureSystemOwner();
+      } else {
+        const { data: candidate } = await db.from("platform_admins")
+          .select("id,username,display_name,role,status,is_system_owner,password_salt,password_hash")
+          .eq("username", username).eq("status", "active").maybeSingle();
+        if (candidate?.password_salt && candidate?.password_hash) {
+          const candidateHash = await sha256(`${candidate.password_salt}:${password}:${adminPassword}`);
+          if (candidateHash === candidate.password_hash) admin = candidate;
+        }
+      }
+      if (!admin) return json({ ok: false, error: "Invalid administrator credentials" }, 403);
+      const session = await issueAdminSession(String(admin.id));
+      await db.from("platform_admins").update({ last_login_at: new Date().toISOString() }).eq("id", admin.id);
+      const { data: access } = await db.from("platform_admin_project_access").select("project_id").eq("admin_id", admin.id);
+      admin.project_ids = (access || []).map((row) => String(row.project_id));
+      return json({ ok: true, session, admin: publicAdmin(admin) });
+    }
 
-    if (action === "login") return json({ ok: true });
+    const principal: any = await loadAdminPrincipal();
+    if (!principal) return json({ ok: false, error: "Administrator session expired" }, 403);
+
+    if (action === "session_info") return json({ ok: true, admin: publicAdmin(principal) });
+    if (action === "logout") {
+      if (admin_session) await db.from("platform_admin_sessions").delete().eq("token_hash", await sha256(String(admin_session)));
+      return json({ ok: true });
+    }
+
+    async function authorize(requiredRole: string, projectId?: string) {
+      if ((roleRank[principal.role] || 0) < (roleRank[requiredRole] || 0)) {
+        throw new Error(`This operation requires ${requiredRole} permission`);
+      }
+      if (principal.role !== "platform_owner" && projectId && !principal.project_ids.includes(projectId)) {
+        throw new Error("You do not have access to this project");
+      }
+    }
+
+    async function requestedProjectId() {
+      const explicitId = String(data.project_id || data.source_project_id || "").trim();
+      if (explicitId) return explicitId;
+      const projectKey = String(data.project_key || data.params?.p_project_key || "mlt-global").trim();
+      return await resolveAnyProjectId(projectKey);
+    }
+
+    if (action === "list_platform_admins") {
+      await authorize("project_owner");
+      let query = db.from("platform_admins")
+        .select("id,username,display_name,role,status,is_system_owner,created_at,last_login_at")
+        .order("is_system_owner", { ascending: false }).order("created_at", { ascending: true });
+      const { data: admins, error } = await query;
+      if (error) return json({ ok: false, error: error.message }, 400);
+      const { data: access } = await db.from("platform_admin_project_access").select("admin_id,project_id");
+      const visible = (admins || []).filter((admin) => principal.role === "platform_owner"
+        || (access || []).some((row) => row.admin_id === admin.id && principal.project_ids.includes(String(row.project_id))));
+      return json({ ok: true, admins: visible.map((admin) => ({
+        ...admin,
+        project_ids: (access || []).filter((row) => row.admin_id === admin.id).map((row) => String(row.project_id)),
+      })) });
+    }
+
+    if (action === "save_platform_admin") {
+      await authorize("project_owner");
+      const id = String(data.id || "").trim();
+      const username = String(data.username || "").trim().toLowerCase();
+      const displayName = String(data.display_name || "").trim();
+      const role = String(data.role || "viewer").trim();
+      const password = String(data.password || "");
+      const projectIds = [...new Set((Array.isArray(data.project_ids) ? data.project_ids : []).map(String).filter(Boolean))];
+      if (!/^[a-z0-9][a-z0-9._-]{1,62}$/.test(username) || !displayName) return json({ ok: false, error: "Valid username and display name are required" }, 400);
+      if (!roleRank[role] || role === "platform_owner") return json({ ok: false, error: "The Platform Owner role cannot be assigned" }, 400);
+      if (principal.role !== "platform_owner") {
+        if (roleRank[role] >= roleRank.project_owner) return json({ ok: false, error: "Project Owners may only assign Admin, Operator, or Viewer" }, 403);
+        if (projectIds.some((projectId) => !principal.project_ids.includes(projectId))) return json({ ok: false, error: "You cannot grant access to another project" }, 403);
+      }
+      if (!projectIds.length) return json({ ok: false, error: "At least one project is required" }, 400);
+      let adminId = id;
+      if (id) {
+        const { data: existing } = await db.from("platform_admins").select("is_system_owner,role").eq("id", id).maybeSingle();
+        if (!existing || existing.is_system_owner) return json({ ok: false, error: "The Platform Owner cannot be edited here" }, 403);
+        if (principal.role !== "platform_owner" && roleRank[existing.role] >= roleRank[principal.role]) {
+          return json({ ok: false, error: "You cannot edit an administrator at your permission level" }, 403);
+        }
+        const changes: Record<string, unknown> = { username, display_name: displayName, role, updated_at: new Date().toISOString() };
+        if (password) {
+          const salt = randomSecret(16);
+          changes.password_salt = salt;
+          changes.password_hash = await sha256(`${salt}:${password}:${adminPassword}`);
+        }
+        const { error } = await db.from("platform_admins").update(changes).eq("id", id);
+        if (error) return json({ ok: false, error: error.message }, error.code === "23505" ? 409 : 400);
+      } else {
+        if (password.length < 10) return json({ ok: false, error: "Temporary password must contain at least 10 characters" }, 400);
+        const salt = randomSecret(16);
+        const { data: created, error } = await db.from("platform_admins").insert({
+          username,
+          display_name: displayName,
+          role,
+          password_salt: salt,
+          password_hash: await sha256(`${salt}:${password}:${adminPassword}`),
+          created_by: principal.id,
+        }).select("id").single();
+        if (error) return json({ ok: false, error: error.message }, error.code === "23505" ? 409 : 400);
+        adminId = String(created.id);
+      }
+      await db.from("platform_admin_project_access").delete().eq("admin_id", adminId);
+      const { error: accessError } = await db.from("platform_admin_project_access").insert(projectIds.map((projectId) => ({ admin_id: adminId, project_id: projectId })));
+      if (accessError) return json({ ok: false, error: accessError.message }, 400);
+      await db.from("platform_admin_audit_log").insert({ admin_id: principal.id, action: id ? "admin.updated" : "admin.created", metadata: { target_admin_id: adminId, role, project_ids: projectIds } });
+      return json({ ok: true, admin_id: adminId });
+    }
+
+    if (action === "set_platform_admin_status") {
+      await authorize("project_owner");
+      const id = String(data.id || "").trim();
+      const status = data.status === "active" ? "active" : "disabled";
+      const { data: target } = await db.from("platform_admins").select("id,role,is_system_owner").eq("id", id).maybeSingle();
+      if (!target || target.is_system_owner) return json({ ok: false, error: "The Platform Owner cannot be disabled" }, 403);
+      if (principal.role !== "platform_owner" && roleRank[target.role] >= roleRank[principal.role]) return json({ ok: false, error: "You cannot change this administrator" }, 403);
+      const { error } = await db.from("platform_admins").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
+      if (error) return json({ ok: false, error: error.message }, 400);
+      if (status === "disabled") await db.from("platform_admin_sessions").delete().eq("admin_id", id);
+      await db.from("platform_admin_audit_log").insert({ admin_id: principal.id, action: `admin.${status}`, metadata: { target_admin_id: id } });
+      return json({ ok: true });
+    }
 
     if (action === "list_platform_projects") {
-      const { data: projects, error } = await db.from("platform_projects")
+      let query = db.from("platform_projects")
         .select("id,project_key,name,status,default_locale,default_timezone,settings,created_at,updated_at")
         .order("created_at", { ascending: true });
+      if (principal.role !== "platform_owner") query = query.in("id", principal.project_ids.length ? principal.project_ids : ["00000000-0000-0000-0000-000000000000"]);
+      const { data: projects, error } = await query;
       if (error) return json({ ok: false, error: error.message }, 400);
-      return json({ ok: true, projects: projects || [] });
+      return json({ ok: true, projects: projects || [], admin: publicAdmin(principal) });
+    }
+
+    if (action === "save_platform_project") {
+      const projectId = String(data.id || "").trim();
+      if (projectId) await authorize("project_owner", projectId);
+      else await authorize("platform_owner");
+    } else if (action === "clone_platform_project") {
+      await authorize("platform_owner");
+    } else if (actionMinimumRole[action]) {
+      await authorize(actionMinimumRole[action], await requestedProjectId());
+    }
+
+    if (!new Set(["session_info", "list_platform_projects", "list_platform_admins", "project_launch_readiness", "list_project_reward_options", "list_reward_fulfillments", "list"]).has(action)) {
+      const auditProjectId = await requestedProjectId().catch(() => null);
+      await db.from("platform_admin_audit_log").insert({
+        admin_id: principal.id,
+        project_id: auditProjectId,
+        action,
+        metadata: { project_key: String(data.project_key || "") },
+      });
     }
 
     if (action === "save_platform_project") {

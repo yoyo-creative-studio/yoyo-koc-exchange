@@ -791,7 +791,7 @@
 
   <section class="overview" aria-label="系统组成">
     <article class="overview-card"><div class="icon">💗</div><strong>创作者端</strong><small>注册申请、登录、提交作品、查看历史、查看积分、兑换奖励、查询 FAQ。</small></article>
-    <article class="overview-card"><div class="icon">🗂️</div><strong>管理端</strong><small>审批 KOC、审核投稿、导入积分、处理订单、发放奖励、查看报表与操作日志。</small></article>
+    <article class="overview-card"><div class="icon">🗂️</div><strong>管理端</strong><small>按 Platform Owner、Project Owner、Admin、Operator、Viewer 分级处理项目业务。</small></article>
     <article class="overview-card"><div class="icon">☁️</div><strong>Supabase</strong><small>保存 KOC、投稿、积分流水、兑换订单、活动规则与审计记录，并同步双端数据。</small></article>
     <article class="overview-card"><div class="icon">🤖</div><strong>MochiBot</strong><small>发送新人欢迎、审批通过、投稿提醒、个性化结算和等级变动通知。</small></article>
   </section>
@@ -816,6 +816,7 @@
         <div class="rule"><strong>业务配置</strong>Discord、奖励、当前活动月、积分与等级规则齐全。</div>
         <div class="rule"><strong>数据库门禁</strong>检查未通过时，即使绕过前端也无法激活项目。</div>
         <div class="rule"><strong>独立入口</strong><code>?project=&lt;project_key&gt;</code> 路由到对应门户。</div>
+        <div class="rule"><strong>权限交接</strong>最高权限由 Platform Owner 保留，其他账号只访问获授权项目。</div>
       </div>
     </section>
   </div>
@@ -914,6 +915,8 @@
         <div class="rule"><strong>窗口控制</strong>投稿、兑换均可手动开关并设置自动截止。</div>
         <div class="rule"><strong>重复保护</strong>发货、扣分和奖励发放均检查重复操作。</div>
         <div class="rule"><strong>数据追踪</strong>重要增删改与月度导入均保留操作记录。</div>
+        <div class="rule"><strong>五级权限</strong>服务端同时校验角色与 project_id；隐藏按钮不能替代权限验证。</div>
+        <div class="rule"><strong>Owner 保护</strong>Platform Owner 不能被停用、删除或降级，管理员会话自动过期。</div>
       </div>
     </section>
   </div>

@@ -812,7 +812,8 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
     <div style="position:relative;">
       <!-- 输入框光效背景 -->
       <div style="position:absolute;top:-4px;left:-4px;right:-4px;bottom:-4px;border-radius:20px;background:linear-gradient(135deg,#f2a6c4,#d4749a,#f2a6c4);opacity:0.15;pointer-events:none;"></div>
-      <input type="text" id="admin-pw" placeholder="输入管理员密码" autocomplete="off" style="width:100%;padding:18px 24px;border:2px solid #f8bbd0;border-radius:18px;font-size:17px;text-align:center;background:rgba(255,255,255,0.95);box-sizing:border-box;outline:none;transition:all 0.3s ease;backdrop-filter:blur(4px);color:#3d2b36;position:relative;z-index:1;" onkeydown="if(event.key==='Enter')adminLogin()" onfocus="this.style.borderColor='#f2a6c4';this.style.boxShadow='0 0 0 6px rgba(242,166,196,0.12)'" onblur="this.style.borderColor='#f8bbd0';this.style.boxShadow='none'">
+      <input type="text" id="admin-username" placeholder="管理员账号（你可留空）" autocomplete="username" style="width:100%;padding:14px 20px;border:2px solid #f8bbd0;border-radius:18px;font-size:15px;text-align:center;background:rgba(255,255,255,0.95);box-sizing:border-box;outline:none;color:#3d2b36;position:relative;z-index:1;margin-bottom:10px;">
+      <input type="password" id="admin-pw" placeholder="输入管理员密码" autocomplete="current-password" style="width:100%;padding:18px 24px;border:2px solid #f8bbd0;border-radius:18px;font-size:17px;text-align:center;background:rgba(255,255,255,0.95);box-sizing:border-box;outline:none;transition:all 0.3s ease;backdrop-filter:blur(4px);color:#3d2b36;position:relative;z-index:1;" onkeydown="if(event.key==='Enter')adminLogin()" onfocus="this.style.borderColor='#f2a6c4';this.style.boxShadow='0 0 0 6px rgba(242,166,196,0.12)'" onblur="this.style.borderColor='#f8bbd0';this.style.boxShadow='none'">
     </div>
 
     <!-- 按钮 -->
@@ -851,6 +852,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
         <a href="https://yoyo-creative-studio.github.io/yoyo-koc-exchange/flowcharts.html" target="_blank" rel="noopener" class="btn btn-sm btn-outline" style="text-decoration:none;">↗ Flowcharts</a>
         <a href="https://yoyo-creative-studio.github.io/yoyo-koc-exchange/portfolio.html" target="_blank" rel="noopener" class="btn btn-sm btn-outline" style="text-decoration:none;">↗ Portfolio</a>
       </div>
+      <div id="admin-role-badge" style="font-size:11px;font-weight:800;color:#5e3377;background:#f3e5f5;border:1px solid #b39ddb;padding:6px 10px;">Loading permission...</div>
       <div class="admin-header-tools">
         <div style="display:flex;align-items:center;gap:6px;background:#f3e5f5;padding:6px 12px;border-radius:10px;border:2px solid #74408f;">
           <span style="font-size:13px;font-weight:700;color:#5e3377;">🧩 当前项目</span>
@@ -1239,10 +1241,10 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
 
     <!-- ======== TAB: 规则配置 ======== -->
     <div id="tab-rules" class="tab-content">
-      <div class="card" style="border:2px solid #b39ddb;background:#fcfaff;">
+      <div class="card" id="platform-project-config-card" style="border:2px solid #b39ddb;background:#fcfaff;">
         <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
           <span>🌍 项目配置中心 <small style="font-weight:500;color:var(--text-light);">平台化基础</small></span>
-          <button class="btn btn-sm btn-outline" onclick="startNewPlatformProject()">＋ 新建项目</button>
+          <button id="new-platform-project-btn" class="btn btn-sm btn-outline" onclick="startNewPlatformProject()">＋ 新建项目</button>
         </div>
         <div style="display:grid;grid-template-columns:repeat(2,minmax(220px,1fr));gap:12px;">
           <div style="grid-column:1 / -1;">
@@ -1289,6 +1291,25 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
             <span id="platform-reward-status" style="font-size:12px;color:var(--text-light);"></span>
           </div>
         </div>
+      </div>
+      <div class="card" id="platform-admin-card" style="border:2px solid #90caf9;background:#f7fbff;display:none;">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span>🔐 管理员与项目权限</span>
+          <button class="btn btn-sm btn-outline" onclick="startNewPlatformAdmin()">＋ 添加管理员</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-light);line-height:1.6;margin-bottom:10px;">你的 Platform Owner 权限由系统保护，不能停用、删除或降级。其他账号只可访问分配的项目。</div>
+        <div id="platform-admin-editor" style="display:none;padding:12px;background:white;border:1px solid #bbdefb;margin-bottom:12px;">
+          <input type="hidden" id="platform-admin-id">
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(180px,1fr));gap:10px;">
+            <div><label>登录账号</label><input id="platform-admin-username" placeholder="例如 eu-operator"></div>
+            <div><label>显示名称</label><input id="platform-admin-display-name" placeholder="姓名或团队名称"></div>
+            <div><label>权限等级</label><select id="platform-admin-role"><option value="project_owner">Project Owner</option><option value="admin">Admin</option><option value="operator">Operator</option><option value="viewer">Viewer</option></select></div>
+            <div><label>临时密码 <small>编辑时留空表示不修改</small></label><input id="platform-admin-password" type="password" autocomplete="new-password" placeholder="至少 10 位"></div>
+            <div style="grid-column:1 / -1;"><label>可访问项目</label><div id="platform-admin-projects" style="display:flex;gap:8px;flex-wrap:wrap;padding:9px;border:1px solid #ddd;background:#fafafa;"></div></div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;"><button class="btn btn-sm btn-outline" onclick="cancelPlatformAdminEdit()">取消</button><button class="btn btn-sm btn-primary" onclick="savePlatformAdmin()">保存管理员</button></div>
+        </div>
+        <div id="platform-admin-list"><div style="padding:10px;color:var(--text-light);">正在读取管理员...</div></div>
       </div>
       <div class="card">
         <div class="card-title">📐 积分规则配置</div>
@@ -1804,6 +1825,8 @@ Bonuses and carry-over do not count. Existing tiers only move up.</textarea>
 const SUPABASE_URL = 'https://rryzofimrehmkijkckrm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_oyewqnQ8AnitAOD94Qg0nA_v6Zqkr7r';
 let ADMIN_PASSWORD = sessionStorage.getItem('admin_password') || '';
+let ADMIN_SESSION = sessionStorage.getItem('platform_admin_session') || '';
+let ADMIN_USER = JSON.parse(sessionStorage.getItem('platform_admin_user') || 'null');
 </script><script src="admin-shared.js"></script><script>
 
 // ===== Mochi Discord Bot =====
@@ -1865,11 +1888,43 @@ async function registrationReviewFetch(action, data) {
   var response = await supabaseFetch(SUPABASE_URL + '/functions/v1/registration-review', {
     method: 'POST',
     headers: { 'Authorization': 'Bearer ' + SUPABASE_KEY },
-    body: JSON.stringify({ action: action, data: data, admin_password: ADMIN_PASSWORD })
+    body: JSON.stringify({ action: action, data: data, admin_password: ADMIN_PASSWORD, admin_session: ADMIN_SESSION })
   });
   var result = await response.json().catch(function() { return { ok: false, error: 'Invalid server response' }; });
   if (!response.ok || !result.ok) throw new Error(result.error || ('HTTP ' + response.status));
   return result;
+}
+
+var ADMIN_ROLE_RANK = { viewer: 10, operator: 20, admin: 30, project_owner: 40, platform_owner: 50 };
+var ADMIN_ROLE_LABEL = { viewer: 'Viewer · 只读', operator: 'Operator · 业务处理', admin: 'Admin · 项目管理', project_owner: 'Project Owner · 项目负责人', platform_owner: 'Platform Owner · 平台最高权限' };
+
+function hasAdminRole(role) {
+  return (ADMIN_ROLE_RANK[(ADMIN_USER || {}).role] || 0) >= (ADMIN_ROLE_RANK[role] || 0);
+}
+
+function applyAdminPermissions() {
+  var badge = document.getElementById('admin-role-badge');
+  if (badge && ADMIN_USER) badge.textContent = (ADMIN_USER.display_name || ADMIN_USER.username) + ' · ' + (ADMIN_ROLE_LABEL[ADMIN_USER.role] || ADMIN_USER.role);
+  var allowedTabs = {
+    viewer: ['dashboard', 'audit'],
+    operator: ['dashboard', 'submissions', 'feedback', 'fulfillment', 'audit'],
+    admin: ['dashboard', 'koc-ledger', 'scoring', 'submissions', 'feedback', 'fulfillment', 'rules', 'audit'],
+    project_owner: ['dashboard', 'koc-ledger', 'scoring', 'submissions', 'feedback', 'fulfillment', 'rules', 'audit'],
+    platform_owner: ['dashboard', 'koc-ledger', 'scoring', 'submissions', 'feedback', 'fulfillment', 'rules', 'audit']
+  };
+  var visibleTabs = allowedTabs[(ADMIN_USER || {}).role] || ['dashboard'];
+  document.querySelectorAll('#tab-nav .tab').forEach(function(button) {
+    var match = String(button.getAttribute('onclick') || '').match(/switchTab\('([^']+)'\)/);
+    if (match) button.style.display = visibleTabs.indexOf(match[1]) >= 0 ? '' : 'none';
+  });
+  var projectCard = document.getElementById('platform-project-config-card');
+  if (projectCard) projectCard.style.display = hasAdminRole('project_owner') ? '' : 'none';
+  var newProjectButton = document.getElementById('new-platform-project-btn');
+  if (newProjectButton) newProjectButton.style.display = hasAdminRole('platform_owner') ? '' : 'none';
+  var cloneProjectButton = document.getElementById('clone-platform-project-btn');
+  if (cloneProjectButton) cloneProjectButton.style.display = hasAdminRole('platform_owner') ? '' : 'none';
+  var adminCard = document.getElementById('platform-admin-card');
+  if (adminCard) adminCard.style.display = hasAdminRole('project_owner') ? '' : 'none';
 }
 
 async function adminRpc(rpc, params) {
@@ -1889,17 +1944,105 @@ async function loadPlatformProjects(preferredId) {
         return '<option value="' + escAttr(project.id) + '">' + esc(project.name) + (project.status === 'paused' ? ' · Setup' : '') + '</option>';
       }).join('');
     }
-    select.innerHTML = '<option value="">＋ 新建项目配置</option>' + platformProjects.map(function(project) {
+    select.innerHTML = (hasAdminRole('platform_owner') ? '<option value="">＋ 新建项目配置</option>' : '') + platformProjects.map(function(project) {
       return '<option value="' + escAttr(project.id) + '">' + esc(project.name) + ' · ' + esc(project.project_key) + '</option>';
     }).join('');
     var targetId = preferredId || selectedPlatformProjectId || (platformProjects[0] && platformProjects[0].id) || '';
     if (targetId) selectPlatformProject(targetId);
     else startNewPlatformProject();
+    if (hasAdminRole('project_owner')) loadPlatformAdmins();
   } catch(error) {
     select.innerHTML = '<option value="">项目加载失败</option>';
     var status = document.getElementById('platform-project-status-text');
     if (status) status.textContent = error.message;
   }
+}
+
+var platformAdmins = [];
+
+function platformAdminProjectChecks(selectedIds) {
+  selectedIds = selectedIds || [];
+  return platformProjects.map(function(project) {
+    return '<label style="display:flex;align-items:center;gap:5px;font-size:12px;"><input type="checkbox" value="' + escAttr(project.id) + '" ' + (selectedIds.indexOf(project.id) >= 0 ? 'checked' : '') + '> ' + esc(project.name) + '</label>';
+  }).join('');
+}
+
+async function loadPlatformAdmins() {
+  var root = document.getElementById('platform-admin-list');
+  if (!root || !hasAdminRole('project_owner')) return;
+  try {
+    var result = await registrationReviewFetch('list_platform_admins');
+    platformAdmins = result.admins || [];
+    root.innerHTML = platformAdmins.map(function(admin) {
+      var projectNames = (admin.project_ids || []).map(function(id) {
+        var project = platformProjects.find(function(item) { return item.id === id; });
+        return project ? project.name : id;
+      }).join(', ') || '所有项目';
+      var protectedOwner = admin.is_system_owner;
+      return '<div style="display:grid;grid-template-columns:minmax(150px,1fr) minmax(150px,1fr) minmax(180px,1.4fr) auto;gap:10px;align-items:center;padding:10px;border-bottom:1px solid #e3f2fd;background:' + (protectedOwner ? '#fff7fb' : 'white') + ';">' +
+        '<div><strong>' + esc(admin.display_name) + '</strong><div style="font-size:11px;color:#777;">@' + esc(admin.username) + '</div></div>' +
+        '<div><strong style="font-size:11px;color:#5e3377;">' + esc(ADMIN_ROLE_LABEL[admin.role] || admin.role) + '</strong><div style="font-size:10px;color:' + (admin.status === 'active' ? '#2e7d32' : '#c62828') + ';">' + esc(admin.status) + (protectedOwner ? ' · 系统保护' : '') + '</div></div>' +
+        '<div style="font-size:11px;color:#555;">' + esc(projectNames) + '</div>' +
+        '<div style="display:flex;gap:5px;">' + (protectedOwner ? '' : '<button class="btn btn-sm btn-outline" onclick="editPlatformAdmin(\'' + escAttr(admin.id) + '\')">编辑</button><button class="btn btn-sm ' + (admin.status === 'active' ? 'btn-danger' : 'btn-success') + '" onclick="togglePlatformAdminStatus(\'' + escAttr(admin.id) + '\',\'' + (admin.status === 'active' ? 'disabled' : 'active') + '\')">' + (admin.status === 'active' ? '停用' : '启用') + '</button>') + '</div>' +
+      '</div>';
+    }).join('') || '<div style="padding:12px;color:var(--text-light);">暂无管理员</div>';
+  } catch(error) {
+    root.innerHTML = '<div style="padding:12px;color:#c62828;">管理员加载失败：' + esc(error.message) + '</div>';
+  }
+}
+
+function startNewPlatformAdmin() {
+  document.getElementById('platform-admin-id').value = '';
+  document.getElementById('platform-admin-username').value = '';
+  document.getElementById('platform-admin-display-name').value = '';
+  document.getElementById('platform-admin-role').value = hasAdminRole('platform_owner') ? 'project_owner' : 'admin';
+  Array.from(document.getElementById('platform-admin-role').options).forEach(function(option) {
+    option.hidden = !hasAdminRole('platform_owner') && option.value === 'project_owner';
+  });
+  document.getElementById('platform-admin-password').value = '';
+  document.getElementById('platform-admin-projects').innerHTML = platformAdminProjectChecks([]);
+  document.getElementById('platform-admin-editor').style.display = 'block';
+}
+
+function editPlatformAdmin(id) {
+  var admin = platformAdmins.find(function(item) { return item.id === id; });
+  if (!admin || admin.is_system_owner) return;
+  startNewPlatformAdmin();
+  document.getElementById('platform-admin-id').value = admin.id;
+  document.getElementById('platform-admin-username').value = admin.username || '';
+  document.getElementById('platform-admin-display-name').value = admin.display_name || '';
+  document.getElementById('platform-admin-role').value = admin.role || 'viewer';
+  document.getElementById('platform-admin-projects').innerHTML = platformAdminProjectChecks(admin.project_ids || []);
+}
+
+function cancelPlatformAdminEdit() {
+  document.getElementById('platform-admin-editor').style.display = 'none';
+}
+
+async function savePlatformAdmin() {
+  var projectIds = Array.from(document.querySelectorAll('#platform-admin-projects input:checked')).map(function(input) { return input.value; });
+  try {
+    await registrationReviewFetch('save_platform_admin', {
+      id: document.getElementById('platform-admin-id').value,
+      username: document.getElementById('platform-admin-username').value.trim(),
+      display_name: document.getElementById('platform-admin-display-name').value.trim(),
+      role: document.getElementById('platform-admin-role').value,
+      password: document.getElementById('platform-admin-password').value,
+      project_ids: projectIds
+    });
+    cancelPlatformAdminEdit();
+    await loadPlatformAdmins();
+    showToast('✅ 管理员权限已保存', 'success');
+  } catch(error) { showToast('保存失败：' + error.message, 'error'); }
+}
+
+async function togglePlatformAdminStatus(id, status) {
+  if (!confirmDanger(status === 'disabled' ? '停用这个管理员？' : '重新启用这个管理员？', [status === 'disabled' ? '停用后，该账号的现有登录会话会立即失效。' : '该账号将恢复已分配项目的访问权限。'])) return;
+  try {
+    await registrationReviewFetch('set_platform_admin_status', { id: id, status: status });
+    await loadPlatformAdmins();
+    showToast('✅ 管理员状态已更新', 'success');
+  } catch(error) { showToast('更新失败：' + error.message, 'error'); }
 }
 
 async function initializeActiveProject() {
@@ -2308,15 +2451,27 @@ function confirmDanger(title, lines) {
 
 // ===== LOGIN =====
 window.adminLogin = async function adminLogin() {
+  var username = document.getElementById('admin-username').value.trim().toLowerCase();
   var pw = document.getElementById('admin-pw').value;
   if (!pw) return;
-  ADMIN_PASSWORD = pw;
+  ADMIN_SESSION = '';
+  ADMIN_PASSWORD = '';
   try {
-    await registrationReviewFetch('login');
-    sessionStorage.setItem('admin_password', pw);
+    var result = await registrationReviewFetch('login', { username: username || 'seraphina', password: pw });
+    ADMIN_SESSION = result.session.token;
+    ADMIN_USER = result.admin;
+    sessionStorage.setItem('platform_admin_session', ADMIN_SESSION);
+    sessionStorage.setItem('platform_admin_user', JSON.stringify(ADMIN_USER));
+    if (!username || username === 'seraphina' || username === 'owner') {
+      ADMIN_PASSWORD = pw;
+      sessionStorage.setItem('admin_password', pw);
+    } else {
+      sessionStorage.removeItem('admin_password');
+    }
     localStorage.setItem('admin_session', 'logged_in');
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('admin-panel').classList.remove('hidden');
+    applyAdminPermissions();
     setTimeout(async function() {
       await initializeActiveProject();
       await loadSettleMonthDropdown();
@@ -2324,15 +2479,24 @@ window.adminLogin = async function adminLogin() {
     }, 100);
   } catch (error) {
     ADMIN_PASSWORD = '';
+    ADMIN_SESSION = '';
+    ADMIN_USER = null;
     sessionStorage.removeItem('admin_password');
-    alert('Wrong password. Please try again.');
+    sessionStorage.removeItem('platform_admin_session');
+    sessionStorage.removeItem('platform_admin_user');
+    alert('账号或密码错误，请重试。');
   }
 }
 
-window.adminLogout = function adminLogout() {
+window.adminLogout = async function adminLogout() {
+  try { if (ADMIN_SESSION) await registrationReviewFetch('logout'); } catch (error) { console.warn('Logout cleanup failed:', error); }
   localStorage.removeItem('admin_session');
   sessionStorage.removeItem('admin_password');
+  sessionStorage.removeItem('platform_admin_session');
+  sessionStorage.removeItem('platform_admin_user');
   ADMIN_PASSWORD = '';
+  ADMIN_SESSION = '';
+  ADMIN_USER = null;
   localStorage.removeItem('admin_active_tab');
   document.querySelectorAll('.tab-content').forEach(function(tab) { tab.classList.remove('active'); });
   document.querySelectorAll('#tab-nav .tab').forEach(function(tab) { tab.classList.remove('active'); });
@@ -2342,6 +2506,7 @@ window.adminLogout = function adminLogout() {
   if (dashboardButton) dashboardButton.classList.add('active');
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('admin-panel').classList.add('hidden');
+  document.getElementById('admin-username').value = '';
   document.getElementById('admin-pw').value = '';
 }
 
@@ -9048,15 +9213,19 @@ document.addEventListener('click', function(e) {
   }
 });
 // Auto-login + restore tab on page load — 用 DOMContentLoaded 确保 DOM 渲染完成再执行
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
   try {
     restoreAutoWelcome();
-    if (localStorage.getItem('admin_session') === 'logged_in' && ADMIN_PASSWORD) {
+    if (localStorage.getItem('admin_session') === 'logged_in' && ADMIN_SESSION) {
+      var sessionResult = await registrationReviewFetch('session_info');
+      ADMIN_USER = sessionResult.admin;
+      sessionStorage.setItem('platform_admin_user', JSON.stringify(ADMIN_USER));
       var loginScreen = document.getElementById('login-screen');
       var adminPanel = document.getElementById('admin-panel');
       if (loginScreen && adminPanel && !loginScreen.classList.contains('hidden')) {
         loginScreen.classList.add('hidden');
         adminPanel.classList.remove('hidden');
+        applyAdminPermissions();
         setTimeout(function() {
           initializeActiveProject().then(function() { return loadSettleMonthDropdown(); }).then(function() { return loadData(); }).then(function() {
             var savedTab = localStorage.getItem('admin_active_tab');
@@ -9069,11 +9238,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 200);
       }
     }
-  } catch(e) { console.error('Auto-login error:', e); }
+  } catch(e) {
+    console.error('Auto-login error:', e);
+    sessionStorage.removeItem('platform_admin_session');
+    sessionStorage.removeItem('platform_admin_user');
+    localStorage.removeItem('admin_session');
+    ADMIN_SESSION = '';
+    ADMIN_USER = null;
+  }
 });
 // 监听页面重新可见时保持登录状态
 document.addEventListener('visibilitychange', function() {
-  if (!document.hidden && localStorage.getItem('admin_session') === 'logged_in' && ADMIN_PASSWORD) {
+  if (!document.hidden && localStorage.getItem('admin_session') === 'logged_in' && ADMIN_SESSION) {
     var loginScreen = document.getElementById('login-screen');
     var adminPanel = document.getElementById('admin-panel');
     if (loginScreen && adminPanel && loginScreen.classList.contains('hidden') === false) {

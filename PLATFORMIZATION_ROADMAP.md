@@ -58,7 +58,7 @@ The system runs the full business loop, but historical time spent, failure rate,
 
 ## Migration Sequence
 
-Current status: Phase 1 and the first production-safe part of Phase 3 are deployed. Project profiles, rewards, campaign periods, and core business-record ownership are project-scoped; only `mlt-global` is connected to production business data.
+Current status: Phases 1-3 and the production-safe template, portal, launch-gate, and administrator RBAC parts of Phase 4 are deployed. Project profiles, rewards, campaign periods, core business records, and administrator access are project-scoped; only `mlt-global` is connected to production business data.
 
 ### Phase 1: Foundation
 
@@ -100,7 +100,12 @@ Current status: Phase 1 and the first production-safe part of Phase 3 are deploy
 - Route creator portal traffic with `?project=<project_key>` and resolve the public project profile before loading any creator data.
 - New and cloned non-production projects start paused. The launch wizard checks branding, region, Discord binding, active rewards, one current campaign, and scoring/tier rules before the database permits activation.
 
-- Introduce authenticated organizations, project membership, and role permissions.
+- Five administrator roles are deployed: Platform Owner, Project Owner, Admin, Operator, and Viewer.
+- The existing owner password bootstraps the protected Seraphina Platform Owner account; database guards prevent disabling, deleting, or downgrading it.
+- Administrator login now issues expiring server-side sessions. Non-owner accounts receive explicit project memberships and only receive those projects from the admin API.
+- Edge Function operations enforce minimum role plus project membership and write actor-linked permission audit entries.
+- The admin console includes account creation, role assignment, project assignment, password reset, enable/disable controls, and role-specific navigation.
+- Legacy creator-facing anonymous table reads remain until portal reads are fully migrated to credential-checked RPCs; sensitive-field read permissions are the next security hardening boundary.
 - Provide reusable onboarding, scoring, redemption, fulfillment, and notification templates.
 - Replace browser-held bot credentials with server-side project secrets.
 
