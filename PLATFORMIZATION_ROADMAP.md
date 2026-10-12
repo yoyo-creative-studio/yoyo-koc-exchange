@@ -96,6 +96,7 @@ Current status: Phase 1 and the first production-safe part of Phase 3 are deploy
 - Clone a project template transactionally from the admin console.
 - Copy only project settings, reward options, and campaign/scoring/tier rules; cloned campaign windows start closed.
 - Never copy creators, identities, addresses, submissions, points, orders, or fulfillment records into the new project.
+- Route creator portal traffic with `?project=<project_key>` and resolve the public project profile before loading any creator data.
 
 - Introduce authenticated organizations, project membership, and role permissions.
 - Provide reusable onboarding, scoring, redemption, fulfillment, and notification templates.

@@ -262,8 +262,8 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
   </div>
   <div class="header">
     <div class="creator-header-copy">
-      <h1>💗🎀 Yoyo Town</h1>
-      <p>Check your points &amp; redeem rewards</p>
+      <h1 id="portal-header-brand">💗🎀 Yoyo Town</h1>
+      <p id="portal-header-tagline">Check your points &amp; redeem rewards</p>
     </div>
   </div>
 
@@ -277,13 +277,13 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
     <div style="position:absolute;top:10%;left:10%;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle,rgba(242,166,196,0.25),transparent 70%);"></div>
     <div style="position:absolute;bottom:20%;right:8%;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(248,187,208,0.15),transparent 70%);"></div>
     <div style="font-size:80px;margin-bottom:12px;filter:drop-shadow(0 0 12px rgba(242,166,196,0.3));">🎀</div>
-    <div style="font-size:48px;font-weight:900;color:#880e4f;margin-bottom:6px;letter-spacing:4px;text-shadow:0 2px 12px rgba(242,166,196,0.3);">Yoyo Town</div>
-    <div style="font-size:18px;color:#ad1457;margin-bottom:32px;letter-spacing:1px;font-weight:500;">Check your points &amp; redeem rewards</div>
+    <div id="portal-login-brand" style="font-size:48px;font-weight:900;color:#880e4f;margin-bottom:6px;letter-spacing:4px;text-shadow:0 2px 12px rgba(242,166,196,0.3);">Yoyo Town</div>
+    <div id="portal-login-tagline" style="font-size:18px;color:#ad1457;margin-bottom:32px;letter-spacing:1px;font-weight:500;">Check your points &amp; redeem rewards</div>
     <div style="background:#fff8e1;border:1px solid #ffcc80;border-radius:18px;padding:14px;margin:0 0 18px;font-size:12px;line-height:1.5;color:#5d4037;text-align:left;box-shadow:0 4px 18px rgba(255,193,7,0.12);">
       <div style="font-weight:800;color:#e65100;margin-bottom:5px;text-align:center;">🛡️ Official Creator Portal Safety Notice</div>
       <div>This page is only for creator registration, work submissions, point checks, and reward redemption.</div>
       <div style="margin-top:5px;"><strong>We will never ask you to pay, enter a password, connect a wallet, or share bank / PayPal / credit card login info.</strong></div>
-      <div style="margin-top:5px;color:#8a6d3b;word-break:break-all;">Official link: https://yoyo-creative-studio.github.io/yoyo-koc-exchange/index.html</div>
+      <div id="portal-official-link" style="margin-top:5px;color:#8a6d3b;word-break:break-all;">Official link: https://yoyo-creative-studio.github.io/yoyo-koc-exchange/index.html</div>
     </div>
     <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:16px;padding:14px;margin:0 0 18px;font-size:12px;line-height:1.6;color:#5e2d79;text-align:left;box-shadow:0 4px 18px rgba(156,39,176,0.10);">
       <div style="font-weight:800;color:#7b1fa2;margin-bottom:6px;text-align:center;">✨ How it works</div>
@@ -797,6 +797,47 @@ renderFAQ(EN_DATA);
 <script>/*v2*/
 const SUPABASE_URL = 'https://rryzofimrehmkijkckrm.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_oyewqnQ8AnitAOD94Qg0nA_v6Zqkr7r';
+const PROJECT_KEY = (function() {
+  var requested = new URLSearchParams(window.location.search).get('project') || 'mlt-global';
+  requested = requested.trim().toLowerCase();
+  return /^[a-z0-9][a-z0-9-]{1,62}$/.test(requested) ? requested : '';
+})();
+window.ACTIVE_PROJECT_KEY = PROJECT_KEY;
+window.ACTIVE_PROJECT_ID = '';
+window.PROJECT_CONFIG = null;
+
+async function initializeProjectContext() {
+  if (!PROJECT_KEY) throw new Error('Invalid project link');
+  var response = await fetch(SUPABASE_URL + '/rest/v1/rpc/get_public_project_portal_config', {
+    method: 'POST',
+    headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_project_key: PROJECT_KEY })
+  });
+  if (!response.ok) throw new Error('Unable to load this creator program');
+  var rows = await response.json();
+  if (!rows || rows.length !== 1) throw new Error('This creator program is unavailable');
+  var config = rows[0];
+  window.ACTIVE_PROJECT_ID = config.project_id;
+  window.PROJECT_CONFIG = config;
+  var branding = config.branding || {};
+  var brandName = branding.brand_name || config.name;
+  var tagline = branding.portal_tagline || 'Check your points & redeem rewards';
+  document.title = brandName + ' · Creator Portal';
+  ['portal-header-brand', 'portal-login-brand'].forEach(function(id) {
+    var element = document.getElementById(id); if (element) element.textContent = brandName;
+  });
+  ['portal-header-tagline', 'portal-login-tagline'].forEach(function(id) {
+    var element = document.getElementById(id); if (element) element.textContent = tagline;
+  });
+  var officialLink = document.getElementById('portal-official-link');
+  if (officialLink) officialLink.textContent = 'Official link: ' + window.location.href.split('#')[0];
+  return config;
+}
+
+function showProjectLoadError(error) {
+  var login = document.getElementById('step-login');
+  if (login) login.innerHTML = '<div style="font-size:52px;margin-bottom:12px;">⚠️</div><div style="font-size:20px;font-weight:800;color:#880e4f;">Creator Portal Unavailable</div><div style="margin-top:10px;color:#765466;line-height:1.6;">' + esc(error.message) + '. Please check the link or contact the program administrator.</div>';
+}
 let REWARDS = [
   { id: 'diamonds', name: '450 Diamonds', cost: 1, desc: '1 Point = 450 Diamonds', amount: '450 Diamonds' },
   { id: 'gplay', name: '🎮 Google Play $10', cost: 2, desc: '2 Points = $10 Gift Card', amount: '$10 Google Play' },
@@ -806,7 +847,7 @@ let REWARDS = [
 async function loadRewardOptions() {
   try {
     var response = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/get_project_reward_options', {
-      method: 'POST', body: JSON.stringify({ p_project_key: 'mlt-global' })
+      method: 'POST', body: JSON.stringify({ p_project_key: PROJECT_KEY })
     });
     if (!response.ok) throw new Error('Reward configuration unavailable');
     var rows = await response.json();
@@ -952,7 +993,6 @@ function getSubmissionPeriod(item) {
   return currentPeriod;
 }
 var currentPeriod = '';
-window.ACTIVE_PROJECT_ID = '';
 let currentUser = null;
 let redemptionOpen = false;
 let ordersLoadGeneration = 0;
@@ -970,7 +1010,7 @@ function isFeatureWindowOpen(manualOpen, closeAt) {
 
 async function fetchCurrentCampaignAccess() {
   var res = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/get_current_project_campaign', {
-    method: 'POST', body: JSON.stringify({ p_project_key: 'mlt-global' })
+    method: 'POST', body: JSON.stringify({ p_project_key: PROJECT_KEY })
   });
   if (!res.ok) throw new Error('Unable to verify campaign status');
   var data = await res.json();
@@ -991,7 +1031,7 @@ let editingRedemption = null;
 async function loadCurrentPeriod() {
   try {
     var res = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/get_current_project_campaign', {
-      method: 'POST', body: JSON.stringify({ p_project_key: 'mlt-global' })
+      method: 'POST', body: JSON.stringify({ p_project_key: PROJECT_KEY })
     });
     if (!res.ok) throw new Error('Current period request failed: HTTP ' + res.status);
     var data = await res.json();
@@ -1657,7 +1697,7 @@ async function redeem() {
     var requestId = (window.crypto && window.crypto.randomUUID) ? window.crypto.randomUUID() : (currentUser.uid + '-' + Date.now() + '-' + Math.random().toString(16).slice(2));
     var rpcName = editingRedemption ? 'edit_project_pending_redemption' : 'redeem_project_points';
     var rpcBody = {
-      p_project_key: 'mlt-global',
+      p_project_key: PROJECT_KEY,
       p_uid: currentUser.uid,
       p_account_id: currentUser.account_id,
       p_period: currentPeriod,
@@ -1733,7 +1773,7 @@ async function loadOrders() {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + SUPABASE_KEY },
         cache: 'no-store',
-        body: JSON.stringify({ action: 'creator_reward_status', data: { project_key: 'mlt-global', uid: requestedUid, account_id: requestedAccountId } })
+        body: JSON.stringify({ action: 'creator_reward_status', data: { project_key: PROJECT_KEY, uid: requestedUid, account_id: requestedAccountId } })
       });
       var fulfillmentResult = await fulfillmentResponse.json();
       if (!isCurrentOrderRequest()) return;
@@ -1987,7 +2027,7 @@ async function registerCreator() {
     };
 
     var payload = {
-      project_key: 'mlt-global',
+      project_key: PROJECT_KEY,
       uid: gameUid,
       discord_name: discord,
       name: fullname,
@@ -2071,7 +2111,7 @@ async function submitWorks() {
     var resp = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/submit_project_creator_work', {
       method: 'POST',
       body: JSON.stringify({
-        p_project_key: 'mlt-global',
+        p_project_key: PROJECT_KEY,
         p_uid: currentUser.uid,
         p_account_id: currentUser.account_id,
         p_period: currentPeriod,
@@ -2165,7 +2205,7 @@ async function submitShowcase() {
     var resp = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/submit_project_creator_showcase', {
       method: 'POST',
       body: JSON.stringify({
-        p_project_key: 'mlt-global',
+        p_project_key: PROJECT_KEY,
         p_uid: currentUser.uid,
         p_account_id: currentUser.account_id,
         p_period: currentPeriod,
@@ -2500,8 +2540,15 @@ function toggleLang() {
   localStorage.setItem("koc_lang", LANG);
   location.reload();
 }
-// Auto-login after all functions defined
-tryAutoLogin();
+// Resolve the URL project before any creator data can load.
+initializeProjectContext().then(function() {
+  return Promise.all([loadCurrentPeriod(), loadRewardOptions()]);
+}).then(function() {
+  return tryAutoLogin();
+}).catch(function(error) {
+  console.error('Project initialization failed:', error);
+  showProjectLoadError(error);
+});
 
 </script>
 
