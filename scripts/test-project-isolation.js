@@ -27,6 +27,7 @@ for (const table of ['submissions', 'point_logs', 'redemption_orders', 'reward_f
 const pointTierMigration = fs.readFileSync('supabase/migrations/20261012120000_project_point_tier_rpcs.sql', 'utf8');
 const uidIdentityMigration = fs.readFileSync('supabase/migrations/20261012150000_remove_global_uid_identity.sql', 'utf8');
 const rewardValidationMigration = fs.readFileSync('supabase/migrations/20261012180000_project_reward_validation.sql', 'utf8');
+const projectCloneMigration = fs.readFileSync('supabase/migrations/20261012210000_clone_project_template.sql', 'utf8');
 assert(pointTierMigration.includes('add_project_point_log_once'), 'project-scoped point adjustment RPC is required');
 assert(pointTierMigration.includes('logs.project_id = v_project_id AND logs.creator_id = v_creator_id'), 'point balances must be scoped by project and creator identity');
 assert(pointTierMigration.includes('preview_project_legacy_tier_upgrades'), 'project-scoped tier preview RPC is required');
@@ -48,6 +49,16 @@ assert(uidIdentityMigration.includes("'mlt-global', p_uid, p_account_id"), 'lega
 assert(rewardValidationMigration.includes('rewards.project_id = NEW.project_id'), 'reward validation must use the order project configuration');
 assert(!rewardValidationMigration.includes("projects.project_key = 'mlt-global'"), 'reward validation must not hardcode the production project');
 assert(identityMigration.includes("RAISE EXCEPTION 'creator identity does not match project and UID'"), 'database must reject mismatched creator references');
+assert(projectCloneMigration.includes('FUNCTION public.clone_project_template'), 'project templates require a transactional clone RPC');
+for (const table of ['project_reward_options', 'campaign_config']) {
+  assert(projectCloneMigration.includes(`public.${table}`), `project clone must include ${table}`);
+}
+for (const table of ['kocs', 'registration_applications', 'submissions', 'point_logs', 'redemption_orders', 'reward_fulfillments']) {
+  assert(!projectCloneMigration.includes(`INSERT INTO public.${table}`), `project clone must not copy ${table}`);
+}
+assert(projectCloneMigration.includes('false, false, is_current_period, NULL, NULL'), 'cloned campaign windows must start closed without copied deadlines');
+assert(admin.includes('clonePlatformProject()'), 'admin must expose project template cloning');
+assert(registrationReview.includes('clone_platform_project'), 'project clone must cross the authenticated admin boundary');
 for (const rpc of ['submit_project_creator_work', 'submit_project_creator_showcase', 'redeem_project_points', 'edit_project_pending_redemption']) {
   assert(portalRpcMigration.includes(`FUNCTION public.${rpc}`), `${rpc} must be project-aware`);
   assert(portal.includes(`/rpc/${rpc}`) || portal.includes(`'${rpc}'`), `portal must call ${rpc}`);

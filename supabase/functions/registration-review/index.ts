@@ -262,6 +262,24 @@ serve(async (req) => {
       return json({ ok: true, project: saved, created: true });
     }
 
+    if (action === "clone_platform_project") {
+      const sourceProjectId = String(data.source_project_id || "").trim();
+      const name = String(data.name || "").trim();
+      const projectKey = String(data.project_key || "").trim().toLowerCase();
+      if (!sourceProjectId) return json({ ok: false, error: "Source project is required" }, 400);
+      if (!name || name.length > 120) return json({ ok: false, error: "Project name is required and must be 120 characters or fewer" }, 400);
+      if (projectKey && !/^[a-z0-9][a-z0-9-]{1,62}$/.test(projectKey)) {
+        return json({ ok: false, error: "Project key must use lowercase letters, numbers, and hyphens" }, 400);
+      }
+      const { data: cloned, error } = await db.rpc("clone_project_template", {
+        p_source_project_id: sourceProjectId,
+        p_name: name,
+        p_project_key: projectKey || null,
+      });
+      if (error) return json({ ok: false, error: error.message }, error.code === "23505" ? 409 : 400);
+      return json({ ok: true, project: cloned });
+    }
+
     if (action === "list_project_reward_options") {
       const projectId = String(data.project_id || "").trim();
       if (!projectId) return json({ ok: false, error: "Project is required" }, 400);

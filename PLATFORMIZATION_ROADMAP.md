@@ -93,6 +93,10 @@ Current status: Phase 1 and the first production-safe part of Phase 3 are deploy
 
 ### Phase 4: Roles And Templates
 
+- Clone a project template transactionally from the admin console.
+- Copy only project settings, reward options, and campaign/scoring/tier rules; cloned campaign windows start closed.
+- Never copy creators, identities, addresses, submissions, points, orders, or fulfillment records into the new project.
+
 - Introduce authenticated organizations, project membership, and role permissions.
 - Provide reusable onboarding, scoring, redemption, fulfillment, and notification templates.
 - Replace browser-held bot credentials with server-side project secrets.
