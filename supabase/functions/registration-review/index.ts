@@ -1050,7 +1050,8 @@ serve(async (req) => {
       }
       const orderIds = rows.map((row: Record<string, unknown>) => Number(row.order_id)).filter(Boolean);
       const { data: orders, error: orderError } = await db.from("redemption_orders")
-        .select("id,uid,period,option_type,option_name,reward_amount,points_spent").in("id", orderIds);
+        .select("id,uid,period,option_type,option_name,reward_amount,points_spent,status")
+        .eq("project_id", projectId).in("id", orderIds);
       if (orderError) return json({ ok: false, error: orderError.message }, 400);
       const orderMap = new Map((orders || []).map((order) => [Number(order.id), order]));
       const { data: publishedRows, error: publishedError } = await db.from("reward_fulfillments")
@@ -1115,7 +1116,18 @@ serve(async (req) => {
       }
       const { data: saved, error } = await db.from("reward_fulfillments").upsert(payload, { onConflict: "order_id" }).select("*");
       if (error) return json({ ok: false, error: error.message }, 400);
-      return json({ ok: true, fulfillments: saved || [], skipped_published: publishedOrderIds.size });
+      const pendingOrderIds = saveRows.map((row: Record<string, unknown>) => Number(row.order_id)).filter((orderId) => {
+        return orderMap.get(orderId)?.status === "pending";
+      });
+      if (pendingOrderIds.length) {
+        const { error: queueError } = await db.from("redemption_orders").update({
+          status: "processing",
+          processed_by: "auto_fulfillment_draft",
+          processed_at: new Date().toISOString(),
+        }).eq("project_id", projectId).in("id", pendingOrderIds).eq("status", "pending");
+        if (queueError) return json({ ok: false, error: `Fulfillment saved but order queue failed: ${queueError.message}` }, 500);
+      }
+      return json({ ok: true, fulfillments: saved || [], skipped_published: publishedOrderIds.size, queued_orders: pendingOrderIds.length });
     }
 
     if (action === "publish_reward_fulfillments") {

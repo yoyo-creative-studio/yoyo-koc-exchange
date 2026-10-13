@@ -4495,7 +4495,7 @@ function renderUnifiedRewardOrders() {
   var labels = { diamonds: '💎 端内奖励', gplay: '🎮 Google Play', merch: '📦 周边' };
   table.innerHTML = '<table><thead><tr><th>Discord</th><th>UID</th><th>奖励类型</th><th>奖励内容</th><th>积分</th><th>月份</th><th>状态</th><th>操作</th></tr></thead><tbody>' + rows.map(function(order) {
     var badge = order.status === 'shipped' ? 'badge-shipped' : order.status === 'cancelled' ? 'badge-cancelled' : 'badge-pending';
-    var action = order.status === 'pending' ? '<button class="btn btn-success btn-sm" onclick="shipOrder(event,' + order.id + ')" title="分配到对应奖励模块，不扣积分">✓ 分配</button>' : order.status === 'processing' ? '<span style="font-size:11px;color:#2e7d32;">已分配</span>' : '—';
+    var action = order.status === 'pending' ? '<span style="font-size:11px;color:#9a6700;">已自动归类，可修改</span>' : order.status === 'processing' ? '<span style="font-size:11px;color:#2e7d32;">发放处理中</span>' : '—';
     return '<tr><td>' + esc(order.discord_name || '-') + '</td><td style="font-family:monospace;font-size:11px;">' + esc(order.uid || '-') + '</td><td>' + esc(labels[order.option_type] || order.option_type || '-') + '</td><td>' + esc(order.option_name || order.reward_amount || '-') + '</td><td>' + (Number(order.points_spent) || 0) + '</td><td>' + esc(order.period || '-') + '</td><td><span class="badge ' + badge + '">' + esc(order.status || '-') + '</span></td><td>' + action + '</td></tr>';
   }).join('') + '</tbody></table>';
   renderFulfillmentRewardCards();
@@ -4881,7 +4881,7 @@ function previewInGameFulfillments() {
   (allOrders || []).filter(function(order) {
     return order.option_type === 'diamonds' &&
       getRowPeriod(order) === currentPeriod &&
-      order.status === 'processing' &&
+      (order.status === 'pending' || order.status === 'processing') &&
       !existingOrderIds[Number(order.id)];
   }).forEach(function(order) {
     var uid = String(order.uid || '');
@@ -7915,7 +7915,7 @@ function renderScoringTable() {
             return '<div class="order-row" style="display:flex;align-items:center;gap:4px;margin:2px 0;font-size:12px;">' +
               '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + optName + '</span>' +
               ' <span class="badge badge-' + o.status + '">' + (o.status === 'shipped' ? '\u2705 ' : '\u23F3 ') + o.status + '</span> ' +
-              (o.status === 'pending' && String(o.option_name || '').indexOf('CC:') !== 0 ? '<span class="btn btn-success btn-sm" onclick="shipOrder(event,' + o.id + ')" title="分配到对应奖励模块，不扣积分" style="padding:1px 6px;font-size:11px;cursor:pointer;">分配</span>' : '') +
+              (o.status === 'pending' && String(o.option_name || '').indexOf('CC:') !== 0 ? '<span style="font-size:11px;color:#9a6700;white-space:nowrap;">已自动归类</span>' : '') +
             '</div>';
           }).join('') +
           (orders.length > 10 ? '<div style="font-size:11px;color:var(--text-light);">+' + (orders.length-10) + ' more</div>' : '') +
@@ -8074,31 +8074,6 @@ async function addKOC() {
     document.getElementById('new-uid').value = '';
     loadData();
   } catch (e) { showToast('Error: ' + e.message, 'error'); }
-}
-
-// ===== SHIP ORDER =====
-async function shipOrder(ev, id) {
-  var shipBtn = ev && ev.target ? ev.target : null;
-  var originalText = shipBtn ? shipBtn.textContent : '';
-  try {
-    var oRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/redemption_orders?id=eq.' + id + '&select=*');
-    var oData = await oRes.json();
-    var order = oData[0];
-    if (!order) throw new Error('Order not found');
-    if (shipBtn) { shipBtn.disabled = true; shipBtn.textContent = '⏳'; }
-
-    if (order.status === 'shipped') { showToast('该订单已经完成发放', 'info'); return; }
-    if (order.status === 'processing') { showToast('该订单已经进入奖励发放模块', 'info'); return; }
-
-    await adminRpc('queue_redemption_order', { p_order_id: id });
-
-    showToast('✅ 已分配到对应奖励模块，暂未扣积分', 'success');
-    writeAuditLog('reward', 'queue order #' + id + ' uid ' + order.uid + ' without point deduction');
-    loadData();
-  } catch (e) { showToast('Error: ' + e.message, 'error'); }
-  finally {
-    if (shipBtn) { shipBtn.disabled = false; shipBtn.textContent = originalText || '✓'; }
-  }
 }
 
 // ===== POINT MODAL =====
