@@ -9067,12 +9067,14 @@ function exportMonth(type, label) {
     label = type.getAttribute('data-label');
     type = type.getAttribute('data-type');
   }
+  var exportPeriod = String(label || currentPeriod || '').trim();
   var kmap = getKocMap();
   var header, rows, text;
   if (type === 'diamonds-both' || type === 'diamonds-cc-only' || type === 'diamonds-only') {
     var history = buildInGameRewardRows(allOrders);
     var rewardRows = [];
     Object.keys(history).forEach(function(period) {
+      if (period !== exportPeriod) return;
       var g = history[period];
       if (type === 'diamonds-both') rewardRows = rewardRows.concat(g.both);
       else if (type === 'diamonds-cc-only') rewardRows = rewardRows.concat(g.ccOnly);
@@ -9086,7 +9088,9 @@ function exportMonth(type, label) {
     return;
   }
   if (type === 'gplay') {
-    var gplayOrders = allOrders.filter(function(o) { return o.option_type === 'gplay' && (o.status === 'processing' || o.status === 'shipped'); }).sort(function(a, b) { return String((b.period || (b.created_at || '').substring(0, 7)) || '').localeCompare(String((a.period || (a.created_at || '').substring(0, 7)) || '')); });
+    var gplayOrders = allOrders.filter(function(o) {
+      return o.option_type === 'gplay' && getRowPeriod(o) === exportPeriod && (o.status === 'pending' || o.status === 'processing' || o.status === 'shipped');
+    });
     if (!gplayOrders.length) { showToast('No orders to export', 'error'); return; }
     header = '批次\t姓名\t国家\t奖励';
     rows = gplayOrders.map(function(o) {
@@ -9098,7 +9102,9 @@ function exportMonth(type, label) {
     return;
   }
   if (type === 'merch') {
-    var merchOrders = allOrders.filter(function(o) { return o.option_type === 'merch' && (o.status === 'processing' || o.status === 'shipped'); });
+    var merchOrders = allOrders.filter(function(o) {
+      return o.option_type === 'merch' && getRowPeriod(o) === exportPeriod && (o.status === 'pending' || o.status === 'processing' || o.status === 'shipped');
+    });
     var merchByUid = {};
     merchOrders.forEach(function(o) {
       var key = String(o.uid || o.discord_name || '');
