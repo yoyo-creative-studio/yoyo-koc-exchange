@@ -4531,7 +4531,7 @@ function renderFulfillmentRewardCards() {
     var category = item.hasCC && item.hasDiamond ? 'cc-diamond' : item.hasCC ? 'cc-only' : 'diamond-only';
     var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(item.uid); }) || {};
     if (item.hasDiamond) item.rewards.push('450 Diamonds*' + item.diamondUnits);
-    categoryRows[category].push({ discord_name: item.discord_name, uid: item.uid, reward: item.rewards.filter(function(value, index, list) { return list.indexOf(value) === index; }).join('; '), server: koc.server || koc.region || '正式服', account_id: koc.account_id || '', period: item.period });
+    categoryRows[category].push({ discord_name: item.discord_name, uid: item.uid, reward: item.rewards.filter(function(value, index, list) { return list.indexOf(value) === index; }).join('; '), server: normalizeServerName(koc.server || koc.region) || '正式服', account_id: koc.account_id || '', period: item.period });
   });
   var cards = [
     { key: 'gplay', title: '🎮 Google Play', color: '#f3e5f5', rows: activeOrders.filter(function(order) { return order.option_type === 'gplay'; }).map(function(order) { var koc = (allKocs || []).find(function(row) { return String(row.uid) === String(order.uid); }) || {}; return { discord_name: order.discord_name, uid: order.uid, reward: '$10 Google Play Gift Card*' + getRewardQty(order, 2), country: koc.country || koc.region || '', period: order.period }; }) },
@@ -7276,7 +7276,7 @@ function renderKocTable() {
       '<td ondblclick="inlineEdit(this,\'name\',\'' + k.uid + '\')" title="Double-click to edit">' + esc(k.name || '-') + '</td>' +
       '<td ondblclick="inlineEdit(this,\'region\',\'' + k.uid + '\')" title="Double-click to edit">' + esc(k.region || '-') + '</td>' +
       '<td ondblclick="inlineEdit(this,\'account_id\',\'' + k.uid + '\')" title="Double-click to edit" style="font-family:monospace;font-size:12px;color:var(--text-light);">' + esc(k.account_id || '-') + '</td>' +
-      '<td ondblclick="inlineEdit(this,\'server\',\'' + k.uid + '\')" title="Double-click to edit">' + esc(k.server || '-') + '</td>' +
+      '<td ondblclick="inlineEdit(this,\'server\',\'' + k.uid + '\')" title="Double-click to edit">' + esc(normalizeServerName(k.server) || '-') + '</td>' +
       '<td ondblclick="inlineEdit(this,\'address\',\'' + k.uid + '\')" title="Double-click to edit" style="font-size:12px;white-space:pre-wrap;max-width:200px;">' + esc(k.address || '-') + '</td>' +
       '<td ondblclick="inlineEdit(this,\'city\',\'' + k.uid + '\')" title="Double-click to edit">' + esc(k.city || '-') + '</td>' +
       '<td ondblclick="inlineEdit(this,\'state\',\'' + k.uid + '\')" title="Double-click to edit">' + esc(k.state || '-') + '</td>' +
@@ -7977,6 +7977,7 @@ async function submitManualKoc() {
   ['discord','uid','account','name','region','server','city','state','postal','country','phone','address','notes','tier'].forEach(function(field) {
     var el = document.getElementById('new-koc-' + field); payload[field] = el ? String(el.value || '').trim() : '';
   });
+  payload.server = normalizeServerName(payload.server);
   payload.welcome_gift = document.getElementById('new-koc-welcome-gift').checked;
   payload.period = '';
   if (!payload.discord || !payload.uid || !payload.account || !payload.name || !payload.server) { showToast('请填写 Discord、Game UID、Account ID、真实姓名和区服', 'error'); return; }
@@ -8203,7 +8204,7 @@ function openEditModal(uid) {
   document.getElementById('edit-country').value = koc.country || '';
   document.getElementById('edit-phone').value = koc.phone || parseAddress(koc.address || '').phone;
   document.getElementById('edit-account').value = koc.account_id || '';
-  document.getElementById('edit-server').value = koc.server || '';
+  document.getElementById('edit-server').value = normalizeServerName(koc.server);
   document.getElementById('edit-notes').value = koc.notes || '';
   document.getElementById('edit-modal').classList.remove('hidden');
 }
@@ -8222,6 +8223,14 @@ function parseAddress(addr) {
     return { address: lines.slice(0,-1).join('\n'), phone: last.trim() };
   }
   return { address: addr, phone: '' };
+}
+
+function normalizeServerName(server) {
+  var value = String(server || '').trim();
+  var normalized = value.toLowerCase();
+  if (['official', 'official server', '正式服'].indexOf(normalized) >= 0) return '正式服';
+  if (['beacon', 'beacon server', 'test server', '灯塔服'].indexOf(normalized) >= 0) return '灯塔服';
+  return value;
 }
 
 function closeEditModal() {
@@ -8246,7 +8255,7 @@ async function saveEditKOC() {
     country: document.getElementById('edit-country').value.trim(),
     phone: phone,
     account_id: document.getElementById('edit-account').value.trim(),
-    server: document.getElementById('edit-server').value.trim(),
+    server: normalizeServerName(document.getElementById('edit-server').value),
     notes: document.getElementById('edit-notes').value.trim()
   };
 
@@ -8306,7 +8315,7 @@ function editOrderRow(orderId, field) {
       currentVal = koc ? koc.account_id : '';
     } else if (field === 'server') {
       var koc = getKocMap()[order.uid];
-      currentVal = koc ? koc.server : '';
+      currentVal = koc ? normalizeServerName(koc.server) : '';
     } else if (field === 'region') {
       var koc = getKocMap()[order.uid];
       currentVal = koc ? koc.region : '';
@@ -8315,7 +8324,7 @@ function editOrderRow(orderId, field) {
     }
     var newVal = prompt('Edit ' + field + ':', currentVal);
     if (newVal === null) return;
-    newVal = newVal.trim();
+    newVal = field === 'server' ? normalizeServerName(newVal) : newVal.trim();
     if (newVal === currentVal) return;
     if (field === 'account_id' && !/^6\d{18}$/.test(newVal)) {
       showToast('Account ID 必须以 6 开头且严格为 19 位数字', 'error');
@@ -8551,7 +8560,7 @@ function getDisplayName(koc, order) {
   return (koc && (koc.discord_name || koc.name)) || (order && (order.discord_name || order.koc_name)) || '-';
 }
 function getAccountId(koc) { return (koc && koc.account_id) || '-'; }
-function getServerName(koc) { return (koc && koc.server) || '正式服'; }
+function getServerName(koc) { return normalizeServerName(koc && koc.server) || '正式服'; }
 function getCountryName(koc) {
   var value = (koc && (koc.country || koc.region)) || '-';
   var map = { '美国':'United States', 'USA':'United States', 'United States of America':'United States', '加拿大':'Canada', '英国':'United Kingdom', '巴西':'Brazil', '意大利':'Italy', '立陶宛':'Lithuania', '法国':'France', '德国':'Germany', '瑞士':'Switzerland', '越南':'Vietnam', '科索沃':'Kosovo', '菲律宾':'Philippines', '波多黎各':'Puerto Rico', '智利':'Chile' };
@@ -8866,7 +8875,7 @@ function fillManualRewardCreator() {
   document.getElementById('manual-reward-discord').value = koc.discord_name || koc.name || '';
   document.getElementById('manual-reward-uid').value = koc.uid || '';
   document.getElementById('manual-reward-account').value = koc.account_id || '';
-  document.getElementById('manual-reward-server').value = koc.server || '';
+  document.getElementById('manual-reward-server').value = normalizeServerName(koc.server);
   document.getElementById('manual-reward-country').value = koc.country || koc.region || '';
   document.getElementById('manual-reward-phone').value = koc.phone || '';
   document.getElementById('manual-reward-address').value = [koc.address, koc.city, koc.state, koc.postal_code, koc.country].filter(Boolean).join(', ');
@@ -8880,7 +8889,7 @@ async function submitManualReward() {
     uid: document.getElementById('manual-reward-uid').value.trim(),
     discord_name: document.getElementById('manual-reward-discord').value.trim(),
     account_id: document.getElementById('manual-reward-account').value.trim(),
-    server: document.getElementById('manual-reward-server').value.trim(),
+    server: normalizeServerName(document.getElementById('manual-reward-server').value),
     country: document.getElementById('manual-reward-country').value.trim(),
     phone: document.getElementById('manual-reward-phone').value.trim(),
     address: document.getElementById('manual-reward-address').value.trim(),
