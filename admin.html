@@ -4843,7 +4843,7 @@ function buildMerchPreviewFromObjects(rows, sourcePeriod) {
     var needsWelcomeOrder = !!(koc && isWelcomeGift && !hasWelcomeOrder);
     var needsSharedShipmentOrder = !!(koc && !orders.length && !needsWelcomeOrder && group.tracking_number);
     if (!koc) problems.push('未唯一匹配 KOC');
-    if (!group.tracking_number) problems.push('缺少物流单号');
+    var isUndeliverable = !group.tracking_number;
     var matchedOrders = orders.slice();
     if (needsWelcomeOrder || needsSharedShipmentOrder) matchedOrders.push(null);
     if (!matchedOrders.length) matchedOrders.push(null);
@@ -4857,11 +4857,11 @@ function buildMerchPreviewFromObjects(rows, sourcePeriod) {
         create_missing_welcome_order: !!(!order && needsWelcomeOrder),
         create_missing_merch_order: !!(!order && needsSharedShipmentOrder),
         order_period: sourcePeriod || currentPeriod,
-        reward_type: 'merch', fulfillment_status: 'shipped', gift_codes: [],
+        reward_type: 'merch', fulfillment_status: isUndeliverable ? 'undeliverable' : 'shipped', gift_codes: [],
         carrier: group.carrier || 'International Shipping',
         tracking_number: group.tracking_number,
-        reward_note: group.notes.join('；') || (group.items.length ? 'Package: ' + group.items.join(' / ') : ''),
-        warnings: (matchedOrders.length > 1 ? ['同一物流号关联新人礼物与当月周边奖励'] : []).concat(order && getRowPeriod(order) !== currentPeriod ? ['匹配到 ' + getRowPeriod(order) + ' 订单'] : []).concat(!order && needsWelcomeOrder ? ['表格标注为本次新人礼物；保存时补建对应订单，不会重复扣积分'] : []).concat(!order && needsSharedShipmentOrder ? ['没有本次周边订单；将补建零积分的合并寄件记录并关联物流号'] : []),
+        reward_note: isUndeliverable ? 'Unfortunately, international shipping is unavailable for your location. Please send Seraphina a direct message on Discord to arrange in-game compensation.' : (group.notes.join('；') || (group.items.length ? 'Package: ' + group.items.join(' / ') : '')),
+        warnings: (matchedOrders.length > 1 ? ['同一物流号关联新人礼物与当月周边奖励'] : []).concat(order && getRowPeriod(order) !== currentPeriod ? ['匹配到 ' + getRowPeriod(order) + ' 订单'] : []).concat(!order && needsWelcomeOrder ? ['表格标注为本次新人礼物；保存时补建对应订单，不会重复扣积分'] : []).concat(!order && needsSharedShipmentOrder ? ['没有本次周边订单；将补建零积分的合并寄件记录并关联物流号'] : []).concat(isUndeliverable ? ['无物流号：将发布无法配送通知，请创作者私聊 Seraphina 领取端内补偿'] : []),
         problems: rowProblems, valid: rowProblems.length === 0, checked: rowProblems.length === 0
       });
     });
@@ -5091,7 +5091,7 @@ function renderRewardFulfillmentTable() {
   root.innerHTML = '<table class="submission-table"><thead><tr><th><input type="checkbox" onchange="toggleAllFulfillments(this.checked)"></th><th>Discord</th><th>奖励</th><th>发放内容</th><th>状态</th><th>更新时间</th></tr></thead><tbody>' + rows.map(function(row) {
       var order = (allOrders || []).find(function(o) { return Number(o.id) === Number(row.order_id); });
       var koc = (allKocs || []).find(function(k) { return String(k.uid) === String(row.uid); });
-      var detail = row.reward_type === 'gplay' ? ((row.gift_codes || []).length + ' 个兑换码') : row.reward_type === 'merch' ? ((row.carrier || '') + ' · ' + (row.tracking_number || '无物流单号')) : '游戏邮箱领取';
+      var detail = row.reward_type === 'gplay' ? ((row.gift_codes || []).length + ' 个兑换码') : row.reward_type === 'merch' ? (row.fulfillment_status === 'undeliverable' ? '无法配送 · 请创作者联系 Seraphina' : ((row.carrier || '') + ' · ' + (row.tracking_number || '无物流单号'))) : '游戏邮箱领取';
       var status = row.is_published ? '✅ 已发布' : '📝 草稿';
       var copyText = detail || ((order && (order.option_name || order.reward_amount)) || row.reward_type);
       return '<tr><td><input type="checkbox" class="fulfillment-record-check" value="' + row.id + '" data-published="' + (row.is_published ? 'true' : 'false') + '" onchange="updateFulfillmentSelection()"></td>' +

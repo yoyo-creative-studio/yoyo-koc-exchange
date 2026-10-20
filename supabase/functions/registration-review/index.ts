@@ -1105,7 +1105,7 @@ serve(async (req) => {
         } else if (codes.length) {
           return json({ ok: false, error: `Order #${order.id} does not accept gift codes` }, 400);
         }
-        if (order.option_type === "merch" && !String(row.tracking_number || "").trim()) {
+        if (order.option_type === "merch" && String(row.fulfillment_status || "") !== "undeliverable" && !String(row.tracking_number || "").trim()) {
           return json({ ok: false, error: `Order #${order.id} requires a tracking number` }, 400);
         }
         payload.push({
@@ -1145,7 +1145,7 @@ serve(async (req) => {
       const ids = (Array.isArray(data.ids) ? data.ids : []).map(Number).filter(Boolean);
       if (!ids.length) return json({ ok: false, error: "No fulfillment records selected" }, 400);
       const { data: selectedRows, error: selectedError } = await db.from("reward_fulfillments")
-        .select("id,order_id,reward_type,gift_codes,is_published").eq("project_id", projectId).in("id", ids);
+        .select("id,order_id,reward_type,fulfillment_status,gift_codes,is_published").eq("project_id", projectId).in("id", ids);
       if (selectedError) return json({ ok: false, error: selectedError.message }, 400);
       if ((selectedRows || []).length !== ids.length) return json({ ok: false, error: "One or more fulfillment records were not found" }, 404);
       const selectedCodeOwners = new Map<string, number>();
@@ -1174,8 +1174,28 @@ serve(async (req) => {
           }
         }
       }
-      const { data: result, error } = await db.rpc("publish_reward_fulfillments", { p_ids: ids });
-      if (error) return json({ ok: false, error: error.message }, 400);
+      const undeliverableRows = (selectedRows || []).filter((row) => !row.is_published && row.fulfillment_status === "undeliverable");
+      const normalIds = (selectedRows || []).filter((row) => !row.is_published && row.fulfillment_status !== "undeliverable").map((row) => Number(row.id));
+      let result: Record<string, unknown> = { ok: true, published: 0 };
+      if (normalIds.length) {
+        const { data: publishResult, error } = await db.rpc("publish_reward_fulfillments", { p_ids: normalIds });
+        if (error) return json({ ok: false, error: error.message }, 400);
+        result = publishResult || result;
+      }
+      if (undeliverableRows.length) {
+        const undeliverableIds = undeliverableRows.map((row) => Number(row.id));
+        const undeliverableOrderIds = undeliverableRows.map((row) => Number(row.order_id));
+        const publishedAt = new Date().toISOString();
+        const { error: fulfillmentError } = await db.from("reward_fulfillments").update({
+          is_published: true, published_at: publishedAt, updated_at: publishedAt, updated_by: "admin",
+        }).eq("project_id", projectId).in("id", undeliverableIds).eq("is_published", false);
+        if (fulfillmentError) return json({ ok: false, error: fulfillmentError.message }, 400);
+        const { error: orderStatusError } = await db.from("redemption_orders").update({
+          status: "cancelled", processed_by: "shipping_unavailable", processed_at: publishedAt,
+        }).eq("project_id", projectId).in("id", undeliverableOrderIds);
+        if (orderStatusError) return json({ ok: false, error: orderStatusError.message }, 400);
+        result = { ok: true, published: Number(result.published || 0) + undeliverableRows.length };
+      }
       const selectedOrderIds = (selectedRows || []).map((row) => Number(row.order_id)).filter(Boolean);
       const { data: selectedOrders, error: selectedOrdersError } = await db.from("redemption_orders")
         .select("id,uid,points_spent,period").eq("project_id", projectId).in("id", selectedOrderIds);
