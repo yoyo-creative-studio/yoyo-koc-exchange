@@ -4841,11 +4841,11 @@ function buildMerchPreviewFromObjects(rows, sourcePeriod) {
       return isWelcomeMerchOrder(order);
     });
     var needsWelcomeOrder = !!(koc && isWelcomeGift && !hasWelcomeOrder);
+    var needsSharedShipmentOrder = !!(koc && !orders.length && !needsWelcomeOrder && group.tracking_number);
     if (!koc) problems.push('未唯一匹配 KOC');
-    if (koc && !orders.length && !needsWelcomeOrder) problems.push('系统中没有可关联的本次周边订单');
     if (!group.tracking_number) problems.push('缺少物流单号');
     var matchedOrders = orders.slice();
-    if (needsWelcomeOrder) matchedOrders.push(null);
+    if (needsWelcomeOrder || needsSharedShipmentOrder) matchedOrders.push(null);
     if (!matchedOrders.length) matchedOrders.push(null);
     matchedOrders.forEach(function(order) {
       var rowProblems = problems.slice();
@@ -4855,12 +4855,13 @@ function buildMerchPreviewFromObjects(rows, sourcePeriod) {
         discord_name: (koc && koc.discord_name) || group.discord_name,
         uid: (koc && koc.uid) || '', order_id: order ? order.id : 0,
         create_missing_welcome_order: !!(!order && needsWelcomeOrder),
+        create_missing_merch_order: !!(!order && needsSharedShipmentOrder),
         order_period: sourcePeriod || currentPeriod,
         reward_type: 'merch', fulfillment_status: 'shipped', gift_codes: [],
         carrier: group.carrier || 'International Shipping',
         tracking_number: group.tracking_number,
         reward_note: group.notes.join('；') || (group.items.length ? 'Package: ' + group.items.join(' / ') : ''),
-        warnings: (matchedOrders.length > 1 ? ['同一物流号关联新人礼物与当月周边奖励'] : []).concat(order && getRowPeriod(order) !== currentPeriod ? ['匹配到 ' + getRowPeriod(order) + ' 订单'] : []).concat(!order && needsWelcomeOrder ? ['表格标注为本次新人礼物；保存时补建对应订单，不会重复扣积分'] : []),
+        warnings: (matchedOrders.length > 1 ? ['同一物流号关联新人礼物与当月周边奖励'] : []).concat(order && getRowPeriod(order) !== currentPeriod ? ['匹配到 ' + getRowPeriod(order) + ' 订单'] : []).concat(!order && needsWelcomeOrder ? ['表格标注为本次新人礼物；保存时补建对应订单，不会重复扣积分'] : []).concat(!order && needsSharedShipmentOrder ? ['没有本次周边订单；将补建零积分的合并寄件记录并关联物流号'] : []),
         problems: rowProblems, valid: rowProblems.length === 0, checked: rowProblems.length === 0
       });
     });

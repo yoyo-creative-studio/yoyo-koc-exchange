@@ -1012,7 +1012,7 @@ serve(async (req) => {
       const rows = Array.isArray(data.rows) ? data.rows : [];
       if (!rows.length) return json({ ok: false, error: "No fulfillment rows supplied" }, 400);
       for (const row of rows as Record<string, unknown>[]) {
-        if (Number(row.order_id) || (!row.create_missing_gplay_order && !row.create_missing_welcome_order)) continue;
+        if (Number(row.order_id) || (!row.create_missing_gplay_order && !row.create_missing_welcome_order && !row.create_missing_merch_order)) continue;
         const uid = String(row.uid || "").trim();
         const period = String(row.order_period || row.period || "").trim();
         const rewardType = String(row.reward_type || "");
@@ -1027,7 +1027,11 @@ serve(async (req) => {
           .order("id", { ascending: false });
         if (existingOrderError) return json({ ok: false, error: existingOrderError.message }, 400);
         const existingOrder = rewardType === "merch"
-          ? (existingOrders || []).find((order) => String(order.period || "") === period && /welcome|new creator|新人/i.test(`${order.option_name || ""} ${order.reward_amount || ""} ${order.admin_notes || ""}`))
+          ? (existingOrders || []).find((order) => String(order.period || "") === period && (
+            row.create_missing_welcome_order
+              ? /welcome|new creator|新人/i.test(`${order.option_name || ""} ${order.reward_amount || ""} ${order.admin_notes || ""}`)
+              : true
+          ))
           : (existingOrders || [])[0];
         if (existingOrder) {
           row.order_id = existingOrder.id;
@@ -1035,18 +1039,20 @@ serve(async (req) => {
         }
         const giftCodes = Array.isArray(row.gift_codes) ? row.gift_codes.map((code: unknown) => String(code || "").trim()).filter(Boolean) : [];
         const isGplay = rewardType === "gplay";
+        const isSharedMerchShipment = rewardType === "merch" && Boolean(row.create_missing_merch_order);
+        const merchRewardNote = String(row.reward_note || "").trim();
         const { data: createdOrder, error: createOrderError } = await db.from("redemption_orders").insert({
           project_id: projectId, creator_id: creator.creator_id,
           uid,
           discord_name: creator.discord_name || "",
           koc_name: creator.name || "",
           option_type: rewardType,
-          option_name: isGplay ? `🎮 Google Play $10 ×${giftCodes.length}` : "🎁 New Creator Welcome Gift",
+          option_name: isGplay ? `🎮 Google Play $10 ×${giftCodes.length}` : isSharedMerchShipment ? "📦 Shared Merchandise Shipment" : "🎁 New Creator Welcome Gift",
           points_spent: 0,
-          reward_amount: isGplay ? `$${giftCodes.length * 10} Google Play Gift Card` : "Fridge Magnet × 1",
+          reward_amount: isGplay ? `$${giftCodes.length * 10} Google Play Gift Card` : isSharedMerchShipment ? (merchRewardNote || "Shared merchandise package") : "Fridge Magnet × 1",
           contact_info: creator.address || "",
           status: "pending",
-          admin_notes: isGplay ? "Administrator Google Play order restored during code import" : "Current welcome gift order restored from the final logistics sheet",
+          admin_notes: isGplay ? "Administrator Google Play order restored during code import" : isSharedMerchShipment ? "Zero-point shared shipment order created from logistics import" : "Current welcome gift order restored from the final logistics sheet",
           period,
         }).select("id").single();
         if (createOrderError || !createdOrder) return json({ ok: false, error: createOrderError?.message || `Could not create welcome order for ${uid}` }, 400);
