@@ -190,7 +190,11 @@ serve(async (req) => {
           .select("id,username,display_name,role,status,is_system_owner")
           .eq("id", session.admin_id).eq("status", "active").maybeSingle();
         if (!admin) return null;
-        await db.from("platform_admin_sessions").update({ last_seen_at: new Date().toISOString() }).eq("id", session.id);
+        const now = new Date();
+        await db.from("platform_admin_sessions").update({
+          last_seen_at: now.toISOString(),
+          expires_at: new Date(now.getTime() + 12 * 60 * 60 * 1000).toISOString(),
+        }).eq("id", session.id);
         const { data: access } = await db.from("platform_admin_project_access").select("project_id").eq("admin_id", admin.id);
         return { ...admin, project_ids: (access || []).map((row) => String(row.project_id)) };
       }
