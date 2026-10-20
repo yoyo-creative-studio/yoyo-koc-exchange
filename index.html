@@ -1885,6 +1885,10 @@ function renderCreatorFulfillment(row, order) {
       codes.map(function(code) { return '<div class="reward-code-row"><span class="reward-code">' + esc(code) + '</span><button class="reward-copy-btn" data-copy-value="' + escAttr(code) + '" onclick="copyRewardValue(this.dataset.copyValue,this)">Copy</button></div>'; }).join('') + '</div>';
   }
   if (row.reward_type === 'merch') {
+    if (row.fulfillment_status === 'undeliverable') {
+      return '<div class="reward-status-card"><div class="reward-status-title"><span>⚠️ Shipping Unavailable</span><span>Action Required</span></div>' +
+        '<div class="reward-status-note">' + esc(creatorFacingRewardText(row.reward_note) || 'Unfortunately, international shipping is unavailable for your location. Please send Seraphina a direct message on Discord to arrange in-game compensation.') + '</div></div>';
+    }
     return '<div class="reward-status-card"><div class="reward-status-title"><span>📦 Package Shipped</span><span>Shipped</span></div>' +
       '<div class="tracking-box"><strong>Carrier:</strong> ' + esc(row.carrier || 'International Shipping') + '<br><strong>Tracking number:</strong> ' + esc(row.tracking_number || '—') +
       (row.tracking_number ? ' <button class="reward-copy-btn" data-copy-value="' + escAttr(row.tracking_number) + '" onclick="copyRewardValue(this.dataset.copyValue,this)">Copy</button>' : '') + '</div>' +
