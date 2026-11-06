@@ -1,0 +1,321 @@
+.developer-credit {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+  width: fit-content;
+  max-width: calc(100% - 24px);
+  margin: 28px auto 34px;
+  padding: 10px 16px 10px 11px;
+  color: #6d2448;
+  background:
+    linear-gradient(#fffafd, #fffafd) padding-box,
+    linear-gradient(120deg, #f7aac8, #d4749a 48%, #a56bc5) border-box;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(190, 72, 125, 0.14);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  line-height: 1.15;
+  isolation: isolate;
+}
+
+.developer-credit::before {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  z-index: -1;
+  border: 1px solid rgba(244, 184, 209, 0.55);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.developer-credit-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  color: #fff;
+  background: linear-gradient(135deg, #ff6fa8, #c84783 58%, #8d62b4);
+  border: 2px solid rgba(255, 255, 255, 0.86);
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(200, 45, 115, 0.24);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: -1px;
+}
+
+.developer-credit-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  text-align: left;
+}
+
+.developer-credit-role {
+  color: #a15b7c;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.developer-credit-copy strong {
+  margin-top: 3px;
+  color: #b62f70;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  font-style: italic;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.developer-credit-sparkle {
+  color: #d58aac;
+  font-size: 13px;
+}
+
+#step-login .developer-credit,
+#login-screen .developer-credit {
+  margin-top: 24px;
+  margin-bottom: 0;
+}
+
+.developer-credit-login {
+  z-index: 2;
+  margin-top: 0 !important;
+  margin-bottom: 28px !important;
+}
+
+@media (max-width: 520px) {
+  .developer-credit {
+    gap: 8px;
+    margin-top: 22px;
+    padding: 8px 13px 8px 8px;
+  }
+
+  .developer-credit-icon {
+    flex-basis: 34px;
+    width: 34px;
+    height: 34px;
+    font-size: 11px;
+  }
+
+  .developer-credit-role {
+    font-size: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  .developer-credit-copy strong {
+    font-size: 16px;
+  }
+}
+
+@media print {
+  .developer-credit {
+    margin: 12px auto 0;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}
+
+/* Shared Seraphina profile card */
+.seraphina-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 54px minmax(0,1fr);
+  align-items: center;
+  gap: 12px;
+  width: min(470px, calc(100% - 24px));
+  margin: 30px auto 36px;
+  padding: 14px 18px 14px 12px;
+  color: #54223d;
+  background:
+    radial-gradient(circle at 92% 18%, rgba(255, 212, 232, .72) 0 2px, transparent 3px),
+    radial-gradient(circle at 86% 82%, rgba(206, 174, 244, .34) 0 1px, transparent 2px),
+    linear-gradient(135deg, #fffafd 0%, #fff5fa 55%, #f8f1ff 100%);
+  border: 3px solid #8d4069;
+  border-radius: 3px;
+  box-shadow: 6px 6px 0 rgba(185,47,114,.42), 0 0 26px rgba(229, 107, 166, .18);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  isolation: isolate;
+}
+.seraphina-card::before {
+  content: "DEVELOPER_PROFILE.EXE";
+  position: absolute;
+  left: -3px;
+  top: -25px;
+  padding: 5px 9px;
+  color: #fff;
+  background: #c83278;
+  border: 3px solid #8d4069;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  box-shadow: 3px 3px 0 rgba(185,47,114,.30);
+}
+.seraphina-card::after {
+  content: "✦  ✧  ✦";
+  position: absolute;
+  right: 12px;
+  top: -13px;
+  padding: 2px 7px;
+  color: #fff8fc;
+  background: linear-gradient(100deg, #d44e8f, #9c6bd0, #d44e8f);
+  background-size: 200% 100%;
+  border: 2px solid #8d4069;
+  border-radius: 999px;
+  box-shadow: 3px 3px 0 rgba(185,47,114,.28), 0 0 10px rgba(213, 102, 169, .35);
+  font-size: 8px;
+  letter-spacing: 2px;
+  line-height: 1.2;
+  text-shadow: 0 0 5px #fff;
+  animation: creatorCreditRibbon 4s linear infinite, creatorCreditTwinkle 2.5s ease-in-out infinite;
+  pointer-events: none;
+}
+.seraphina-card-avatar {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  position: relative;
+  background: radial-gradient(circle at 30% 24%, #fff 0 10%, transparent 11%), linear-gradient(145deg, #ffe6f2, #f4d7ff);
+  border: 3px solid #8d4069;
+  box-shadow: 3px 3px 0 #efabc8, 0 0 14px rgba(226,92,157,.24);
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  font-size: 30px;
+  line-height: 1;
+}
+.seraphina-card-copy { min-width: 0; }
+.seraphina-card-label {
+  display: block;
+  color: #a05b7b;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .12em;
+}
+.seraphina-card-name {
+  display: block;
+  margin-top: 2px;
+  color: #b12266;
+  font-family: "Snell Roundhand", "Segoe Script", "Bradley Hand", "Brush Script MT", cursive;
+  font-size: 27px;
+  font-style: italic;
+  line-height: 1;
+  text-shadow: 1px 1px 0 #fff, 3px 3px 0 #f0b2cd, 5px 5px 0 rgba(185,47,114,.16), 0 0 9px rgba(232, 117, 177, .25);
+}
+.seraphina-card-name::after {
+  content: "  ·  YoYo assistant Mochi";
+  color: #8e5aa9;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: .30em;
+  font-style: normal;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-shadow: none;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.seraphina-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  margin-top: 9px;
+  padding-top: 7px;
+  color: #70475b;
+  border-top: 2px dashed #edb6ce;
+  font-size: 8px;
+  font-weight: 800;
+}
+.seraphina-card-meta strong { color: #9d2c62; }
+.seraphina-card-hero {
+  grid-template-columns: 44px minmax(0,1fr);
+  width: 300px;
+  max-width: 100%;
+  margin: 0;
+  padding: 10px 11px 10px 8px;
+  color: #54223d;
+  background: rgba(255,250,253,.96);
+  border-color: #7c2855;
+  box-shadow: 5px 5px 0 rgba(112,28,70,.42);
+}
+.seraphina-card-hero::before { content: "SYSTEM CREATOR"; top: -21px; padding: 4px 7px; font-size: 7px; }
+.seraphina-card-hero .seraphina-card-avatar { width: 42px; height: 42px; border-width: 2px; font-size: 25px; box-shadow: 2px 2px 0 #efabc8; }
+.seraphina-card-hero .seraphina-card-label { font-size: 7px; }
+.seraphina-card-hero .seraphina-card-name { font-size: 21px; text-shadow: 1px 1px 0 #fff, 2px 2px 0 #f0b2cd; }
+.seraphina-card-hero .seraphina-card-meta { margin-top: 6px; padding-top: 5px; font-size: 7px; }
+@media (max-width: 680px) {
+  .seraphina-card { width: calc(100% - 16px); grid-template-columns: 48px minmax(0,1fr); gap: 10px; }
+  .seraphina-card-avatar { width: 46px; height: 46px; font-size: 27px; }
+  .seraphina-card-name { font-size: 23px; }
+  .seraphina-card-hero { width: 100%; margin-top: 30px; }
+}
+.creator-account-credit {
+  width: min(430px, calc(100% - 16px));
+  margin: 34px auto 18px;
+  background: linear-gradient(135deg, #fffafd 0%, #fff1f8 52%, #f7efff 100%);
+  border-color: #a43d73;
+  box-shadow: 6px 6px 0 rgba(185,47,114,.34), 0 0 22px rgba(255,111,170,.18);
+  overflow: visible;
+}
+.creator-account-credit::before { top: -24px; }
+.creator-account-credit::after {
+  content: "✦  ✧  ✦  ✧  ✦";
+  position: absolute;
+  right: 10px;
+  top: -20px;
+  padding: 3px 7px;
+  color: #fff;
+  background: linear-gradient(90deg, #e15a9b, #a978e8, #e15a9b);
+  background-size: 200% 100%;
+  border: 2px solid #8d4069;
+  font-size: 8px;
+  letter-spacing: 3px;
+  text-shadow: 0 0 5px rgba(255,255,255,.95);
+  box-shadow: 3px 3px 0 rgba(185,47,114,.24);
+  animation: creatorCreditRibbon 3s linear infinite, creatorCreditTwinkle 2.3s ease-in-out infinite;
+}
+.creator-account-credit {
+  border-width: 3px;
+}
+.creator-account-credit .seraphina-card-copy {
+  position: relative;
+}
+.creator-account-credit .seraphina-card-copy::after {
+  content: "✧";
+  position: absolute;
+  right: -7px;
+  bottom: -5px;
+  color: #d49a20;
+  font-size: 13px;
+  text-shadow: 0 0 6px #fff3ad;
+  animation: creatorCreditTwinkle 2s ease-in-out infinite .35s;
+}
+.creator-account-credit .seraphina-card-avatar {
+  position: relative;
+  background: radial-gradient(circle at 35% 25%, #fff7fc 0 12%, transparent 13%), linear-gradient(145deg, #ffe9f3, #f6d8ff);
+  border-color: #a43d73;
+  box-shadow: 3px 3px 0 #e5a4c4, 0 0 13px rgba(226,92,157,.35);
+}
+.creator-account-credit .seraphina-card-avatar::after {
+  content: "✧";
+  position: absolute;
+  right: -8px;
+  top: -10px;
+  color: #e3a21a;
+  font-size: 14px;
+  text-shadow: 0 0 5px #fff1a8;
+  animation: creatorCreditTwinkle 1.8s ease-in-out infinite;
+}
+.creator-account-credit .seraphina-card-label::before { content: "✦ "; color: #d65792; }
+.creator-account-credit .seraphina-card-name {
+  color: #b72f78;
+  text-shadow: 1px 1px 0 #fff, 3px 3px 0 #f0b2cd, 5px 5px 0 rgba(185,47,114,.18), 0 0 12px rgba(177, 88, 205, .28);
+}
+.creator-account-credit .seraphina-card-meta { border-top-color: #e6a8c5; }
+@keyframes creatorCreditRibbon { 0% { background-position: 0 0; } 100% { background-position: 200% 0; } }
+@keyframes creatorCreditTwinkle { 0%,100% { opacity: .65; transform: none; } 50% { opacity: 1; transform: none; } }
