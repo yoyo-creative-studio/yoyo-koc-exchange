@@ -1682,12 +1682,13 @@ async function loadCommunityMilestone() {
   var statusEl = document.getElementById('community-milestone-status');
   if (!countEl || !fillEl || !statusEl) return;
   try {
-    var response = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?status=eq.active&uid=not.eq.__config__&select=uid');
-    if (!response.ok) throw new Error('HTTP ' + response.status);
-    var rows = await response.json() || [];
-    var unique = {};
-    rows.forEach(function(row) { if (row.uid) unique[String(row.uid)] = true; });
-    var count = Object.keys(unique).length;
+    var response = await fetchWithTimeout(SUPABASE_URL + '/functions/v1/creator-auth', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'active_creator_count', data: { project_key: PROJECT_KEY } })
+    });
+    var result = await response.json().catch(function() { return {}; });
+    if (!response.ok || !result.ok) throw new Error(result.error || ('HTTP ' + response.status));
+    var count = Number(result.count || 0);
     var target = 300;
     var reached = count >= target;
     countEl.textContent = count + ' / ' + target;
