@@ -1967,7 +1967,7 @@ async function registrationReviewFetch(action, data) {
       ? await fetchAdminReadWithFallback(Object.assign({}, requestOptions, {
           headers: Object.assign({ 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, requestOptions.headers)
         }))
-      : await supabaseFetch(SUPABASE_URL + '/functions/v1/registration-review', requestOptions);
+      : await supabaseFetch(getAdminFunctionUrl(), requestOptions);
     var result = await response.json().catch(function() { return { ok: false, error: 'Invalid server response' }; });
     return { response: response, result: result };
   }

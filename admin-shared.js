@@ -8,9 +8,17 @@ function fetchWithNetworkRetry(url, opts, retries) {
   });
 }
 
+function getAdminFunctionUrl() {
+  if (window.location.hostname.endsWith('.functions.supabase.co')) {
+    return window.location.origin + '/registration-review';
+  }
+  return SUPABASE_URL + '/functions/v1/registration-review';
+}
+
 function fetchAdminReadWithFallback(opts) {
-  var primaryUrl = SUPABASE_URL + '/functions/v1/registration-review';
+  var primaryUrl = getAdminFunctionUrl();
   var fallbackUrl = 'https://rryzofimrehmkijkckrm.functions.supabase.co/registration-review';
+  if (primaryUrl === fallbackUrl) return fetchWithNetworkRetry(primaryUrl, opts, 2);
   return fetchWithNetworkRetry(primaryUrl, opts, 1).catch(function(primaryError) {
     return fetchWithNetworkRetry(fallbackUrl, opts, 1).catch(function(fallbackError) {
       var error = new Error('Cannot reach the admin data service from this browser');
@@ -39,7 +47,7 @@ function supabaseFetch(url, opts) {
     };
     return method === 'GET' || method === 'HEAD'
       ? fetchAdminReadWithFallback(proxyOptions)
-      : fetchWithNetworkRetry(SUPABASE_URL + '/functions/v1/registration-review', proxyOptions, 0);
+      : fetchWithNetworkRetry(getAdminFunctionUrl(), proxyOptions, 0);
   }
   if (method === 'GET' && /\/rest\/v1\/kocs(?:\?|$)/.test(url) && typeof allKocs !== 'undefined' && Array.isArray(allKocs)) {
     var rows = allKocs.slice();
