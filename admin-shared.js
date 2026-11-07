@@ -9,6 +9,9 @@ function fetchWithNetworkRetry(url, opts, retries) {
 }
 
 function getAdminFunctionUrl() {
+  if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
+    return window.location.origin + '/api/registration-review';
+  }
   if (window.location.hostname.endsWith('.functions.supabase.co')) {
     return window.location.origin + '/registration-review';
   }

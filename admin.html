@@ -1956,7 +1956,7 @@ function getActiveProjectKey() {
 
 async function registrationReviewFetch(action, data) {
   data = Object.assign({ project_key: getActiveProjectKey() }, data || {});
-  var retryableActions = ['session_info', 'list', 'list_kocs', 'list_platform_projects', 'list_platform_admins', 'list_project_reward_options', 'project_launch_readiness', 'list_reward_fulfillments', 'list_creator_feedback', 'verify_feedback_recipients'];
+  var retryableActions = ['session_info', 'list', 'list_kocs', 'list_campaign_periods', 'list_platform_projects', 'list_platform_admins', 'list_project_reward_options', 'project_launch_readiness', 'list_reward_fulfillments', 'list_creator_feedback', 'verify_feedback_recipients'];
   async function sendRequest(requestAction, requestData) {
     var requestOptions = {
       method: 'POST',
@@ -2582,6 +2582,7 @@ window.adminLogin = async function adminLogin() {
       await initializeActiveProject();
       await loadSettleMonthDropdown();
       await loadData();
+      switchTab(localStorage.getItem('admin_active_tab') || 'koc-ledger');
     }, 100);
   } catch (error) {
     ADMIN_PASSWORD = '';
@@ -2845,14 +2846,13 @@ async function syncDiscordIdentities() {
 // ===== CAMPAIGN / RULES CONFIG =====
 async function loadSettleMonthDropdown() {
   try {
-    var [configRes, snapshotRes] = await Promise.all([
-      supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/get_project_campaign_periods', { method: 'POST', body: JSON.stringify({ p_project_key: getActiveProjectKey() }) }),
+    var [campaignResult, snapshotRes] = await Promise.all([
+      registrationReviewFetch('list_campaign_periods'),
       getActiveProjectKey() === 'mlt-global'
         ? supabaseFetch(SUPABASE_URL + '/rest/v1/monthly_report_snapshots?select=period&order=period.asc')
         : Promise.resolve({ ok: true, json: function() { return Promise.resolve([]); } })
     ]);
-    if (!configRes.ok) return;
-    var data = await configRes.json();
+    var data = campaignResult.periods || [];
     var snapshotData = snapshotRes.ok ? await snapshotRes.json() : [];
     var periodMap = {};
     data.concat(snapshotData).forEach(function(row) {
@@ -6686,7 +6686,17 @@ async function loadData() {
     if (!ordRes.ok) throw new Error('Reward orders: ' + (await ordRes.text()).substring(0, 180));
     allKocs = kocData.kocs || [];
     allOrders = await ordRes.json();
-    await Promise.all([loadRegistrationApplications(), loadSubmissions()]);
+    Promise.allSettled([loadRegistrationApplications(), loadSubmissions()]).then(function(results) {
+      results.forEach(function(result) {
+        if (result.status === 'rejected') console.error('Secondary admin data load failed:', result.reason);
+      });
+      var activeTab = document.querySelector('.tab-content.active');
+      if (!activeTab) return;
+      if (activeTab.id === 'tab-dashboard') loadDashboard();
+      else if (activeTab.id === 'tab-scoring') renderScoringTable();
+      else if (activeTab.id === 'tab-submissions') renderSubmissions();
+      else if (activeTab.id === 'tab-koc-ledger') renderKocTable();
+    });
     // Re-render current active tab
     var tabIds = ['dashboard','koc-ledger','scoring','submissions','fulfillment','diamond','gplay','merch','tiers','rules','audit'];
     var activeId = null;
@@ -9625,7 +9635,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (savedTab && ['dashboard','koc-ledger','scoring','submissions','diamond','gplay','rules','audit'].indexOf(savedTab) >= 0) {
               switchTab(savedTab);
             } else {
-              loadDashboard();
+              switchTab('koc-ledger');
             }
           }).catch(function(e) { console.error('loadData error:', e); });
         }, 200);
