@@ -3813,8 +3813,9 @@ async function exportCSV() {
     var res = await supabaseFetch(SUPABASE_URL + '/rest/v1/submissions?order=created_at.desc&select=id,discord_name,uid,status,points_earned,links_engagement,links_views,submission_type,period,created_at');
     if (!res.ok) { showToast('获取数据失败', 'error'); return; }
     var subs = (await res.json() || []).filter(function(s) {
-      return s.submission_type !== 'showcase' && getRowPeriod(s) === currentPeriod;
+      return getRowPeriod(s) === currentPeriod;
     });
+    var bonusCount = subs.filter(function(s) { return s.submission_type === 'showcase'; }).length;
     function csvCell(v) {
       v = String(v == null ? '' : v).replace(/"/g, '""');
       return '"' + v + '"';
@@ -3833,8 +3834,8 @@ async function exportCSV() {
     a.href = URL.createObjectURL(blob);
     a.download = 'koc-submissions-' + currentPeriod + '.csv';
     a.click();
-    showToast('✅ 已导出 ' + subs.length + ' 条本期作品数据', 'success');
-    writeAuditLog('score', '导出 CSV，共 ' + subs.length + ' 条本期作品数据');
+    showToast('✅ 已导出 ' + subs.length + ' 条本期作品数据，其中加分内容 ' + bonusCount + ' 条', 'success');
+    writeAuditLog('score', '导出 CSV，共 ' + subs.length + ' 条本期作品数据，其中加分内容 ' + bonusCount + ' 条');
   } catch(e) {
     showToast('导出失败: ' + e.message, 'error');
   }
