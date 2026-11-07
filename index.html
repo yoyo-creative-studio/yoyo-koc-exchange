@@ -489,7 +489,8 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
       </div>
       <div style="font-size:12px;line-height:1.6;color:#8a4f6a;background:#fff7fb;border:1px solid #f8bbd0;border-radius:12px;padding:10px;margin-bottom:12px;text-align:left;">
         <strong>Game UID</strong>: your in-game character ID (letters).<br>
-        <strong>System ID</strong>: your fixed account ID (numbers starting with 6).
+        <strong>System ID</strong>: your fixed account ID (numbers starting with 6).<br>
+        <span style="display:block;margin-top:6px;color:#6f3d58;"><strong>Discord verification required:</strong> stay in the official creator server and allow direct messages from server members so MochiBot can send your one-time code.</span>
       </div>
       <div style="position:relative;margin-bottom:12px;">
         <div style="position:absolute;top:-3px;left:-3px;right:-3px;bottom:-3px;border-radius:14px;background:linear-gradient(135deg,#f2a6c4,#d4749a,#f2a6c4);opacity:0.1;pointer-events:none;"></div>
@@ -1416,7 +1417,11 @@ async function login() {
       body: JSON.stringify({ action: 'request_code', data: { project_key: PROJECT_KEY, uid: uid, account_id: accountId } })
     }, 20000);
     var result = await response.json().catch(function() { return {}; });
-    if (!response.ok || !result.challenge_id) throw new Error(result.error || 'Unable to send the verification code');
+    if (!response.ok || !result.challenge_id) {
+      var deliveryError = new Error(result.error || 'We could not deliver a verification code to the Discord account linked to these creator details.');
+      deliveryError.code = 'CODE_NOT_DELIVERED';
+      throw deliveryError;
+    }
     pendingLoginChallenge = { id: result.challenge_id, uid: uid, account_id: accountId };
     document.getElementById('input-uid').disabled = true;
     document.getElementById('input-account-id').disabled = true;
@@ -1434,7 +1439,13 @@ async function login() {
     var loginBtn = document.getElementById('btn-login');
     if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = '🔐 Login'; }
     var loginStatus = document.getElementById('login-status');
-    if (loginStatus) loginStatus.textContent = '';
+    if (loginStatus) {
+      if (e.code === 'CODE_NOT_DELIVERED') {
+        loginStatus.innerHTML = '<span style="color:#b4235d;font-weight:800;">Code not delivered.</span><br>Check that your Game UID and 19-digit System ID are exact, you are still in the official creator Discord, and direct messages from server members are enabled.<br><span style="color:#76536a;">If it still fails, post your Discord username in <strong>#town-service-station</strong>. Never post your System ID publicly.</span>';
+      } else {
+        loginStatus.textContent = errMsg;
+      }
+    }
   }
 }
 
