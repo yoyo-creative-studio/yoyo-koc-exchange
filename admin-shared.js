@@ -8,6 +8,18 @@ function fetchWithNetworkRetry(url, opts, retries) {
   });
 }
 
+function fetchAdminReadWithFallback(opts) {
+  var primaryUrl = SUPABASE_URL + '/functions/v1/registration-review';
+  var fallbackUrl = 'https://rryzofimrehmkijkckrm.functions.supabase.co/registration-review';
+  return fetchWithNetworkRetry(primaryUrl, opts, 1).catch(function(primaryError) {
+    return fetchWithNetworkRetry(fallbackUrl, opts, 1).catch(function(fallbackError) {
+      var error = new Error('Cannot reach the admin data service from this browser');
+      error.cause = fallbackError || primaryError;
+      throw error;
+    });
+  });
+}
+
 function supabaseFetch(url, opts) {
   opts = opts || {};
   var projectId = window.ACTIVE_PROJECT_ID || '';
@@ -18,13 +30,16 @@ function supabaseFetch(url, opts) {
     if (opts.body && method !== 'GET' && method !== 'HEAD') {
       try { proxyBody = typeof opts.body === 'string' ? JSON.parse(opts.body) : opts.body; } catch (error) { return Promise.reject(new Error('Invalid request body')); }
     }
-    return fetchWithNetworkRetry(SUPABASE_URL + '/functions/v1/registration-review', {
+    var proxyOptions = {
       method: 'POST',
       headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'admin_data', admin_password: ADMIN_PASSWORD, admin_session: ADMIN_SESSION, data: {
         project_key: getActiveProjectKey(), method: method, path: parsedUrl.pathname + parsedUrl.search, body: proxyBody
       } })
-    }, method === 'GET' || method === 'HEAD' ? 2 : 0);
+    };
+    return method === 'GET' || method === 'HEAD'
+      ? fetchAdminReadWithFallback(proxyOptions)
+      : fetchWithNetworkRetry(SUPABASE_URL + '/functions/v1/registration-review', proxyOptions, 0);
   }
   if (method === 'GET' && /\/rest\/v1\/kocs(?:\?|$)/.test(url) && typeof allKocs !== 'undefined' && Array.isArray(allKocs)) {
     var rows = allKocs.slice();

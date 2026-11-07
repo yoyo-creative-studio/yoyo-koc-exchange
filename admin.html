@@ -1863,7 +1863,7 @@ try {
   sessionStorage.removeItem('platform_admin_user');
   localStorage.removeItem('platform_admin_user');
 }
-</script><script src="admin-shared.js?v=20261107-network-retry"></script><script>
+</script><script src="admin-shared.js?v=20261107-endpoint-fallback"></script><script>
 
 // ===== Mochi Discord Bot =====
 const DISCORD_GUILD_ID = '1458340952358785193';
@@ -1964,9 +1964,9 @@ async function registrationReviewFetch(action, data) {
       body: JSON.stringify({ action: requestAction, data: requestData, admin_password: ADMIN_PASSWORD, admin_session: ADMIN_SESSION })
     };
     var response = retryableActions.indexOf(requestAction) >= 0
-      ? await fetchWithNetworkRetry(SUPABASE_URL + '/functions/v1/registration-review', Object.assign({}, requestOptions, {
+      ? await fetchAdminReadWithFallback(Object.assign({}, requestOptions, {
           headers: Object.assign({ 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, requestOptions.headers)
-        }), 2)
+        }))
       : await supabaseFetch(SUPABASE_URL + '/functions/v1/registration-review', requestOptions);
     var result = await response.json().catch(function() { return { ok: false, error: 'Invalid server response' }; });
     return { response: response, result: result };
