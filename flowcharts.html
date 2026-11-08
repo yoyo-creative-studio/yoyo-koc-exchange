@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Yoyo KOC 创作者管理系统完整业务流程图">
+<title>Yoyo KOC 创作者管理系统 · 全流程图</title>
+<style>
+  :root {
+    --pink: #ff5a9d;
+    --pink-deep: #c82d73;
+    --pink-soft: #ffe3ef;
+    --pink-pale: #fff5f9;
+    --rose-line: #f4b8d1;
+    --purple: #7d59b5;
+    --purple-soft: #f1eafb;
+    --green: #3f8d68;
+    --green-soft: #e9f7ef;
+    --amber: #a96416;
+    --amber-soft: #fff5df;
+    --ink: #3d2b36;
+    --muted: #8a7380;
+    --paper: #ffffff;
+    --bg: #fef6f9;
+    --shadow: 0 12px 34px rgba(189, 64, 119, 0.12);
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    color: var(--ink);
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(255, 90, 157, 0.10), transparent 25%),
+      radial-gradient(circle at 88% 16%, rgba(125, 89, 181, 0.09), transparent 23%),
+      linear-gradient(45deg, rgba(255,255,255,.52) 25%, transparent 25%),
+      linear-gradient(-45deg, rgba(255,255,255,.52) 25%, transparent 25%);
+    background-size: auto, auto, 36px 36px, 36px 36px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+
+  .page {
+    width: min(1500px, calc(100% - 32px));
+    margin: 24px auto 56px;
+  }
+
+  .signature-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    width: min(610px, calc(100% - 32px));
+    margin: 32px auto 40px;
+    padding: 14px 18px 14px 14px;
+    overflow: hidden;
+    color: #51243c;
+    background: linear-gradient(115deg, rgba(255,255,255,.98), rgba(255,246,251,.96)) padding-box, linear-gradient(125deg, #f7b2cf, #e0669b 48%, #9c6dc2) border-box;
+    border: 2px solid transparent;
+    border-radius: 22px;
+    box-shadow: 0 16px 42px rgba(167, 52, 107, .16), 0 3px 0 rgba(255, 255, 255, .95) inset;
+    isolation: isolate;
+  }
+
+  .signature-card::before {
+    content: "";
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    right: -88px;
+    top: -112px;
+    z-index: -1;
+    background: radial-gradient(circle, rgba(201, 140, 225, .24), transparent 68%);
+  }
+
+  .signature-card::after {
+    content: "✦";
+    position: absolute;
+    right: 18px;
+    top: 10px;
+    color: rgba(165, 87, 143, .34);
+    font-size: 14px;
+  }
+
+  .signature-mark {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 64px;
+    height: 64px;
+    color: white;
+    background: linear-gradient(145deg, #ff7db2, #cf397b 58%, #8450a8);
+    border: 3px solid rgba(255,255,255,.9);
+    border-radius: 20px;
+    box-shadow: 0 8px 18px rgba(176, 45, 108, .24);
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 31px;
+    font-style: italic;
+    font-weight: 700;
+  }
+
+  .signature-mark small {
+    position: absolute;
+    right: -5px;
+    bottom: -5px;
+    display: grid;
+    place-items: center;
+    width: 23px;
+    height: 23px;
+    background: #fff;
+    border: 1px solid #f3bad2;
+    border-radius: 50%;
+    font-family: inherit;
+    font-size: 11px;
+    font-style: normal;
+    box-shadow: 0 3px 8px rgba(137, 53, 95, .15);
+  }
+
+  .signature-main { min-width: 0; }
+
+  .signature-kicker {
+    display: block;
+    margin-bottom: 3px;
+    color: #a55b7e;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+
+  .signature-name {
+    display: block;
+    color: #a62565;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 27px;
+    font-style: italic;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: .02em;
+  }
+
+  .signature-identity {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    padding-left: 16px;
+    border-left: 1px solid #ecc6d7;
+    text-align: right;
+  }
+
+  .signature-identity-label {
+    color: #94717f;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .signature-alias {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 9px;
+    color: #8e2c60;
+    background: #fff0f7;
+    border: 1px solid #f2bad2;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .signature-studio {
+    color: #806574;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+
+  .pixel-credit {
+    display: block;
+    width: min(590px, calc(100% - 28px));
+    padding: 0;
+    overflow: visible;
+    color: #4a1535;
+    background: #fff7fb;
+    border: 4px solid #74224f;
+    border-radius: 0;
+    box-shadow: 8px 8px 0 #e7a0c3, 12px 12px 0 rgba(116, 34, 79, .16);
+    font-family: "SFMono-Regular", "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+    image-rendering: pixelated;
+  }
+
+  .pixel-credit::before {
+    content: "";
+    position: absolute;
+    inset: 4px;
+    width: auto;
+    height: auto;
+    z-index: -1;
+    background: none;
+    border: 2px solid #f7c4da;
+  }
+
+  .pixel-credit::after { content: none; }
+
+  .pixel-credit-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 34px;
+    padding: 6px 9px 6px 12px;
+    color: #fff;
+    background-color: #c83278;
+    background-image: linear-gradient(45deg, rgba(255,255,255,.12) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.12) 75%), linear-gradient(45deg, rgba(255,255,255,.12) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.12) 75%);
+    background-position: 0 0, 6px 6px;
+    background-size: 12px 12px;
+    border-bottom: 4px solid #74224f;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: .14em;
+    text-shadow: 2px 2px 0 #74224f;
+  }
+
+  .pixel-credit-controls {
+    display: flex;
+    gap: 5px;
+  }
+
+  .pixel-credit-controls i {
+    display: block;
+    width: 12px;
+    height: 12px;
+    background: #ffd3e5;
+    border: 2px solid #74224f;
+    box-shadow: 2px 2px 0 rgba(74, 21, 53, .35);
+  }
+
+  .pixel-credit-controls i:nth-child(2) { background: #ff90bd; }
+  .pixel-credit-controls i:nth-child(3) { background: #fff09b; }
+
+  .pixel-credit-body {
+    position: relative;
+    display: grid;
+    grid-template-columns: 82px minmax(180px, auto) 190px;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background-image: linear-gradient(90deg, rgba(224, 98, 155, .07) 1px, transparent 1px), linear-gradient(rgba(224, 98, 155, .07) 1px, transparent 1px);
+    background-size: 12px 12px;
+  }
+
+  .pixel-avatar-frame {
+    position: relative;
+    width: 82px;
+    height: 82px;
+    padding: 6px;
+    background: #ffd8e9;
+    border: 4px solid #74224f;
+    box-shadow: 5px 5px 0 #e789b5;
+  }
+
+  .pixel-avatar {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #ffd9e9, #f3b3d2);
+    border: 3px solid #fff6fa;
+    font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+    font-size: 39px;
+    line-height: 1;
+  }
+
+  .pixel-heart {
+    position: absolute;
+    right: -10px;
+    bottom: -10px;
+    display: grid;
+    place-items: center;
+    width: 29px;
+    height: 29px;
+    color: #c83278;
+    background: #fff6fa;
+    border: 3px solid #74224f;
+    font-size: 14px;
+    box-shadow: 3px 3px 0 #e789b5;
+  }
+
+  .pixel-credit-copy { min-width: 0; }
+
+  .pixel-credit-label {
+    display: block;
+    margin-bottom: 5px;
+    color: #9b4c73;
+    font-size: 9px;
+    font-weight: 900;
+    letter-spacing: .12em;
+  }
+
+  .pixel-credit-name {
+    display: block;
+    color: #b12266;
+    font-family: "Snell Roundhand", "Segoe Script", "Bradley Hand", "Brush Script MT", cursive;
+    font-size: clamp(24px, 4vw, 36px);
+    font-style: italic;
+    font-weight: 700;
+    letter-spacing: .01em;
+    line-height: 1.05;
+    text-shadow:
+      1px 1px 0 #fff7fb,
+      3px 3px 0 #f3b5d1,
+      5px 5px 0 #df78aa,
+      7px 7px 0 rgba(116, 34, 79, .18);
+  }
+
+  .pixel-credit-role {
+    display: block;
+    width: fit-content;
+    margin-top: 17px;
+    padding-top: 6px;
+    color: #775263;
+    border-top: 2px solid #e6a1c1;
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: 11px;
+    font-style: italic;
+    font-weight: 700;
+    letter-spacing: .04em;
+    white-space: nowrap;
+  }
+
+  .pixel-credit-role::before { content: "✦ "; color: #c84a83; font-style: normal; }
+
+  .pixel-identity-panel {
+    padding: 10px;
+    background: #fff;
+    border: 3px solid #a34272;
+    box-shadow: 4px 4px 0 #f0b6d1;
+  }
+
+  .pixel-stat-label {
+    display: block;
+    color: #a15c7d;
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: .1em;
+  }
+
+  .pixel-alias {
+    display: block;
+    margin: 5px 0 8px;
+    color: #99245d;
+    font-size: 12px;
+    font-weight: 1000;
+    line-height: 1.35;
+  }
+
+  .pixel-studio {
+    display: block;
+    padding-top: 7px;
+    color: #684354;
+    border-top: 2px dashed #edb6ce;
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: .04em;
+  }
+
+  .hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 300px;
+    align-items: center;
+    gap: 30px;
+    overflow: hidden;
+    padding: 28px 34px;
+    color: white;
+    background: linear-gradient(120deg, var(--pink-deep), var(--pink) 58%, #ff84b6);
+    border: 4px solid #9f285f;
+    box-shadow: 9px 9px 0 rgba(159, 40, 95, 0.22);
+  }
+
+  .hero::after {
+    content: "🎀";
+    position: absolute;
+    right: 24px;
+    top: -26px;
+    font-size: 130px;
+    opacity: .15;
+    transform: rotate(12deg);
+  }
+
+  .hero-copy { position: relative; z-index: 1; min-width: 0; }
+  .hero .seraphina-card { position: relative; z-index: 2; }
+
+  .eyebrow {
+    margin-bottom: 8px;
+    color: #fff3b5;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .18em;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(26px, 3.4vw, 46px);
+    line-height: 1.12;
+    letter-spacing: -.03em;
+  }
+
+  .hero p {
+    max-width: 900px;
+    margin: 10px 0 0;
+    color: rgba(255,255,255,.88);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .hero-meta span {
+    padding: 6px 11px;
+    border: 1px solid rgba(255,255,255,.32);
+    border-radius: 999px;
+    background: rgba(255,255,255,.13);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .overview {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 22px 0;
+  }
+
+  .overview-card {
+    min-height: 112px;
+    padding: 16px 18px;
+    background: var(--paper);
+    border: 2px solid var(--rose-line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+
+  .overview-card .icon { font-size: 25px; }
+  .overview-card strong { display: block; margin: 6px 0 3px; font-size: 14px; }
+  .overview-card small { color: var(--muted); font-size: 11px; line-height: 1.55; }
+
+  .flow-board {
+    overflow: hidden;
+    background: rgba(255,255,255,.92);
+    border: 2px solid var(--rose-line);
+    border-radius: 22px;
+    box-shadow: var(--shadow);
+  }
+
+  .board-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 22px;
+    background: linear-gradient(90deg, #fff0f6, #ffffff);
+    border-bottom: 2px solid var(--rose-line);
+  }
+
+  .board-head h2 { margin: 0; color: var(--pink-deep); font-size: 20px; }
+  .board-head p { margin: 4px 0 0; color: var(--muted); font-size: 11px; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 10px;
+  }
+
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .legend i { width: 10px; height: 10px; border-radius: 3px; }
+  .legend .creator { background: var(--pink); }
+  .legend .system { background: var(--green); }
+  .legend .admin { background: var(--purple); }
+  .legend .manual { background: var(--amber); }
+
+  .timeline {
+    display: grid;
+    grid-template-columns: 116px repeat(8, minmax(135px, 1fr));
+    min-width: 1220px;
+  }
+
+  .timeline-wrap { overflow-x: auto; }
+
+  .phase {
+    padding: 12px 8px;
+    color: var(--pink-deep);
+    background: var(--pink-pale);
+    border-right: 1px solid #f6dbe7;
+    border-bottom: 1px solid #f6dbe7;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 800;
+  }
+
+  .phase:first-child { color: var(--muted); }
+
+  .lane-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 134px;
+    padding: 12px 6px;
+    border-right: 2px solid var(--rose-line);
+    border-bottom: 1px solid #f3dfe8;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .lane-label b { font-size: 25px; }
+  .lane-label small { color: var(--muted); font-size: 9px; font-weight: 600; }
+  .lane-label.creator-lane { background: #fff1f7; color: var(--pink-deep); }
+  .lane-label.system-lane { background: #edf9f2; color: var(--green); }
+  .lane-label.admin-lane { background: #f4effb; color: var(--purple); }
+
+  .cell {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    min-height: 134px;
+    padding: 13px 18px 13px 10px;
+    border-right: 1px dashed #eccddd;
+    border-bottom: 1px solid #f3dfe8;
+  }
+
+  .cell::after {
+    content: "›";
+    position: absolute;
+    right: 3px;
+    top: 50%;
+    z-index: 2;
+    color: #dba1bb;
+    font-size: 23px;
+    font-weight: 900;
+    transform: translateY(-50%);
+  }
+
+  .cell.last::after { content: ""; }
+
+  .step {
+    width: 100%;
+    padding: 11px 11px 10px;
+    border: 1.5px solid;
+    border-radius: 13px;
+    background: white;
+    box-shadow: 0 5px 14px rgba(73, 35, 53, .06);
+  }
+
+  .step.creator-step { border-color: #f3b5cf; background: #fff7fa; }
+  .step.system-step { border-color: #a9d8be; background: #f6fcf8; }
+  .step.admin-step { border-color: #cbb9e4; background: #fbf9fe; }
+  .step.manual-step { border-color: #edc77c; background: #fffbef; }
+
+  .step-no {
+    display: inline-grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    margin-right: 5px;
+    color: white;
+    background: var(--pink);
+    border-radius: 7px;
+    font-size: 10px;
+    font-weight: 900;
+  }
+
+  .system-step .step-no { background: var(--green); }
+  .admin-step .step-no { background: var(--purple); }
+  .manual-step .step-no { background: var(--amber); }
+
+  .step h3 {
+    display: inline;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .step p {
+    margin: 7px 0 0;
+    color: var(--muted);
+    font-size: 10px;
+    line-height: 1.52;
+  }
+
+  .step .tag {
+    display: inline-block;
+    margin-top: 7px;
+    padding: 3px 7px;
+    color: var(--pink-deep);
+    background: var(--pink-soft);
+    border-radius: 999px;
+    font-size: 9px;
+    font-weight: 800;
+  }
+
+  .system-step .tag { color: #2d7453; background: #dff2e7; }
+  .admin-step .tag { color: #674394; background: #eee5f8; }
+  .manual-step .tag { color: #87500f; background: #ffedc7; }
+
+  .status-strip {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    padding: 18px 20px 20px;
+    background: #fffafd;
+  }
+
+  .status {
+    padding: 11px 12px;
+    border: 1px solid var(--rose-line);
+    border-radius: 12px;
+    color: var(--muted);
+    background: white;
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .status strong { display: block; margin-bottom: 3px; color: var(--ink); font-size: 11px; }
+
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1.25fr .75fr;
+    gap: 16px;
+    margin-top: 18px;
+  }
+
+  .panel {
+    padding: 20px;
+    background: var(--paper);
+    border: 2px solid var(--rose-line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  .panel h2 { margin: 0 0 4px; color: var(--pink-deep); font-size: 17px; }
+  .panel > p { margin: 0 0 14px; color: var(--muted); font-size: 10px; }
+
+  .data-flow {
+    display: flex;
+    align-items: stretch;
+    gap: 7px;
+  }
+
+  .data-box {
+    flex: 1;
+    min-width: 0;
+    padding: 11px 9px;
+    border: 1.5px solid #f0bfd3;
+    border-radius: 12px;
+    background: #fff8fb;
+    text-align: center;
+  }
+
+  .data-box strong { display: block; color: var(--pink-deep); font-size: 11px; word-break: break-word; }
+  .data-box small { display: block; margin-top: 3px; color: var(--muted); font-size: 9px; }
+  .data-arrow { align-self: center; color: var(--pink); font-size: 18px; font-weight: 900; }
+
+  .rules {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 9px;
+  }
+
+  .rule {
+    padding: 10px;
+    border-radius: 11px;
+    background: var(--pink-pale);
+    font-size: 10px;
+    line-height: 1.5;
+  }
+
+  .rule strong { display: block; color: var(--pink-deep); font-size: 11px; }
+
+  .footnote {
+    margin-top: 16px;
+    padding: 12px 16px;
+    color: var(--muted);
+    border: 1px dashed var(--rose-line);
+    border-radius: 13px;
+    background: rgba(255,255,255,.72);
+    text-align: center;
+    font-size: 10px;
+    line-height: 1.6;
+  }
+
+  @media (max-width: 900px) {
+    .hero { grid-template-columns: 1fr; }
+    .hero .seraphina-card { justify-self: start; }
+    .overview { grid-template-columns: repeat(2, 1fr); }
+    .bottom-grid { grid-template-columns: 1fr; }
+    .board-head { align-items: flex-start; flex-direction: column; }
+    .legend { justify-content: flex-start; }
+  }
+
+  @media (max-width: 560px) {
+    .page { width: min(100% - 20px, 1500px); margin-top: 10px; }
+    .hero { padding: 22px 20px; border-width: 3px; box-shadow: 5px 5px 0 rgba(159, 40, 95, 0.20); }
+    .hero::after { right: -10px; font-size: 100px; }
+    .overview { grid-template-columns: 1fr; }
+    .overview-card { min-height: 0; }
+    .status-strip { grid-template-columns: 1fr; }
+    .data-flow { flex-direction: column; }
+    .data-arrow { transform: rotate(90deg); }
+    .rules { grid-template-columns: 1fr; }
+    .signature-card { grid-template-columns: 54px minmax(0, 1fr); gap: 12px; padding: 12px; border-radius: 18px; }
+    .signature-mark { width: 54px; height: 54px; border-radius: 17px; font-size: 27px; }
+    .signature-name { font-size: 23px; }
+    .signature-kicker { letter-spacing: .08em; }
+    .signature-identity { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: space-between; padding: 10px 2px 0; border-top: 1px solid #efd2df; border-left: 0; text-align: left; }
+    .signature-identity-label { display: none; }
+    .pixel-credit { display: block; width: calc(100% - 24px); margin-bottom: 32px; box-shadow: 5px 5px 0 #e7a0c3, 8px 8px 0 rgba(116, 34, 79, .16); }
+    .pixel-credit-body { grid-template-columns: 70px minmax(0, 1fr); gap: 13px; padding: 14px; }
+    .pixel-avatar-frame { width: 64px; height: 64px; padding: 4px; border-width: 3px; box-shadow: 4px 4px 0 #e789b5; }
+    .pixel-avatar { font-size: 34px; border-width: 2px; }
+    .pixel-heart { right: -9px; bottom: -9px; width: 24px; height: 24px; border-width: 2px; font-size: 11px; }
+    .pixel-credit-name { font-size: 24px; text-shadow: 1px 1px 0 #fff7fb, 2px 2px 0 #f3b5d1, 4px 4px 0 #df78aa, 6px 6px 0 rgba(116, 34, 79, .16); }
+    .pixel-credit-role { margin-top: 13px; padding-top: 5px; font-size: 10px; }
+    .pixel-identity-panel { grid-column: 1 / -1; margin-top: 2px; }
+  }
+
+  @media print {
+    @page { size: A3 landscape; margin: 8mm; }
+    body { background: white; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .page { width: 100%; margin: 0; }
+    .hero { padding: 14px 20px; box-shadow: none; }
+    .hero p, .overview-card small { line-height: 1.35; }
+    .overview { margin: 10px 0; gap: 8px; }
+    .overview-card { min-height: 82px; padding: 10px 12px; box-shadow: none; }
+    .flow-board, .panel { box-shadow: none; }
+    .timeline-wrap { overflow: visible; }
+    .timeline { min-width: 0; grid-template-columns: 84px repeat(8, 1fr); }
+    .lane-label, .cell { min-height: 112px; }
+    .cell { padding: 7px 12px 7px 6px; }
+    .step { padding: 7px; }
+    .step p { font-size: 8px; }
+    .step h3 { font-size: 9px; }
+    .bottom-grid { margin-top: 10px; gap: 10px; }
+    .panel { padding: 12px; }
+    .footnote { margin-top: 8px; }
+  }
+</style>
+<link rel="stylesheet" href="developer-credit.css">
+</head>
+<body>
+<main class="page">
+  <header class="hero">
+    <div class="hero-copy">
+      <div class="eyebrow">♥ YOYO CREATIVE STUDIO · KOC OPERATIONS ♥</div>
+      <h1>🎀 KOC 创作者管理系统 · 全流程图</h1>
+      <p>一页看懂创作者项目如何从项目模板与上线检查开始，进入注册、投稿、结算、兑换和履约闭环。每个项目拥有独立品牌、规则、创作者、积分和订单，通过 Supabase 与 MochiBot 连接双端业务。</p>
+      <div class="hero-meta">
+        <span>创作者门户 index.html</span>
+        <span>管理后台 admin.html</span>
+        <span>Supabase 数据中心</span>
+        <span>MochiBot 通知</span>
+        <span>更新：2026.10</span>
+      </div>
+    </div>
+    <aside class="seraphina-card seraphina-card-hero" aria-label="System creator Seraphina, known to creators as YoYo assistant Mochi">
+      <span class="seraphina-card-avatar" role="img" aria-label="Blonde woman">🙎🏼‍♀️</span>
+      <span class="seraphina-card-copy">
+        <span class="seraphina-card-label">DESIGNED &amp; DEVELOPED BY</span>
+        <strong class="seraphina-card-name">Seraphina</strong>
+        <span class="seraphina-card-meta"><strong>Full-Stack Developer</strong></span>
+      </span>
+    </aside>
+  </header>
+
+  <section class="overview" aria-label="系统组成">
+    <article class="overview-card"><div class="icon">💗</div><strong>创作者端</strong><small>注册申请、登录、提交作品、查看历史、查看积分、兑换奖励、查询 FAQ。</small></article>
+    <article class="overview-card"><div class="icon">🗂️</div><strong>管理端</strong><small>按 Platform Owner、Project Owner、Admin、Operator、Viewer 分级处理项目业务。</small></article>
+    <article class="overview-card"><div class="icon">☁️</div><strong>Supabase</strong><small>保存 KOC、投稿、积分流水、兑换订单、活动规则与审计记录，并同步双端数据。</small></article>
+    <article class="overview-card"><div class="icon">🤖</div><strong>MochiBot</strong><small>发送新人欢迎、审批通过、投稿提醒、个性化结算和等级变动通知。</small></article>
+  </section>
+
+  <div class="bottom-grid" aria-label="平台化项目初始化流程">
+    <section class="panel">
+      <h2>🧩 可复制项目模板</h2>
+      <p>从现有项目复制配置，不复制任何创作者或运营数据。</p>
+      <div class="data-flow">
+        <div class="data-box"><strong>复制模板</strong><small>品牌、奖励、活动与等级规则</small></div>
+        <div class="data-arrow">→</div>
+        <div class="data-box"><strong>独立项目</strong><small>自动生成 project_id 与门户链接</small></div>
+        <div class="data-arrow">→</div>
+        <div class="data-box"><strong>数据隔离</strong><small>人员、地址、投稿、积分与订单为空</small></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>🚀 上线门禁</h2>
+      <p>新项目默认暂停，完成 6 项检查后才能开放给创作者。</p>
+      <div class="rules">
+        <div class="rule"><strong>品牌与地区</strong>名称、门户文案、语言、时区和运营地区完整。</div>
+        <div class="rule"><strong>业务配置</strong>Discord、奖励、当前活动月、积分与等级规则齐全。</div>
+        <div class="rule"><strong>数据库门禁</strong>检查未通过时，即使绕过前端也无法激活项目。</div>
+        <div class="rule"><strong>独立入口</strong><code>?project=&lt;project_key&gt;</code> 路由到对应门户。</div>
+        <div class="rule"><strong>权限交接</strong>最高权限由 Platform Owner 保留，其他账号只访问获授权项目。</div>
+      </div>
+    </section>
+  </div>
+
+  <section class="flow-board">
+    <div class="board-head">
+      <div>
+        <h2>完整月度业务闭环</h2>
+        <p>横向按时间推进，纵向对应创作者、系统与管理员三方动作；手机端可左右滑动查看。</p>
+      </div>
+      <div class="legend" aria-label="图例">
+        <span><i class="creator"></i>创作者操作</span>
+        <span><i class="system"></i>系统自动处理</span>
+        <span><i class="admin"></i>管理员操作</span>
+        <span><i class="manual"></i>人工/外部 Agent</span>
+      </div>
+    </div>
+
+    <div class="timeline-wrap">
+      <div class="timeline">
+        <div class="phase">角色 / 阶段</div>
+        <div class="phase">① 加入计划</div>
+        <div class="phase">② 注册审核</div>
+        <div class="phase">③ 投稿开放</div>
+        <div class="phase">④ 作品审核</div>
+        <div class="phase">⑤ 月度结算</div>
+        <div class="phase">⑥ 积分到账</div>
+        <div class="phase">⑦ 奖励兑换</div>
+        <div class="phase">⑧ 发奖归档</div>
+
+        <div class="lane-label creator-lane"><b>👩‍🎨</b>创作者端<small>Creator Portal</small></div>
+        <div class="cell"><div class="step creator-step"><span class="step-no">1</span><h3>收到邀请与欢迎私信</h3><p>了解新人月、创作灵感、投稿与奖励规则，打开官方创作者门户。</p><span class="tag">MochiBot 引导</span></div></div>
+        <div class="cell"><div class="step creator-step"><span class="step-no">2</span><h3>提交注册申请</h3><p>填写 Discord、19 位 Account ID、Game UID、区服及完整收货信息。</p><span class="tag">等待管理员审批</span></div></div>
+        <div class="cell"><div class="step creator-step"><span class="step-no">3</span><h3>登录并提交作品</h3><p>使用 Game UID + Account ID 登录；按当前活动月提交公开作品或当月加分内容。</p><span class="tag">一行或多链接均可识别</span></div></div>
+        <div class="cell"><div class="step creator-step"><span class="step-no">4</span><h3>查看 My Submissions</h3><p>按月份查看自己的链接、投稿数量和审核状态；被拒绝后可释放投稿机会。</p><span class="tag">Pending / Scored</span></div></div>
+        <div class="cell"><div class="step manual-step"><span class="step-no">5</span><h3>等待当月统一算分</h3><p>外部算分 Agent 抓取互动与播放数据，生成积分结果和每人个性化通知 CSV。</p><span class="tag">人工结算环节</span></div></div>
+        <div class="cell"><div class="step creator-step"><span class="step-no">6</span><h3>查看积分与等级</h3><p>结算导入后查看本月得分、历史余额、等级与新人奖励情况。</p><span class="tag">余额 = 积分流水求和</span></div></div>
+        <div class="cell"><div class="step creator-step"><span class="step-no">7</span><h3>选择奖励并提交</h3><p>兑换开放后选择钻石、Google Play 礼品卡或官方周边，生成待处理订单并立即占用对应积分。</p><span class="tag">提交后余额立即更新</span></div></div>
+        <div class="cell last"><div class="step creator-step"><span class="step-no">8</span><h3>查看订单结果</h3><p>在 My Orders 查看 Pending、Processing、Completed 或 Cancelled；失败或取消时按规则恢复积分。</p><span class="tag">完成本月闭环</span></div></div>
+
+        <div class="lane-label system-lane"><b>☁️</b>系统数据层<small>Supabase + Automation</small></div>
+        <div class="cell"><div class="step system-step"><span class="step-no">1</span><h3>识别新加入成员</h3><p>新人自动欢迎仅处理开关启用后新进入 Discord 的成员，避免追发历史成员。</p><span class="tag">欢迎通知</span></div></div>
+        <div class="cell"><div class="step system-step"><span class="step-no">2</span><h3>保存为待审核</h3><p>注册资料进入 KOC 申请队列；审批前不能登录、投稿或兑换。</p><span class="tag">approval_status = pending</span></div></div>
+        <div class="cell"><div class="step system-step"><span class="step-no">3</span><h3>校验投稿窗口</h3><p>读取管理端指定的当前活动月及 UTC-7 截止时间；关闭或过期即阻止提交。</p><span class="tag">月份不跟随自然月跳转</span></div></div>
+        <div class="cell"><div class="step system-step"><span class="step-no">4</span><h3>汇总链接与状态</h3><p>按创作者和月份合并投稿批次，统计链接数，并区分普通作品与加分内容。</p><span class="tag">submissions</span></div></div>
+        <div class="cell"><div class="step system-step"><span class="step-no">5</span><h3>接收结算导入</h3><p>预览匹配 KOC 后，将确认的月度结果写入积分流水，并保留导入记录。</p><span class="tag">score_imports → point_logs</span></div></div>
+        <div class="cell"><div class="step system-step"><span class="step-no">6</span><h3>实时计算余额</h3><p>所有加分与扣分统一汇总；前端不依赖手写余额，避免两端数字不一致。</p><span class="tag">SUM(point_logs.change)</span></div></div>
+        <div class="cell"><div class="step system-step"><span class="step-no">7</span><h3>校验兑换条件</h3><p>检查兑换窗口、可用积分和奖励数量，成功后创建 redemption_orders。</p><span class="tag">订单待处理</span></div></div>
+        <div class="cell last"><div class="step system-step"><span class="step-no">8</span><h3>履约对账与留痕</h3><p>发布发放结果时核对订单与积分流水；退款、补扣和重复操作均有幂等保护与审计记录。</p><span class="tag">point_logs + audit_logs</span></div></div>
+
+        <div class="lane-label admin-lane"><b>🧑‍💻</b>管理端<small>Admin Dashboard</small></div>
+        <div class="cell"><div class="step admin-step"><span class="step-no">1</span><h3>设置 Bot 与欢迎规则</h3><p>配置 MochiBot Token、自动欢迎开关和统一尾注；广播发送前必须预览确认。</p><span class="tag">运营配置</span></div></div>
+        <div class="cell"><div class="step admin-step"><span class="step-no">2</span><h3>审核注册申请</h3><p>核对资料后批准或拒绝；批准新注册 KOC 时生成欢迎周边，并自动私信通过通知。</p><span class="tag">KOC 信息库</span></div></div>
+        <div class="cell"><div class="step admin-step"><span class="step-no">3</span><h3>配置当前活动月</h3><p>在规则配置保存月份、投稿/兑换开关与截止时间；顶部月份仅用于切换后台查看数据。</p><span class="tag">规则月份是真正入口</span></div></div>
+        <div class="cell"><div class="step admin-step"><span class="step-no">4</span><h3>审核和管理投稿</h3><p>搜索、筛选、查看链接数、勾选与删除；当月加分内容单独审核，通过后每人最多 +1。</p><span class="tag">作品审核</span></div></div>
+        <div class="cell"><div class="step admin-step"><span class="step-no">5</span><h3>导入最终积分</h3><p>上传 Agent 结果，预览 UID 匹配、积分及奖励，确认后统一应用；不在系统内自动猜分。</p><span class="tag">积分计算</span></div></div>
+        <div class="cell"><div class="step admin-step"><span class="step-no">6</span><h3>发送个性化结算</h3><p>导入每人独立话术 CSV，按 UID 优先匹配 Discord，间隔发送并显示成功/失败原因。</p><span class="tag">Mochi 广播</span></div></div>
+        <div class="cell"><div class="step admin-step"><span class="step-no">7</span><h3>审核兑换订单</h3><p>查看钻石、礼品卡和周边订单，核对收货与区服信息，准备实际发奖或发货。</p><span class="tag">兑换管理</span></div></div>
+        <div class="cell last"><div class="step admin-step"><span class="step-no">8</span><h3>标记发放并复盘</h3><p>确认发放后扣分；查看端内奖励、Google 卡、数据报告与月度操作日志。</p><span class="tag">发奖 + 报告 + 归档</span></div></div>
+      </div>
+    </div>
+
+    <div class="status-strip">
+      <div class="status"><strong>📅 月份权威</strong>规则配置中的“当前活动月”决定创作者提交到哪个月；后台顶部月份只决定管理员正在查看哪个月。</div>
+      <div class="status"><strong>⏰ 时区口径</strong>投稿与兑换截止时间统一按 UTC-7 解释，人工开关和自动到期关闭可以同时使用。</div>
+      <div class="status"><strong>💎 积分权威</strong>余额永远由 point_logs 流水求和；提交兑换时立即占用并扣减，取消或失败可幂等恢复，发布履约结果时再次对账。</div>
+      <div class="status"><strong>🎁 新人规则</strong>新人月是审核通过后的第一个完整自然月；达到基础 5 分可额外 +2，每人只能领取一次。</div>
+      <div class="status"><strong>🔔 通知原则</strong>MochiBot 只发送系统通知；所有广播先预览、再确认，个性化结算按 UID 逐人匹配发送。</div>
+    </div>
+  </section>
+
+  <div class="bottom-grid">
+    <section class="panel">
+      <h2>🗃️ 核心数据如何流动</h2>
+      <p>每一环都有对应的数据表，双端始终读取同一份数据。</p>
+      <div class="data-flow">
+        <div class="data-box"><strong>kocs</strong><small>身份、审核、地址、等级</small></div>
+        <div class="data-arrow">→</div>
+        <div class="data-box"><strong>submissions</strong><small>作品链接、月份、状态</small></div>
+        <div class="data-arrow">→</div>
+        <div class="data-box"><strong>score_imports</strong><small>月度结算导入记录</small></div>
+        <div class="data-arrow">→</div>
+        <div class="data-box"><strong>point_logs</strong><small>积分唯一真相源</small></div>
+        <div class="data-arrow">→</div>
+        <div class="data-box"><strong>redemption_orders</strong><small>兑换与发放状态</small></div>
+        <div class="data-arrow">→</div>
+        <div class="data-box"><strong>audit_logs</strong><small>管理员操作留痕</small></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>🛡️ 关键保护机制</h2>
+      <p>系统不会依赖创作者或管理员记住所有规则，而是在关键节点主动校验。</p>
+      <div class="rules">
+        <div class="rule"><strong>注册审核</strong>未批准的新申请无法登录和投稿。</div>
+        <div class="rule"><strong>窗口控制</strong>投稿、兑换均可手动开关并设置自动截止。</div>
+        <div class="rule"><strong>重复保护</strong>发货、扣分和奖励发放均检查重复操作。</div>
+        <div class="rule"><strong>数据追踪</strong>重要增删改与月度导入均保留操作记录。</div>
+        <div class="rule"><strong>五级权限</strong>服务端同时校验角色与 project_id；隐藏按钮不能替代权限验证。</div>
+        <div class="rule"><strong>Owner 保护</strong>Platform Owner 不能被停用、删除或降级，管理员会话自动过期。</div>
+        <div class="rule"><strong>Bot 密钥隔离</strong>Discord Token 按项目保存在服务端密钥表，浏览器只读取是否已配置。</div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="footnote">
+    本图用于团队介绍、内部培训与全流程测试。项目上线顺序：复制/新建项目 → 完成配置 → 通过上线检查 → 开放独立门户；月度运营顺序：设置活动月与窗口 → 收集投稿 → 审核与算分 → 导入积分 → 开放兑换 → 奖励履约 → 数据复盘。
+  </footer>
+</main>
+
+</body>
+</html>
