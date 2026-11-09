@@ -1081,6 +1081,12 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
         </div>
         <div class="row" style="margin-bottom:8px;gap:6px;">
           <input type="text" id="search-input" placeholder="🔍 Search nickname / username / UID / User ID..." style="width:340px;font-size:13px;" oninput="renderKocTable()">
+          <select id="koc-login-filter" onchange="renderKocTable()" style="width:150px;font-size:13px;">
+            <option value="all">全部登录状态</option>
+            <option value="issue">仅看无法登录</option>
+            <option value="ready">仅看可登录</option>
+          </select>
+          <span id="koc-login-summary" style="font-size:12px;font-weight:700;color:#666;"></span>
           <button class="btn btn-outline btn-sm" onclick="syncDiscordIdentities()">🔄 Sync Discord Identity</button>
           <button class="btn btn-primary btn-sm" onclick="openManualKocModal()">➕ 手动添加 KOC</button>
           <button class="btn btn-sm" style="background:#fff3e0;color:#e65100;border:1px solid #ffcc80;" onclick="batchMarkSelected('old_creator')" title="仅修改运营权益标签，不影响自动新人月和等级计算">📋 手动标记老创作者</button>
@@ -1093,6 +1099,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
             <th style="width:50px;"><input type="checkbox" id="koc-select-all" onchange="toggleAllKoc()"></th>
             <th>Discord</th>
             <th>UID</th>
+            <th>🔐 登录状态</th>
             <th>⭐ 等级</th>
             <th>👤 状态</th>
             <th>💳 最新剩余积分</th>
@@ -4069,6 +4076,11 @@ function previewScoreResult(text) {
     } else {
       mergedMap[key].points_earned = (mergedMap[key].points_earned || 0) + (sub.points_earned || 0);
       mergedMap[key].referral_bonus = (mergedMap[key].referral_bonus || 0) + (sub.referral_bonus || 0);
+      mergedMap[key].showcase_bonus = (mergedMap[key].showcase_bonus || 0) + (sub.showcase_bonus || 0);
+      mergedMap[key].newcomer_bonus = (mergedMap[key].newcomer_bonus || 0) + (sub.newcomer_bonus || 0);
+      mergedMap[key].referral_newcomer_bonus = (mergedMap[key].referral_newcomer_bonus || 0) + (sub.referral_newcomer_bonus || 0);
+      mergedMap[key].seraphina_bonus = (mergedMap[key].seraphina_bonus || 0) + (sub.seraphina_bonus || 0);
+      mergedMap[key].other_bonus = (mergedMap[key].other_bonus || 0) + (sub.other_bonus || 0);
       mergedMap[key].total_engagement = (mergedMap[key].total_engagement || 0) + (sub.total_engagement || 0);
       mergedMap[key].total_views = (mergedMap[key].total_views || 0) + (sub.total_views || 0);
       mergedMap[key]._merged_count++;
@@ -4104,10 +4116,11 @@ function previewScoreResult(text) {
   document.getElementById('btn-confirm-import').disabled = false;
   
   var totalPts = 0;
-  var totalReferralBonus = 0;
+  var totalBonus = 0;
+  var bonusFields = ['showcase_bonus', 'newcomer_bonus', 'referral_newcomer_bonus', 'referral_bonus', 'seraphina_bonus', 'other_bonus'];
   mergedSubs.forEach(function(sub) {
     totalPts += Number(sub.points_earned) || 0;
-    totalReferralBonus += Number(sub.referral_bonus) || 0;
+    bonusFields.forEach(function(field) { totalBonus += Number(sub[field]) || 0; });
   });
   
   var safeText = function(v) { return (v == null ? '' : String(v)).replace(/[&<>]/g, function(c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]; }); };
@@ -4115,22 +4128,23 @@ function previewScoreResult(text) {
   document.getElementById('score-preview-stats').innerHTML =
     '\ud83d\udcca <strong>' + mergedSubs.length + '</strong> 人（合并 ' + rawResult.submissions.length + ' 条提交） \u00b7 ' +
     '\ud83c\udfc6 <strong>' + totalPts + '</strong> 内容结算分 · ' +
-    '\ud83c\udf81 <strong>' + totalReferralBonus + '</strong> 推荐奖励分';
+    '\ud83c\udf81 <strong>' + totalBonus + '</strong> 其他奖励分 · ' +
+    '<strong>' + (totalPts + totalBonus) + '</strong> 最终入账分';
   
   var detailHtml = '<div style="font-size:11px;color:#e65100;margin-bottom:6px;">\u2192 同一人的多次提交已自动合并，链接+积分+互动数均相加</div>';
   mergedSubs.forEach(function(sub) {
     var name = sub.discord_name || '?';
     var pts = sub.points_earned || 0;
-    var referralBonus = Number(sub.referral_bonus) || 0;
+    var creatorBonus = bonusFields.reduce(function(sum, field) { return sum + (Number(sub[field]) || 0); }, 0);
     var mergeInfo = sub._merged_count > 1 ? '<span style="font-size:10px;color:#7b1fa2;"> \ud83d\udd04\u00d7' + sub._merged_count + '</span>' : '';
     var linkInfo = sub._link_count > 0 ? '<span style="font-size:10px;color:var(--text-light);"> \ud83d\udd17' + sub._link_count + '</span>' : '';
     detailHtml += '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #f0f0f0;">' +
       '<span>' + safeText(name) + mergeInfo + linkInfo + '</span>' +
-      '<span><strong>' + pts + ' content pts</strong>' + (referralBonus > 0 ? ' · <strong style="color:#7b1fa2;">+' + referralBonus + ' referral</strong>' : '') + '</span></div>';
+      '<span><strong>' + pts + ' content pts</strong>' + (creatorBonus > 0 ? ' · <strong style="color:#7b1fa2;">+' + creatorBonus + ' bonus</strong>' : '') + '</span></div>';
   });
   
   document.getElementById('score-preview-detail').innerHTML = detailHtml;
-  status.textContent = '\u2705 合并完成！' + mergedSubs.length + ' 位创作者，内容结算 ' + totalPts + ' 分，推荐奖励 ' + totalReferralBonus + ' 分。确认后点击"确认应用积分"';
+  status.textContent = '\u2705 合并完成！' + mergedSubs.length + ' 位创作者，内容结算 ' + totalPts + ' 分，其他奖励 ' + totalBonus + ' 分，最终入账 ' + (totalPts + totalBonus) + ' 分。确认后点击"确认应用积分"';
   status.style.color = '#4caf50';
 }
 
@@ -4186,7 +4200,15 @@ async function confirmScoreImport() {
       var scoreDetails = JSON.stringify({
         engagement_links: sub.engagement_links || [],
         view_links: sub.view_links || [],
-        referral_bonus: Number(sub.referral_bonus) || 0
+        content_raw_points: Number(sub.content_raw_points) || 0,
+        content_capped_points: Number(sub.content_capped_points) || Number(sub.points_earned) || 0,
+        showcase_bonus: Number(sub.showcase_bonus) || 0,
+        newcomer_bonus: Number(sub.newcomer_bonus) || 0,
+        referral_newcomer_bonus: Number(sub.referral_newcomer_bonus) || 0,
+        referral_bonus: Number(sub.referral_bonus) || 0,
+        seraphina_bonus: Number(sub.seraphina_bonus) || 0,
+        other_bonus: Number(sub.other_bonus) || 0,
+        final_monthly_points: Number(sub.final_monthly_points) || Number(sub.points_earned) || 0
       });
       var updatePayload = {
         score_details: scoreDetails,
@@ -4202,13 +4224,31 @@ async function confirmScoreImport() {
       var matchedRaw = rawSubs.filter(function(rs) { 
         return (rs.uid === sub.uid) || (rs.discord_name === sub.discord_name); 
       });
+      var aggregateImport = false;
+      // Creator-level score files do not contain raw submission IDs. Resolve
+      // their source rows by immutable UID and period before marking scored.
+      if (matchedRaw.length === 0 && sub.uid) {
+        try {
+          var sourceRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/submissions?uid=eq.' + encodeURIComponent(sub.uid) + '&period=eq.' + encodeURIComponent(currentPeriod) + '&submission_type=neq.showcase&select=id,uid,discord_name,points_earned,total_engagement,total_views,score_details&order=id.asc');
+          if (sourceRes.ok) {
+            matchedRaw = await sourceRes.json();
+            aggregateImport = matchedRaw.length > 0;
+          } else {
+            errors.push((sub.uid || sub.discord_name || '?') + ': 原始投稿查询失败 - ' + sourceRes.status);
+          }
+        } catch (sourceError) {
+          errors.push((sub.uid || sub.discord_name || '?') + ': 原始投稿查询失败 - ' + sourceError.message);
+        }
+      }
       
       // Write each raw submission's OWN points, not merged total
       for (var j = 0; j < matchedRaw.length; j++) {
         var rs = matchedRaw[j];
         if (rs.id) {
           // Use the raw submission's own points, not the merged total
-          var rawPts = rs.points_earned != null ? Number(rs.points_earned) : (rs.points != null ? Number(rs.points) : 0);
+          var rawPts = aggregateImport && j === 0
+            ? (Number(sub.points_earned) || 0)
+            : (rs.points_earned != null ? Number(rs.points_earned) : (rs.points != null ? Number(rs.points) : 0));
           var rawEng = rs.total_engagement != null ? Number(rs.total_engagement) : (rs.engagement != null ? Number(rs.engagement) : 0);
           var rawViews = rs.total_views != null ? Number(rs.total_views) : (rs.views != null ? Number(rs.views) : 0);
           var rawScoreDetails = rs.score_details || '';
@@ -4250,7 +4290,9 @@ async function confirmScoreImport() {
           errors.push((sub.uid || sub.discord_name || '?') + ': 积分流水写入失败 - ' + e.message);
         }
         // === NEW CREATOR BONUS (新人任务) ===
-        try {
+        // Explicit monthly bonus imports own this field. Only fall back to the
+        // legacy eligibility check for older score files that omit it.
+        if (sub.newcomer_bonus == null) try {
           var kocRes = await supabaseFetch(SUPABASE_URL + '/rest/v1/kocs?uid=eq.' + encodeURIComponent(sub.uid) + '&select=notes,created_at');
           if (kocRes.ok) {
             var kocData = await kocRes.json();
@@ -4309,6 +4351,38 @@ async function confirmScoreImport() {
         } catch(referralError) {
           console.error('referral bonus error for ' + sub.uid, referralError);
           errors.push((sub.uid || sub.discord_name || '?') + ': 推荐奖励写入失败 - ' + referralError.message);
+        }
+      }
+
+      // Import all explicitly calculated bonuses as separate, idempotent logs.
+      // Content points remain separate so tier calculations are not polluted.
+      var explicitBonuses = [
+        { field: 'showcase_bonus', source: 'showcase_bonus', reason: 'Showcase Bonus' },
+        { field: 'newcomer_bonus', source: 'newcomer_bonus', reason: 'Newcomer Bonus' },
+        { field: 'referral_newcomer_bonus', source: 'referral_newcomer_bonus', reason: 'Referral Newcomer Bonus' },
+        { field: 'seraphina_bonus', source: 'manual', reason: 'Seraphina Bonus' },
+        { field: 'other_bonus', source: 'manual', reason: 'Other Bonus' }
+      ];
+      if (sub.uid) {
+        for (var bonusIndex = 0; bonusIndex < explicitBonuses.length; bonusIndex++) {
+          var bonus = explicitBonuses[bonusIndex];
+          var bonusAmount = Number(sub[bonus.field]) || 0;
+          if (bonusAmount <= 0) continue;
+          try {
+            await adminRpc('add_project_point_log_once', {
+              p_project_key: getActiveProjectKey(),
+              p_uid: sub.uid,
+              p_change: bonusAmount,
+              p_source: bonus.source,
+              p_reason: currentPeriod + ' ' + bonus.reason,
+              p_period: currentPeriod,
+              p_created_by: 'admin_confirm',
+              p_operation_key: bonus.field + ':' + currentPeriod + ':' + sub.uid
+            });
+          } catch (bonusError) {
+            console.error(bonus.field + ' error for ' + sub.uid, bonusError);
+            errors.push((sub.uid || sub.discord_name || '?') + ': ' + bonus.reason + ' 写入失败 - ' + bonusError.message);
+          }
         }
       }
       
@@ -5558,10 +5632,8 @@ function mochiSupportFooter(message) {
   var oldFooterText = '---\nPlease do not reply to MochiBot directly. Check the FAQ first, then post in #town-service-station if you still need help.';
   var previousFooterText = '---\n**Reminder:** MochiBot only sends system notifications and cannot reply to messages. If you need help, please check the FAQ first, then post in **#town-service-station**. Human support is provided by **YoYo assistant💗Mochi**.';
   var currentFooterText = '---\nWe look forward to seeing your creations! We hope you make new friends, share ideas, and have fun together in YoYo Town! 💛\n\n**Reminder:** MochiBot only sends system notifications. Please do not reply directly, as your reply will not be seen by our staff.\n\nIf you need help, please post in **#town-service-station**. Human support is provided by **YoYo assistant Mochi — look for the red butterfly profile picture.**';
-  var footerText = '---\nWe look forward to seeing your creations! We hope you make new friends, share ideas, and have fun together in YoYo Town! 💛\n\n**Official MochiBot notification:** Discord may show a **Report Spam** option or may not display a mutual server on the bot profile. This is normal. Please do not reply to or mistakenly report official MochiBot notifications as spam.\n\nMochiBot will never ask for payment, passwords, verification codes, bank details, or PayPal login information. If you are unsure, please post in **#town-service-station** and verify the message with **YoYo assistant Mochi — look for the red butterfly profile picture.**';
-  var base = String(message || '').replace(oldFooterText, '').replace(previousFooterText, '').replace(currentFooterText, '').replace(/\n+$/, '');
-  if (base.indexOf(footerText) >= 0) return base;
-  return base ? (base + '\n' + footerText) : footerText;
+  var latestFooterText = '---\nWe look forward to seeing your creations! We hope you make new friends, share ideas, and have fun together in YoYo Town! 💛\n\n**Official MochiBot notification:** Discord may show a **Report Spam** option or may not display a mutual server on the bot profile. This is normal. Please do not reply to or mistakenly report official MochiBot notifications as spam.\n\nMochiBot will never ask for payment, passwords, verification codes, bank details, or PayPal login information. If you are unsure, please post in **#town-service-station** and verify the message with **YoYo assistant Mochi — look for the red butterfly profile picture.**';
+  return String(message || '').replace(oldFooterText, '').replace(previousFooterText, '').replace(currentFooterText, '').replace(latestFooterText, '').replace(/\n+$/, '');
 }
 
 function getMochiSubmissionDeadline() {
@@ -7627,8 +7699,13 @@ function renderKocTable() {
   var selectAll = document.getElementById('koc-select-all');
   if (selectAll) { selectAll.checked = false; selectAll.indeterminate = false; }
   var q = document.getElementById('search-input').value;
+  var loginFilter = ((document.getElementById('koc-login-filter') || {}).value || 'all');
   var filtered = allKocs.filter(function(k) {
-    return creatorMatchesIdentitySearch(k, q);
+    if (!creatorMatchesIdentitySearch(k, q)) return false;
+    var readiness = creatorLoginReadiness(k);
+    if (loginFilter === 'issue') return !readiness.ready;
+    if (loginFilter === 'ready') return readiness.ready;
+    return true;
   });
   // 没有 UID 的人（PENDING- 占位）排在列表最后
   filtered.sort(function(a, b) {
@@ -7637,7 +7714,13 @@ function renderKocTable() {
     if (ap !== bp) return ap - bp;
     return (a.discord_name || '').toLowerCase().localeCompare((b.discord_name || '').toLowerCase());
   });
+  var loginIssues = allKocs.filter(function(k) { return !creatorLoginReadiness(k).ready; });
   document.getElementById('koc-count').textContent = filtered.length + ' creators';
+  var loginSummary = document.getElementById('koc-login-summary');
+  if (loginSummary) {
+    loginSummary.textContent = loginIssues.length ? '⚠ ' + loginIssues.length + ' 人无法登录' : '✓ 全员可登录';
+    loginSummary.style.color = loginIssues.length ? '#c62828' : '#2e7d32';
+  }
   var curP = currentPeriod;
   var curY = parseInt(curP.split('-')[0]), curM = parseInt(curP.split('-')[1]);
   var prevM = curM === 1 ? 12 : curM - 1;
@@ -7653,7 +7736,7 @@ function renderKocTable() {
 
   var tbody = document.getElementById('koc-table');
   if (!filtered.length) {
-    tbody.innerHTML = '<tr><td colspan="16" style="text-align:center;padding:24px;color:var(--text-light);">No creators</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="17" style="text-align:center;padding:24px;color:var(--text-light);">No creators</td></tr>';
     return;
   }
   tbody.innerHTML = filtered.map(function(k) {
@@ -7663,6 +7746,10 @@ function renderKocTable() {
     var explicitlyOld = notes.indexOf('old_creator') >= 0 || notesObj.old_creator === true || notesObj.old_creator === 'true';
     var newbieMonth = resolveCreatorNewbieMonth(k);
     var isOldCreator = explicitlyOld || (newbieMonth && currentPeriod > newbieMonth);
+    var loginReadiness = creatorLoginReadiness(k);
+    var loginStatus = loginReadiness.ready
+      ? '<span title="' + escAttr(loginReadiness.detail) + '" style="display:inline-flex;padding:3px 8px;border-radius:12px;background:#e8f5e9;color:#2e7d32;font-size:11px;font-weight:700;white-space:nowrap;">✓ 可登录</span>'
+      : '<span title="' + escAttr(loginReadiness.detail) + '" style="display:inline-flex;padding:3px 8px;border-radius:12px;background:#ffebee;color:#c62828;font-size:11px;font-weight:700;white-space:nowrap;">⚠ ' + esc(loginReadiness.detail) + '</span>';
     return '<tr>' +
       '<td style="text-align:center;"><input type="checkbox" class="koc-select" value="' + k.uid + '"></td>' +
       '<td><strong ondblclick="inlineEdit(this,\'discord_name\',\'' + k.uid + '\')" title="Double-click to edit">' + esc(k.discord_name) + '</strong>' +
@@ -7670,6 +7757,7 @@ function renderKocTable() {
         (k.discord_username ? '<br><small style="color:var(--text-light);">@' + esc(k.discord_username) + '</small>' : '') +
         (k.discord_user_id ? '<br><small style="font-family:monospace;color:#999;">' + esc(k.discord_user_id) + '</small>' : '') + '</td>' +
       '<td style="font-family:monospace;font-size:12px;color:var(--text-light);" ondblclick="event.stopPropagation();inlineEdit(this,\'uid\',\'' + k.uid + '\')">' + esc(k.uid) + '</td>' +
+      '<td>' + loginStatus + '</td>' +
       '<td>' + getTierBadge(k.tier || 'certified') + '<br><select id="koc-tier-select-' + k.uid + '" style="width:100px;font-size:11px;margin-top:2px;" onchange="updateKocTierInline(\'' + k.uid + '\')" class="tier-select">' +
         '<option value="certified"' + ((k.tier||'certified')==='certified'?' selected':'') + '>\u2705 \u8BA4\u8BC1\u521B\u4F5C\u5B98</option>' +
         '<option value="gold"' + (k.tier==='gold'?' selected':'') + '>\uD83D\uDFE1 \u91D1\u7EA7\u521B\u4F5C\u5B98</option>' +
