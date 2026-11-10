@@ -32,7 +32,9 @@ function fetchAdminReadWithFallback(opts) {
   if (primaryUrl === fallbackUrl) return fetchWithNetworkRetry(primaryUrl, opts, 5);
   return fetchWithNetworkRetry(primaryUrl, opts, localAdmin ? 10 : 3).catch(function(primaryError) {
     return fetchWithNetworkRetry(fallbackUrl, opts, 1).catch(function(fallbackError) {
-      var error = new Error('Cannot reach the admin data service from this browser');
+      var primaryMessage = primaryError && primaryError.message ? primaryError.message : String(primaryError || 'unknown');
+      var fallbackMessage = fallbackError && fallbackError.message ? fallbackError.message : String(fallbackError || 'unknown');
+      var error = new Error('Cannot reach the admin data service from this browser (primary: ' + primaryMessage + '; fallback: ' + fallbackMessage + ')');
       error.cause = fallbackError || primaryError;
       throw error;
     });
