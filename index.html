@@ -615,10 +615,20 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
         </div>
         <label>🔗 Content Links</label>
         <textarea id="submit-links" placeholder="Paste all your content links here (one per line):&#10;https://tiktok.com/@user/video/...&#10;https://youtube.com/watch?v=...&#10;https://instagram.com/p/...&#10;https://facebook.com/share/...&#10;https://x.com/user/status/...&#10;https://reddit.com/r/...&#10;https://pinterest.com/pin/..."></textarea>
-        <label>Feedback <span style="color:var(--text-light);font-size:11px;">(Optional)</span></label>
-        <textarea id="submit-feedback" placeholder="Please share feedback about the MLT Creator Program only, such as submissions, points, rewards, or the creator portal. For in-game bugs, account, payment, or gameplay issues, please kindly use the in-game Customer Service Center. Thank you! 💛" style="min-height:60px;"></textarea>        <button class="btn btn-primary" id="btn-submit" onclick="submitWorks()">📤 Submit Works</button>
+        <button class="btn btn-primary" id="btn-submit" onclick="submitWorks()">📤 Submit Works</button>
         <div id="submit-status" style="margin-top:8px;font-size:12px;color:var(--text-light);text-align:center;min-height:18px;"></div>
         </div>
+      </div>
+
+      <div class="card" id="creator-feedback-card">
+        <div class="card-title">💬 Creator Program Feedback</div>
+        <div style="background:#f3e5f5;border:1.5px solid #ce93d8;border-radius:10px;padding:10px;font-size:12px;margin-bottom:12px;color:#5e3377;line-height:1.65;">
+          This feedback channel stays open even when monthly work submissions are closed. Share feedback about submissions, points, rewards, or the Creator Portal. For in-game bugs, account, payment, or gameplay issues, please use the in-game Customer Service Center.
+        </div>
+        <label>Your Feedback</label>
+        <textarea id="creator-feedback-text" maxlength="2000" placeholder="Tell us what happened, what you expected, and what could be improved." style="min-height:110px;"></textarea>
+        <button class="btn btn-primary" id="btn-feedback-submit" onclick="submitCreatorFeedback()" style="margin-top:8px;">💌 Send Feedback</button>
+        <div id="creator-feedback-status" style="margin-top:8px;font-size:12px;color:var(--text-light);text-align:center;min-height:18px;"></div>
       </div>
 
       <!-- Monthly Showcase Bonus (+1 pt) -->
@@ -2384,6 +2394,41 @@ async function registerCreator() {
   }
 }
 
+async function submitCreatorFeedback() {
+  var feedbackEl = document.getElementById('creator-feedback-text');
+  var status = document.getElementById('creator-feedback-status');
+  var button = document.getElementById('btn-feedback-submit');
+  var feedback = feedbackEl ? feedbackEl.value.trim() : '';
+  if (!currentUser) { status.textContent = '❌ Please log in first.'; status.style.color = '#e74c3c'; return; }
+  if (feedback.length < 5) { status.textContent = '❌ Please provide at least 5 characters.'; status.style.color = '#e74c3c'; return; }
+  if (feedback.length > 2000) { status.textContent = '❌ Feedback must be 2,000 characters or fewer.'; status.style.color = '#e74c3c'; return; }
+  button.disabled = true;
+  button.textContent = '⏳ Sending...';
+  status.textContent = '';
+  try {
+    var response = await supabaseFetch(SUPABASE_URL + '/rest/v1/rpc/submit_project_creator_feedback', {
+      method: 'POST',
+      body: JSON.stringify({ p_project_key: PROJECT_KEY, p_feedback: feedback })
+    });
+    if (!response.ok) throw new Error((await response.text()).substring(0, 180));
+    var result = await response.json();
+    if (result.duplicate) {
+      status.textContent = 'ℹ️ This feedback was already received. We kept the original copy.';
+      status.style.color = '#6a4b00';
+    } else {
+      status.textContent = '✅ Thank you! Your feedback has been received.';
+      status.style.color = '#2e7d32';
+      feedbackEl.value = '';
+    }
+  } catch(error) {
+    status.textContent = '❌ Could not send feedback: ' + error.message;
+    status.style.color = '#e74c3c';
+  } finally {
+    button.disabled = false;
+    button.textContent = '💌 Send Feedback';
+  }
+}
+
 async function submitWorks() {
   var discord = document.getElementById('submit-discord').value.trim();
   var rawLinks = document.getElementById('submit-links').value;
@@ -2391,8 +2436,6 @@ async function submitWorks() {
   var links = validation.links;
   var serverEl = document.getElementById('submit-server');
   var server = serverEl ? serverEl.value : (currentUser && currentUser.server ? currentUser.server : '');
-  var feedbackEl = document.getElementById('submit-feedback');
-  var feedback = feedbackEl ? feedbackEl.value.trim() : '';
   var status = document.getElementById('submit-status');
   var btn = document.getElementById('btn-submit');
 
@@ -2431,7 +2474,7 @@ async function submitWorks() {
         p_discord_name: discord,
         p_server: server,
         p_links: links.join('\n'),
-        p_feedback: feedback
+        p_feedback: ''
       })
     });
     if (!resp.ok) {
