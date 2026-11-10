@@ -694,6 +694,20 @@
 
   .rule strong { display: block; color: var(--pink-deep); font-size: 11px; }
 
+  .support-panel { margin-top: 18px; overflow: hidden; background: #432338; color: white; border-color: #2c1725; }
+  .support-panel h2 { color: #ffc1dc; }
+  .support-panel > p { color: #efd7e2; }
+  .support-flow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+  .support-stage { position: relative; min-height: 132px; padding: 12px; color: var(--ink); background: white; border: 2px solid #efb6cf; border-radius: 12px; }
+  .support-stage::after { content: '›'; position: absolute; top: 43px; right: -12px; z-index: 2; color: #ff83b9; font-size: 25px; font-weight: 900; }
+  .support-stage:last-child::after { display: none; }
+  .support-stage b { display: block; margin-bottom: 8px; color: var(--pink-deep); font-family: ui-monospace, monospace; font-size: 9px; }
+  .support-stage strong { display: block; font-size: 11px; }
+  .support-stage small { display: block; margin-top: 5px; color: var(--muted); font-size: 9px; line-height: 1.5; }
+  .support-footer { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 8px; margin-top: 9px; }
+  .support-footer div { padding: 10px 12px; color: #f1dce6; background: #321927; border: 1px solid #80566c; border-radius: 10px; font-size: 9px; line-height: 1.5; }
+  .support-footer strong { display: block; margin-bottom: 3px; color: #ffafd2; font-size: 11px; }
+
   .footnote {
     margin-top: 16px;
     padding: 12px 16px;
@@ -713,6 +727,8 @@
     .bottom-grid { grid-template-columns: 1fr; }
     .board-head { align-items: flex-start; flex-direction: column; }
     .legend { justify-content: flex-start; }
+    .support-flow { grid-template-columns: repeat(3, 1fr); }
+    .support-stage:nth-child(3)::after { display: none; }
   }
 
   @media (max-width: 560px) {
@@ -725,6 +741,9 @@
     .data-flow { flex-direction: column; }
     .data-arrow { transform: rotate(90deg); }
     .rules { grid-template-columns: 1fr; }
+    .support-flow, .support-footer { grid-template-columns: 1fr; }
+    .support-stage::after, .support-stage:nth-child(3)::after { content: '⌄'; display: block; top: auto; right: 50%; bottom: -19px; transform: translateX(50%); }
+    .support-stage:last-child::after { display: none; }
     .signature-card { grid-template-columns: 54px minmax(0, 1fr); gap: 12px; padding: 12px; border-radius: 18px; }
     .signature-mark { width: 54px; height: 54px; border-radius: 17px; font-size: 27px; }
     .signature-name { font-size: 23px; }
@@ -775,8 +794,8 @@
         <span>创作者门户 index.html</span>
         <span>管理后台 admin.html</span>
         <span>Supabase 数据中心</span>
-        <span>Seraphina's Bot 通知</span>
-        <span>更新：2026.10</span>
+        <span>Seraphina's Bot + AI 客服</span>
+        <span>更新：2026.11</span>
       </div>
     </div>
     <aside class="seraphina-card seraphina-card-hero" aria-label="System creator Seraphina, known to creators as YoYo assistant Mochi">
@@ -793,7 +812,7 @@
     <article class="overview-card"><div class="icon">💗</div><strong>创作者端</strong><small>注册申请、Discord OTP 安全登录、提交作品、查看历史、查看积分、兑换与修改待处理奖励。</small></article>
     <article class="overview-card"><div class="icon">🗂️</div><strong>管理端</strong><small>按 Platform Owner、Project Owner、Admin、Operator、Viewer 分级处理项目业务。</small></article>
     <article class="overview-card"><div class="icon">☁️</div><strong>Supabase</strong><small>保存 KOC、投稿、积分流水、兑换订单、活动规则与审计记录，并同步双端数据。</small></article>
-    <article class="overview-card"><div class="icon">🤖</div><strong>Seraphina's Bot</strong><small>发送登录验证码、新人欢迎、审批通知、个性化结算、反馈回信和等级变动通知。</small></article>
+    <article class="overview-card"><div class="icon">🤖</div><strong>Seraphina's Bot</strong><small>处理身份验证与业务通知，并结合知识库和创作者本人实时数据提供多轮 AI 客服。</small></article>
   </section>
 
   <div class="bottom-grid" aria-label="平台化项目初始化流程">
@@ -885,8 +904,22 @@
       <div class="status"><strong>💎 积分权威</strong>余额永远由 point_logs 流水求和；提交兑换时立即占用并扣减，取消或失败可幂等恢复，发布履约结果时再次对账。</div>
       <div class="status"><strong>🔐 登录安全</strong>UID 与 Account ID 只用于定位账号，Discord OTP 才能建立本人会话；创作者数据由 RLS 按 auth_user_id 隔离，匿名请求无法直接读取。</div>
       <div class="status"><strong>🎁 新人规则</strong>新人月是审核通过后的第一个完整自然月；达到基础 5 分可额外 +2，每人只能领取一次。</div>
-      <div class="status"><strong>🔔 通知原则</strong>Seraphina's Bot 只发送系统通知；所有广播先预览、再确认，个性化结算按 UID 逐人匹配发送。</div>
+      <div class="status"><strong>🤖 Bot 边界</strong>系统通知按稳定身份发送；AI 客服只查询发问者本人的数据，不自动改分、改订单或承诺补偿，高风险问题转人工。</div>
     </div>
+  </section>
+
+  <section class="panel support-panel" aria-label="AI 客服完整处理流程">
+    <h2>🎧 对话式 AI 客服闭环</h2>
+    <p>创作者发送任何私信即可进入对话。系统不是按关键词机械回复，而是将知识检索、本人实时数据与安全决策组合为连续服务。</p>
+    <div class="support-flow">
+      <div class="support-stage"><b>01 · MESSAGE</b><strong>接收自然语言问题</strong><small>识别登录、积分、投稿、奖励、物流等意图，并保留多轮上下文。</small></div>
+      <div class="support-stage"><b>02 · RETRIEVAL</b><strong>检索知识与规则</strong><small>召回 70 条 FAQ、11 套处理流程及当前月份有效规则。</small></div>
+      <div class="support-stage"><b>03 · IDENTITY</b><strong>确认稳定身份</strong><small>以 Discord User ID 关联 Creator ID，避免昵称变更或重名误匹配。</small></div>
+      <div class="support-stage"><b>04 · REAL-TIME DATA</b><strong>查询本人业务状态</strong><small>只读取发问者自己的登录、投稿、积分、订单与履约记录。</small></div>
+      <div class="support-stage"><b>05 · DECISION</b><strong>生成回答并判断风险</strong><small>明确问题自动回复；低置信度、隐私或高风险操作进入安全升级。</small></div>
+      <div class="support-stage"><b>06 · FEEDBACK</b><strong>人工接管与知识回流</strong><small>管理员可接管和释放对话；确认后的优质回答进入知识库统一后续口径。</small></div>
+    </div>
+    <div class="support-footer"><div><strong>安全边界</strong>AI 不自主执行补偿、改分、改订单或修改创作者资料。</div><div><strong>早期线上验证</strong>首批 4 个真实对话中，已完结对话当前自动解决率 100%。</div><div><strong>服务响应</strong>当前平均首次响应 29 秒；指标为上线初期小样本。</div></div>
   </section>
 
   <div class="bottom-grid">
