@@ -770,12 +770,12 @@
     <div class="hero-copy">
       <div class="eyebrow">♥ YOYO CREATIVE STUDIO · KOC OPERATIONS ♥</div>
       <h1>🎀 KOC 创作者管理系统 · 全流程图</h1>
-      <p>一页看懂创作者项目如何从项目模板与上线检查开始，进入注册、投稿、结算、兑换和履约闭环。每个项目拥有独立品牌、规则、创作者、积分和订单，通过 Supabase 与 MochiBot 连接双端业务。</p>
+      <p>一页看懂创作者项目如何从项目模板与上线检查开始，进入注册、投稿、结算、兑换和履约闭环。每个项目拥有独立品牌、规则、创作者、积分和订单，通过 Supabase 与 Seraphina's Bot 连接双端业务。</p>
       <div class="hero-meta">
         <span>创作者门户 index.html</span>
         <span>管理后台 admin.html</span>
         <span>Supabase 数据中心</span>
-        <span>MochiBot 通知</span>
+        <span>Seraphina's Bot 通知</span>
         <span>更新：2026.10</span>
       </div>
     </div>
@@ -793,7 +793,7 @@
     <article class="overview-card"><div class="icon">💗</div><strong>创作者端</strong><small>注册申请、Discord OTP 安全登录、提交作品、查看历史、查看积分、兑换与修改待处理奖励。</small></article>
     <article class="overview-card"><div class="icon">🗂️</div><strong>管理端</strong><small>按 Platform Owner、Project Owner、Admin、Operator、Viewer 分级处理项目业务。</small></article>
     <article class="overview-card"><div class="icon">☁️</div><strong>Supabase</strong><small>保存 KOC、投稿、积分流水、兑换订单、活动规则与审计记录，并同步双端数据。</small></article>
-    <article class="overview-card"><div class="icon">🤖</div><strong>MochiBot</strong><small>发送登录验证码、新人欢迎、审批通知、个性化结算、反馈回信和等级变动通知。</small></article>
+    <article class="overview-card"><div class="icon">🤖</div><strong>Seraphina's Bot</strong><small>发送登录验证码、新人欢迎、审批通知、个性化结算、反馈回信和等级变动通知。</small></article>
   </section>
 
   <div class="bottom-grid" aria-label="平台化项目初始化流程">
@@ -848,9 +848,9 @@
         <div class="phase">⑧ 发奖归档</div>
 
         <div class="lane-label creator-lane"><b>👩‍🎨</b>创作者端<small>Creator Portal</small></div>
-        <div class="cell"><div class="step creator-step"><span class="step-no">1</span><h3>收到邀请与欢迎私信</h3><p>了解新人月、创作灵感、投稿与奖励规则，打开官方创作者门户。</p><span class="tag">MochiBot 引导</span></div></div>
+        <div class="cell"><div class="step creator-step"><span class="step-no">1</span><h3>收到邀请与欢迎私信</h3><p>了解新人月、创作灵感、投稿与奖励规则，打开官方创作者门户。</p><span class="tag">Seraphina's Bot 引导</span></div></div>
         <div class="cell"><div class="step creator-step"><span class="step-no">2</span><h3>提交注册申请</h3><p>填写 Discord、19 位 Account ID、Game UID、区服及完整收货信息。</p><span class="tag">等待管理员审批</span></div></div>
-        <div class="cell"><div class="step creator-step"><span class="step-no">3</span><h3>安全登录并提交作品</h3><p>输入 Game UID 与 Account ID 后，通过 MochiBot 私信接收一次性验证码；验证成功才建立本人会话并读取数据。</p><span class="tag">Discord OTP + RLS</span></div></div>
+        <div class="cell"><div class="step creator-step"><span class="step-no">3</span><h3>安全登录并提交作品</h3><p>输入 Game UID 与 Account ID 后，通过 Seraphina's Bot 私信接收一次性验证码；验证成功才建立本人会话并读取数据。</p><span class="tag">Discord OTP + RLS</span></div></div>
         <div class="cell"><div class="step creator-step"><span class="step-no">4</span><h3>查看 My Submissions</h3><p>按月份查看自己的链接、投稿数量和审核状态；被拒绝后可释放投稿机会。</p><span class="tag">Pending / Scored</span></div></div>
         <div class="cell"><div class="step manual-step"><span class="step-no">5</span><h3>等待当月统一算分</h3><p>外部算分 Agent 抓取互动与播放数据，生成积分结果和每人个性化通知 CSV。</p><span class="tag">人工结算环节</span></div></div>
         <div class="cell"><div class="step creator-step"><span class="step-no">6</span><h3>查看积分与等级</h3><p>结算导入后查看本月得分、历史余额、等级与新人奖励情况。</p><span class="tag">余额 = 积分流水求和</span></div></div>
@@ -868,7 +868,7 @@
         <div class="cell last"><div class="step system-step"><span class="step-no">8</span><h3>履约对账与留痕</h3><p>发布发放结果时核对订单与积分流水；退款、补扣和重复操作均有幂等保护与审计记录。</p><span class="tag">point_logs + audit_logs</span></div></div>
 
         <div class="lane-label admin-lane"><b>🧑‍💻</b>管理端<small>Admin Dashboard</small></div>
-        <div class="cell"><div class="step admin-step"><span class="step-no">1</span><h3>设置 Bot 与欢迎规则</h3><p>配置 MochiBot Token、自动欢迎开关和统一尾注；广播发送前必须预览确认。</p><span class="tag">运营配置</span></div></div>
+        <div class="cell"><div class="step admin-step"><span class="step-no">1</span><h3>设置 Bot 与欢迎规则</h3><p>配置 Seraphina's Bot Token、自动欢迎开关和统一尾注；广播发送前必须预览确认。</p><span class="tag">运营配置</span></div></div>
         <div class="cell"><div class="step admin-step"><span class="step-no">2</span><h3>审核注册申请</h3><p>核对资料后批准或拒绝；批准新注册 KOC 时生成欢迎周边，并自动私信通过通知。</p><span class="tag">KOC 信息库</span></div></div>
         <div class="cell"><div class="step admin-step"><span class="step-no">3</span><h3>配置当前活动月</h3><p>在规则配置保存月份、投稿/兑换开关与截止时间；顶部月份仅用于切换后台查看数据。</p><span class="tag">规则月份是真正入口</span></div></div>
         <div class="cell"><div class="step admin-step"><span class="step-no">4</span><h3>审核和管理投稿</h3><p>搜索、筛选、查看链接数、勾选与删除；当月加分内容单独审核，通过后每人最多 +1。</p><span class="tag">作品审核</span></div></div>
@@ -885,7 +885,7 @@
       <div class="status"><strong>💎 积分权威</strong>余额永远由 point_logs 流水求和；提交兑换时立即占用并扣减，取消或失败可幂等恢复，发布履约结果时再次对账。</div>
       <div class="status"><strong>🔐 登录安全</strong>UID 与 Account ID 只用于定位账号，Discord OTP 才能建立本人会话；创作者数据由 RLS 按 auth_user_id 隔离，匿名请求无法直接读取。</div>
       <div class="status"><strong>🎁 新人规则</strong>新人月是审核通过后的第一个完整自然月；达到基础 5 分可额外 +2，每人只能领取一次。</div>
-      <div class="status"><strong>🔔 通知原则</strong>MochiBot 只发送系统通知；所有广播先预览、再确认，个性化结算按 UID 逐人匹配发送。</div>
+      <div class="status"><strong>🔔 通知原则</strong>Seraphina's Bot 只发送系统通知；所有广播先预览、再确认，个性化结算按 UID 逐人匹配发送。</div>
     </div>
   </section>
 
