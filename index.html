@@ -488,8 +488,10 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
         <span style="font-size:16px;font-weight:700;color:#880e4f;">🔑 Creator Login</span>
       </div>
       <div id="pending-registration-notice" style="display:none;background:#fff8e1;border:2px solid #ffb74d;padding:14px;margin-bottom:14px;text-align:left;color:#6d4300;box-shadow:3px 3px 0 #ffd180;line-height:1.6;">
-        <div style="font-size:15px;font-weight:900;color:#e65100;margin-bottom:5px;">⏳ Your application is still awaiting approval</div>
-        <div>New applicants <strong>cannot log in or receive a verification code</strong> until an administrator approves the application.</div>
+        <div style="font-size:18px;font-weight:1000;color:#c62828;margin-bottom:7px;line-height:1.35;">⏳ WAIT FOR ADMIN APPROVAL</div>
+        <div style="font-size:14px;font-weight:900;">Your application is still under review.</div>
+        <div style="margin-top:5px;font-size:14px;font-weight:900;color:#b42318;">DO NOT TRY TO LOG IN OR WAIT FOR A VERIFICATION CODE YET.</div>
+        <div style="margin-top:5px;">New applicants cannot log in or receive a verification code until an administrator approves the application.</div>
         <div style="margin-top:6px;">Please wait for an approval message from the Creator Program team. You do not need to keep requesting a code.</div>
         <button type="button" onclick="confirmRegistrationApproved()" style="margin-top:10px;width:100%;padding:10px;border:2px solid #8a5a00;background:#fff;color:#8a5a00;font-weight:900;cursor:pointer;">I received approval · Continue to login</button>
       </div>
@@ -2262,11 +2264,11 @@ async function registerCreator() {
     localStorage.setItem(pendingRegistrationStorageKey(), '1');
 
     status.innerHTML = '<div style="background:#fff8e1;border:3px solid #ffb74d;padding:16px;text-align:left;color:#6d4300;line-height:1.7;box-shadow:4px 4px 0 #ffd180;">' +
-      '<div style="font-weight:900;font-size:17px;margin-bottom:8px;color:#e65100;">⏳ Application submitted · Please wait for approval</div>' +
+      '<div style="font-weight:1000;font-size:20px;margin-bottom:8px;color:#c62828;line-height:1.35;">⏳ APPLICATION SUBMITTED<br>WAIT FOR ADMIN APPROVAL</div>' +
       '<div><strong>Your Game UID:</strong> <span style="font-family:monospace;">' + esc(gameUid) + '</span></div>' +
       '<div><strong>Your System ID:</strong> <span style="font-family:monospace;">' + esc(accountId) + '</span></div>' +
-      '<div style="font-size:13px;margin-top:10px;font-weight:800;">Do not try to log in or wait for a verification code yet.</div>' +
-      '<div style="font-size:12px;margin-top:4px;">An administrator must approve your application first. After approval, the Creator Program team will notify you. Only then should you return to the portal and request a MochiBot verification code.</div>' +
+      '<div style="font-size:15px;margin-top:12px;font-weight:1000;color:#b42318;">DO NOT TRY TO LOG IN OR WAIT FOR A VERIFICATION CODE YET.</div>' +
+      '<div style="font-size:13px;margin-top:6px;font-weight:800;">An administrator must approve your application first. The Creator Program team will notify you after approval. Only then should you return to the portal and request a MochiBot verification code.</div>' +
       (applicationResult.duplicate ? '<div style="font-size:11px;margin-top:4px;">Your application is already in the review queue.</div>' : '') +
       '</div>';
     status.style.color = '#8a5a00';
