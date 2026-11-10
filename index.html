@@ -487,7 +487,14 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
         <button onclick="showEntryScreen()" style="background:none;border:none;font-size:14px;color:#ad1457;cursor:pointer;padding:4px 8px;">‹ Back</button>
         <span style="font-size:16px;font-weight:700;color:#880e4f;">🔑 Creator Login</span>
       </div>
+      <div id="pending-registration-notice" style="display:none;background:#fff8e1;border:2px solid #ffb74d;padding:14px;margin-bottom:14px;text-align:left;color:#6d4300;box-shadow:3px 3px 0 #ffd180;line-height:1.6;">
+        <div style="font-size:15px;font-weight:900;color:#e65100;margin-bottom:5px;">⏳ Your application is still awaiting approval</div>
+        <div>New applicants <strong>cannot log in or receive a verification code</strong> until an administrator approves the application.</div>
+        <div style="margin-top:6px;">Please wait for an approval message from the Creator Program team. You do not need to keep requesting a code.</div>
+        <button type="button" onclick="confirmRegistrationApproved()" style="margin-top:10px;width:100%;padding:10px;border:2px solid #8a5a00;background:#fff;color:#8a5a00;font-weight:900;cursor:pointer;">I received approval · Continue to login</button>
+      </div>
       <div style="font-size:12px;line-height:1.6;color:#8a4f6a;background:#fff7fb;border:1px solid #f8bbd0;border-radius:12px;padding:10px;margin-bottom:12px;text-align:left;">
+        <span style="display:block;margin-bottom:7px;color:#b4235d;font-weight:900;">New applicant? Wait for administrator approval before trying to log in.</span>
         <strong>Game UID</strong>: your in-game character ID (letters).<br>
         <strong>System ID</strong>: your fixed account ID (numbers starting with 6).<br>
         <span style="display:block;margin-top:6px;color:#6f3d58;"><strong>Discord verification required:</strong> stay in the official creator server and allow direct messages from server members so MochiBot can send your one-time code.</span>
@@ -2161,6 +2168,30 @@ function showExistingLogin() {
   if (a) a.value = '';
   var st = document.getElementById('login-status');
   if (st) st.textContent = '';
+  renderPendingRegistrationNotice();
+}
+
+function pendingRegistrationStorageKey() {
+  return 'creator_registration_pending:' + PROJECT_KEY;
+}
+
+function renderPendingRegistrationNotice() {
+  var notice = document.getElementById('pending-registration-notice');
+  var loginButton = document.getElementById('btn-login');
+  if (!notice || !loginButton) return;
+  var isPending = localStorage.getItem(pendingRegistrationStorageKey()) === '1';
+  notice.style.display = isPending ? 'block' : 'none';
+  loginButton.disabled = isPending;
+  loginButton.style.opacity = isPending ? '0.45' : '';
+  loginButton.style.cursor = isPending ? 'not-allowed' : 'pointer';
+  loginButton.textContent = isPending ? '⏳ Waiting for administrator approval' : '🔐 Login';
+}
+
+function confirmRegistrationApproved() {
+  localStorage.removeItem(pendingRegistrationStorageKey());
+  renderPendingRegistrationNotice();
+  var loginStatus = document.getElementById('login-status');
+  if (loginStatus) loginStatus.textContent = 'Enter your Game UID and System ID to request a verification code.';
 }
 async function registerCreator() {
   var discord = document.getElementById('reg-discord').value.trim();
@@ -2228,11 +2259,14 @@ async function registerCreator() {
     }
     var applicationResult = await resp.json();
 
-    status.innerHTML = '<div style="background:#fff8e1;border:1px solid #ffcc80;border-radius:14px;padding:12px;text-align:left;color:#8a5a00;line-height:1.7;">' +
-      '<div style="font-weight:800;font-size:14px;margin-bottom:6px;">⏳ Application submitted for review</div>' +
+    localStorage.setItem(pendingRegistrationStorageKey(), '1');
+
+    status.innerHTML = '<div style="background:#fff8e1;border:3px solid #ffb74d;padding:16px;text-align:left;color:#6d4300;line-height:1.7;box-shadow:4px 4px 0 #ffd180;">' +
+      '<div style="font-weight:900;font-size:17px;margin-bottom:8px;color:#e65100;">⏳ Application submitted · Please wait for approval</div>' +
       '<div><strong>Your Game UID:</strong> <span style="font-family:monospace;">' + esc(gameUid) + '</span></div>' +
       '<div><strong>Your System ID:</strong> <span style="font-family:monospace;">' + esc(accountId) + '</span></div>' +
-      '<div style="font-size:11px;margin-top:6px;">An administrator must approve your application before you can log in or submit work.</div>' +
+      '<div style="font-size:13px;margin-top:10px;font-weight:800;">Do not try to log in or wait for a verification code yet.</div>' +
+      '<div style="font-size:12px;margin-top:4px;">An administrator must approve your application first. After approval, the Creator Program team will notify you. Only then should you return to the portal and request a MochiBot verification code.</div>' +
       (applicationResult.duplicate ? '<div style="font-size:11px;margin-top:4px;">Your application is already in the review queue.</div>' : '') +
       '</div>';
     status.style.color = '#8a5a00';
@@ -2240,6 +2274,7 @@ async function registerCreator() {
     var registerButton = document.getElementById('btn-register');
     if (registerButton) registerButton.textContent = '⏳ Awaiting Review';
     showToast('⏳ Application submitted for review', 'success');
+    status.scrollIntoView({ behavior: 'smooth', block: 'center' });
   } catch(e) {
     status.textContent = '❌ Error: ' + e.message;
     status.style.color = '#e74c3c';
