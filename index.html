@@ -1444,6 +1444,7 @@ async function login() {
   try {
     var response = await fetchWithTimeout(SUPABASE_URL + '/functions/v1/creator-auth', {
       method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'request_code', data: { project_key: PROJECT_KEY, uid: uid, account_id: accountId } })
     }, 20000);
     var result = await response.json().catch(function() { return {}; });
@@ -1725,6 +1726,7 @@ async function loadCommunityMilestone() {
   try {
     var response = await fetchWithTimeout(SUPABASE_URL + '/functions/v1/creator-auth', {
       method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'active_creator_count', data: { project_key: PROJECT_KEY } })
     });
     var result = await response.json().catch(function() { return {}; });
