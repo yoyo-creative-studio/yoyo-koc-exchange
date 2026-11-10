@@ -1,0 +1,13 @@
+{
+  "redirects": [
+    { "source": "/", "destination": "/admin-console.html", "permanent": false }
+  ],
+  "headers": [
+    {
+      "source": "/admin-console.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, max-age=0" }
+      ]
+    }
+  ]
+}
