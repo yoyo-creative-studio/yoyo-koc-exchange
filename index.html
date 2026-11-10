@@ -532,6 +532,7 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
       <button class="tab active" onclick="switchCreatorTab('submit')">🎨 Submit Works</button>
       <button class="tab" onclick="switchCreatorTab('history')">📋 My Submissions</button>
       <button class="tab" onclick="switchCreatorTab('redeem')">🎁 Redeem Rewards</button>
+      <button class="tab" onclick="switchCreatorTab('profile')">📦 Shipping Info</button>
       <button class="tab" onclick="switchCreatorTab('faq')">❓ FAQ</button>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -645,6 +646,24 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
         </div>
         <div id="submission-count" style="font-size:11px;color:var(--text-light);"></div>
         <div id="submissions-list"><div style="color:var(--text-light);font-size:13px;">Loading...</div></div>
+      </div>
+    </div>
+
+    <div id="creator-tab-profile" class="tab-content">
+      <div class="nav-bar"><button class="nav-back" onclick="logout()">‹ Back</button><span class="nav-title">📦 Shipping Information</span></div>
+      <div class="card">
+        <div class="card-title">📦 Update Shipping Information</div>
+        <div style="background:#fff8e1;border:2px solid #ffb74d;padding:12px;margin-bottom:14px;color:#6d4300;font-size:12px;line-height:1.6;">
+          Saving updates your creator profile and any <strong>Pending or Processing</strong> merchandise orders. It does not change rewards that have already been shipped. Enter an address that can receive regular postal mail.
+        </div>
+        <label>Full Legal Name *</label><input type="text" id="profile-name" placeholder="Full legal name">
+        <label>Street Address / P.O. Box / Apt / Suite / Unit *</label><textarea id="profile-address" rows="3" placeholder="Complete street address"></textarea>
+        <div style="display:flex;gap:8px;"><div style="flex:1;"><label>City *</label><input type="text" id="profile-city"></div><div style="flex:1;"><label>State / Province *</label><input type="text" id="profile-state"></div></div>
+        <div style="display:flex;gap:8px;"><div style="flex:1;"><label>Postal Code *</label><input type="text" id="profile-postal"></div><div style="flex:1;"><label>Country *</label><input type="text" id="profile-country"></div></div>
+        <label>Phone Number *</label><input type="text" id="profile-phone" placeholder="Include country code">
+        <label style="display:flex;align-items:flex-start;gap:8px;margin:10px 0 14px;font-size:12px;line-height:1.5;cursor:pointer;"><input type="checkbox" id="profile-confirm" style="width:18px;height:18px;flex:0 0 18px;margin-top:1px;"><span>I confirm that this address is complete, accurate, and able to receive regular postal mail.</span></label>
+        <button class="btn btn-primary" id="btn-save-shipping" onclick="saveShippingProfile()">Save Shipping Information</button>
+        <div id="profile-status" style="margin-top:10px;font-size:12px;min-height:18px;text-align:center;color:var(--text-light);"></div>
       </div>
     </div>
 
@@ -2104,9 +2123,74 @@ function switchCreatorTab(name) {
   }
   if (name === 'submit') { initSubmitTab(); loadMySubmissions(); }
   if (name === 'history') loadMySubmissions();
+  if (name === 'profile') loadShippingProfileForm();
   if (name === 'redeem') {
     refreshAvailableBalance().catch(function(error) { console.error('Balance refresh failed:', error); });
     loadOrders();
+  }
+}
+
+function loadShippingProfileForm() {
+  if (!currentUser) return;
+  var values = {
+    'profile-name': currentUser.name,
+    'profile-address': currentUser.address,
+    'profile-city': currentUser.city,
+    'profile-state': currentUser.state,
+    'profile-postal': currentUser.postal_code,
+    'profile-country': currentUser.country,
+    'profile-phone': currentUser.phone
+  };
+  Object.keys(values).forEach(function(id) {
+    var element = document.getElementById(id);
+    if (element) element.value = values[id] || '';
+  });
+  var confirmed = document.getElementById('profile-confirm');
+  if (confirmed) confirmed.checked = false;
+  var status = document.getElementById('profile-status');
+  if (status) status.textContent = '';
+}
+
+async function saveShippingProfile() {
+  if (!currentUser) return;
+  var profile = {
+    project_key: PROJECT_KEY,
+    name: document.getElementById('profile-name').value.trim(),
+    address: document.getElementById('profile-address').value.trim(),
+    city: document.getElementById('profile-city').value.trim(),
+    state: document.getElementById('profile-state').value.trim(),
+    postal_code: document.getElementById('profile-postal').value.trim(),
+    country: document.getElementById('profile-country').value.trim(),
+    phone: document.getElementById('profile-phone').value.trim(),
+    confirmed: document.getElementById('profile-confirm').checked
+  };
+  var status = document.getElementById('profile-status');
+  if ([profile.name, profile.address, profile.city, profile.state, profile.postal_code, profile.country, profile.phone].some(function(value) { return !value; }) || !profile.confirmed) {
+    status.textContent = 'Complete every field and confirm the address before saving.';
+    status.style.color = '#c62828';
+    return;
+  }
+  var button = document.getElementById('btn-save-shipping');
+  button.disabled = true;
+  button.textContent = 'Saving...';
+  try {
+    var response = await supabaseFetch(SUPABASE_URL + '/functions/v1/creator-auth', {
+      method: 'POST',
+      body: JSON.stringify({ action: 'update_shipping_profile', data: profile })
+    });
+    var result = await response.json().catch(function() { return {}; });
+    if (!response.ok || !result.ok) throw new Error(result.error || 'Unable to update shipping information');
+    Object.assign(currentUser, result.profile || profile);
+    status.textContent = '✅ Shipping information updated. Pending merchandise orders now use this address.';
+    status.style.color = '#2e7d32';
+    document.getElementById('profile-confirm').checked = false;
+    showToast('✅ Shipping information updated', 'success');
+  } catch (error) {
+    status.textContent = '❌ ' + (error.message || 'Unable to update shipping information');
+    status.style.color = '#c62828';
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Save Shipping Information';
   }
 }
 
