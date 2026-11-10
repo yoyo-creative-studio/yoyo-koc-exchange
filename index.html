@@ -762,9 +762,15 @@ const SHIPPING_FAQ_ANSWERS = {
   Q53: 'Enter your Full Legal Name, Street Address or P.O. Box, Apartment/Suite/Unit/Box Number, City, State/Province, Postal Code, Country, and Phone Number.\n\nPhysical rewards may be delivered by USPS or another local postal service, not only by UPS, FedEx, or DHL. Your address must be complete, detailed, and able to receive regular postal mail. If you are in the United States or a U.S. territory and your residential address cannot receive USPS mail, provide a valid P.O. Box.\n\nCheck every field before submitting. Because rewards are shipped internationally, a package returned due to incomplete, incorrect, or undeliverable address information cannot be handled or resent by the Creator Program team.'
 };
 
+const SUPPORT_FAQ_ANSWERS = {
+  Q40: 'Start with our searchable FAQ: https://yoyo-creative-studio.github.io/yoyo-koc-faq/\n\nIf you still need help, send MochiBot a direct message. Choose a support category or describe the issue, and MochiBot can continue the conversation and check your own Creator Program records.\n\nIf MochiBot cannot resolve the issue, create a post in `📪｜town-service-station` with private IDs, codes, addresses, and phone numbers hidden. Contact Seraphina privately only for sensitive information or when the support ticket remains unresolved.',
+  Q60: 'First search the FAQ: https://yoyo-creative-studio.github.io/yoyo-koc-faq/\n\nYou can then DM MochiBot for conversational support and checks of your own Creator Program records. If the issue still cannot be resolved, post in `📪｜town-service-station` with any private information hidden. Contact Seraphina privately only when sensitive account, identity, reward-code, address, or compensation information is required, or when the ticket remains unresolved.'
+};
+
 EN_DATA.forEach(function(category) {
   category.items.forEach(function(item) {
-    if (SHIPPING_FAQ_ANSWERS[item.id]) item.a = SHIPPING_FAQ_ANSWERS[item.id];
+    const answer = SUPPORT_FAQ_ANSWERS[item.id] || SHIPPING_FAQ_ANSWERS[item.id];
+    if (answer) item.a = answer;
   });
 });
 
