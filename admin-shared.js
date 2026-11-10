@@ -73,7 +73,7 @@ function supabaseFetch(url, opts) {
     }
     var proxyOptions = {
       method: 'POST',
-      headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       body: JSON.stringify({ action: 'admin_data', admin_password: ADMIN_PASSWORD, admin_session: ADMIN_SESSION, data: {
         project_key: getActiveProjectKey(), method: method, path: parsedUrl.pathname + parsedUrl.search, body: proxyBody
       } })
