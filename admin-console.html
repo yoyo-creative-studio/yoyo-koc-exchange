@@ -899,6 +899,7 @@ button, .btn, .tab, input, select, textarea, a { touch-action: manipulation; -we
       <button class="tab" onclick="switchTab('scoring')">🧮 积分计算</button>
       <button class="tab" onclick="switchTab('submissions')">📋 作品审核</button>
       <button class="tab" onclick="switchTab('feedback')">💬 反馈收集</button>
+      <button class="tab" onclick="switchTab('support')">🎧 AI客服</button>
       <button class="tab" onclick="switchTab('fulfillment')">🎁 奖励发放中心</button>
       <button class="tab" onclick="switchTab('rules')">📐 规则配置</button>
       <button class="tab" onclick="switchTab('audit')">📜 操作日志</button>
@@ -1571,6 +1572,27 @@ Bonuses and carry-over do not count. Existing tiers only move up.</textarea>
   </div>
 </div>
 
+    <!-- ======== TAB: AI 客服 ======== -->
+    <div id="tab-support" class="tab-content">
+      <div class="card">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span>🎧 AI 客服工作台 <span id="support-case-count" style="font-size:12px;color:var(--text-light);"></span></span>
+          <button class="btn btn-outline btn-sm" onclick="loadSupportConversations()">🔄 刷新</button>
+        </div>
+        <div id="support-stats" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px;"></div>
+        <div class="list-toolbar">
+          <input type="search" id="support-search" placeholder="🔍 搜索创作者 / UID / 问题" oninput="renderSupportConversationList()">
+          <select id="support-status-filter" onchange="loadSupportConversations()">
+            <option value="active">待处理</option><option value="open">处理中</option><option value="escalated">已升级</option><option value="resolved">已解决</option><option value="all">全部</option>
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(280px,0.85fr) minmax(420px,1.7fr);gap:12px;align-items:start;">
+          <div id="support-conversation-list" style="border:1px solid var(--border);background:white;max-height:620px;overflow:auto;"><div style="padding:24px;text-align:center;color:var(--text-light);">加载客服会话...</div></div>
+          <div id="support-conversation-detail" style="border:1px solid var(--border);background:#fff;min-height:420px;padding:14px;"><div style="padding:80px 20px;text-align:center;color:var(--text-light);">选择一个会话查看原问题、AI 回复与处理记录</div></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ======== TAB: 反馈收集 ======== -->
     <div id="tab-feedback" class="tab-content">
       <div class="card">
@@ -2016,9 +2038,9 @@ function applyAdminPermissions() {
   var allowedTabs = {
     viewer: ['dashboard', 'audit'],
     operator: ['dashboard', 'submissions', 'feedback', 'fulfillment', 'audit'],
-    admin: ['dashboard', 'koc-ledger', 'scoring', 'submissions', 'feedback', 'fulfillment', 'rules', 'audit'],
-    project_owner: ['dashboard', 'koc-ledger', 'scoring', 'submissions', 'feedback', 'fulfillment', 'rules', 'audit'],
-    platform_owner: ['dashboard', 'koc-ledger', 'scoring', 'submissions', 'feedback', 'fulfillment', 'rules', 'audit']
+    admin: ['dashboard', 'koc-ledger', 'scoring', 'submissions', 'feedback', 'support', 'fulfillment', 'rules', 'audit'],
+    project_owner: ['dashboard', 'koc-ledger', 'scoring', 'submissions', 'feedback', 'support', 'fulfillment', 'rules', 'audit'],
+    platform_owner: ['dashboard', 'koc-ledger', 'scoring', 'submissions', 'feedback', 'support', 'fulfillment', 'rules', 'audit']
   };
   var visibleTabs = allowedTabs[(ADMIN_USER || {}).role] || ['dashboard'];
   document.querySelectorAll('#tab-nav .tab').forEach(function(button) {
@@ -4612,10 +4634,154 @@ function switchTab(name) {
   if (name === 'merch') renderMerchTab();
   if (name === 'submissions') loadSubmissions();
   if (name === 'feedback') loadFeedback();
+  if (name === 'support') loadSupportConversations();
   if (name === 'tiers') renderTiersTable();
   if (name === 'rules') { loadAllPeriods(); loadPlatformProjects(); }
   if (name === 'audit') loadAuditLog();
 }
+
+// ===== AI SUPPORT WORKSPACE =====
+var supportConversations = [];
+var selectedSupportConversationId = '';
+
+function supportTime(value) {
+  if (!value) return '—';
+  var date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+}
+
+function supportCreatorName(item) {
+  var creator = item && item.creator || {};
+  return creator.discord_display_name || creator.discord_username || creator.discord_name || ('Discord ' + (item.discord_user_id || 'Unknown'));
+}
+
+function renderSupportStats(stats) {
+  var root = document.getElementById('support-stats');
+  if (!root) return;
+  var cards = [
+    ['处理中', Number(stats.open || 0), '#1565c0', '#e3f2fd'],
+    ['已升级', Number(stats.escalated || 0), '#c62828', '#ffebee'],
+    ['人工接管', Number(stats.human_takeover || 0), '#6a1b9a', '#f3e5f5'],
+    ['已解决', Number(stats.resolved || 0), '#2e7d32', '#e8f5e9']
+  ];
+  root.innerHTML = cards.map(function(card) {
+    return '<div style="padding:10px;border:1px solid ' + card[2] + '33;background:' + card[3] + ';"><div style="font-size:20px;font-weight:800;color:' + card[2] + ';">' + card[1] + '</div><div style="font-size:11px;color:' + card[2] + ';">' + card[0] + '</div></div>';
+  }).join('');
+}
+
+async function loadSupportConversations() {
+  var list = document.getElementById('support-conversation-list');
+  if (!list || !hasAdminRole('admin')) return;
+  list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-light);">加载客服会话...</div>';
+  try {
+    var status = (document.getElementById('support-status-filter') || {}).value || 'active';
+    var result = await registrationReviewFetch('list_support_conversations', { status: status });
+    supportConversations = result.conversations || [];
+    renderSupportStats(result.stats || {});
+    var count = document.getElementById('support-case-count');
+    if (count) count.textContent = '(' + supportConversations.length + ')';
+    renderSupportConversationList();
+    if (selectedSupportConversationId && supportConversations.some(function(item) { return item.id === selectedSupportConversationId; })) {
+      await openSupportConversation(selectedSupportConversationId);
+    }
+  } catch (error) {
+    list.innerHTML = '<div style="padding:20px;color:#c62828;">客服会话加载失败：' + esc(error.message) + '</div>';
+  }
+}
+
+function renderSupportConversationList() {
+  var root = document.getElementById('support-conversation-list');
+  if (!root) return;
+  var query = ((document.getElementById('support-search') || {}).value || '').trim().toLowerCase();
+  var rows = supportConversations.filter(function(item) {
+    var creator = item.creator || {};
+    var latest = item.latest_message || {};
+    return !query || [supportCreatorName(item), creator.uid, item.topic, item.escalation_summary, latest.content].join(' ').toLowerCase().indexOf(query) >= 0;
+  });
+  if (!rows.length) {
+    root.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-light);">没有匹配的客服会话</div>';
+    return;
+  }
+  var statusLabels = { open:'处理中', escalated:'已升级', resolved:'已解决' };
+  root.innerHTML = rows.map(function(item) {
+    var latest = item.latest_message || {};
+    var active = item.id === selectedSupportConversationId;
+    var color = item.status === 'escalated' ? '#c62828' : item.status === 'resolved' ? '#2e7d32' : '#1565c0';
+    return '<button type="button" onclick="openSupportConversation(\'' + escAttr(item.id) + '\')" style="display:block;width:100%;text-align:left;border:0;border-bottom:1px solid #eee;padding:12px;background:' + (active ? '#f3e5f5' : '#fff') + ';cursor:pointer;">' +
+      '<div style="display:flex;justify-content:space-between;gap:8px;align-items:center;"><strong style="font-size:13px;">' + esc(supportCreatorName(item)) + '</strong><span style="font-size:10px;font-weight:700;color:' + color + ';">' + esc(statusLabels[item.status] || item.status) + '</span></div>' +
+      '<div style="font-size:11px;color:#777;margin-top:3px;">' + esc(item.topic || 'Uncategorized') + (item.human_takeover ? ' · 人工接管' : ' · AI处理') + ' · ' + esc(supportTime(item.last_message_at)) + '</div>' +
+      '<div style="font-size:12px;color:#444;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(latest.content || '暂无消息') + '</div></button>';
+  }).join('');
+}
+
+async function openSupportConversation(conversationId) {
+  selectedSupportConversationId = conversationId;
+  renderSupportConversationList();
+  var root = document.getElementById('support-conversation-detail');
+  if (!root) return;
+  root.innerHTML = '<div style="padding:80px 20px;text-align:center;color:var(--text-light);">加载会话详情...</div>';
+  try {
+    var result = await registrationReviewFetch('get_support_conversation', { conversation_id: conversationId });
+    renderSupportConversationDetail(result.conversation, result.messages || []);
+  } catch (error) {
+    root.innerHTML = '<div style="padding:20px;color:#c62828;">会话详情加载失败：' + esc(error.message) + '</div>';
+  }
+}
+
+function renderSupportConversationDetail(conversation, messages) {
+  var root = document.getElementById('support-conversation-detail');
+  if (!root) return;
+  var creator = conversation.creator || {};
+  var labels = { inbound:'创作者', draft:'AI 草稿', outbound:'已发送回复', internal:'内部记录' };
+  var colors = { inbound:'#fff8e1', draft:'#e3f2fd', outbound:'#e8f5e9', internal:'#f5f5f5' };
+  var messageHtml = messages.map(function(message) {
+    return '<div style="margin-bottom:9px;padding:10px;background:' + (colors[message.direction] || '#fafafa') + ';border-left:3px solid #9575cd;">' +
+      '<div style="display:flex;justify-content:space-between;gap:8px;font-size:10px;color:#777;margin-bottom:5px;"><strong>' + esc(labels[message.direction] || message.direction) + '</strong><span>' + esc(supportTime(message.created_at)) + '</span></div>' +
+      '<div style="font-size:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word;">' + esc(message.content || '') + '</div></div>';
+  }).join('') || '<div style="padding:30px;text-align:center;color:var(--text-light);">暂无消息</div>';
+  var actionButtons = conversation.status === 'resolved'
+    ? '<button class="btn btn-outline btn-sm" onclick="updateSupportConversation(\'reopen\')">↩ 重新打开并接管</button>'
+    : (conversation.human_takeover
+      ? '<button class="btn btn-outline btn-sm" onclick="updateSupportConversation(\'release\')">🤖 交回 AI</button>'
+      : '<button class="btn btn-outline btn-sm" onclick="updateSupportConversation(\'takeover\')">✋ 人工接管</button>') +
+      '<button class="btn btn-success btn-sm" onclick="updateSupportConversation(\'resolve\')">✓ 标记已解决</button>';
+  root.innerHTML =
+    '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:10px;"><div><div style="font-size:16px;font-weight:800;">' + esc(supportCreatorName(conversation)) + '</div>' +
+    '<div style="font-size:11px;color:#777;margin-top:3px;">UID: ' + esc(creator.uid || '未匹配') + ' · ' + esc(creator.tier || '—') + ' · ' + esc(conversation.topic || 'Uncategorized') + '</div></div><div style="display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;">' + actionButtons + '</div></div>' +
+    (conversation.escalation_summary ? '<div style="padding:9px;background:#ffebee;color:#b71c1c;font-size:12px;margin-bottom:10px;"><strong>升级摘要：</strong>' + esc(conversation.escalation_summary) + '</div>' : '') +
+    '<div id="support-message-thread" style="max-height:410px;overflow:auto;padding-right:4px;">' + messageHtml + '</div>' +
+    '<div style="border-top:1px solid #eee;margin-top:10px;padding-top:10px;"><textarea id="support-human-reply" maxlength="1900" placeholder="输入人工回复，将由 Seraphina\'s Bot 私信发送..." style="width:100%;min-height:90px;"></textarea>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;"><span style="font-size:11px;color:var(--text-light);">发送后自动进入人工接管，AI 暂停回复。</span><button class="btn btn-primary btn-sm" onclick="sendSupportHumanReply()">📤 发送回复</button></div></div>';
+  var thread = document.getElementById('support-message-thread');
+  if (thread) thread.scrollTop = thread.scrollHeight;
+}
+
+async function updateSupportConversation(operation) {
+  if (!selectedSupportConversationId) return;
+  try {
+    await registrationReviewFetch('update_support_conversation', { conversation_id: selectedSupportConversationId, operation: operation });
+    await loadSupportConversations();
+    showToast('✅ 客服状态已更新', 'success');
+  } catch (error) {
+    showToast('更新失败：' + error.message, 'error');
+  }
+}
+
+async function sendSupportHumanReply() {
+  if (!selectedSupportConversationId) return;
+  var input = document.getElementById('support-human-reply');
+  var content = String(input && input.value || '').trim();
+  if (!content) return showToast('请输入回复内容', 'error');
+  try {
+    await registrationReviewFetch('send_support_reply', { conversation_id: selectedSupportConversationId, content: content });
+    if (input) input.value = '';
+    await loadSupportConversations();
+    showToast('✅ 已由 Seraphina\'s Bot 发送', 'success');
+  } catch (error) {
+    showToast('发送失败：' + error.message, 'error');
+  }
+}
+
 
 // ===== REWARD FULFILLMENT CENTER =====
 var fulfillmentPreviewRows = [];
