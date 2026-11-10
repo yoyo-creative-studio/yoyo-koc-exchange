@@ -457,6 +457,60 @@
   .overview-card strong { display: block; margin: 6px 0 3px; font-size: 14px; }
   .overview-card small { color: var(--muted); font-size: 11px; line-height: 1.55; }
 
+  .beginner-guide {
+    margin: 22px 0;
+    overflow: hidden;
+    background: #fff;
+    border: 3px solid #9f285f;
+    border-radius: 22px;
+    box-shadow: 8px 8px 0 rgba(159, 40, 95, .18);
+  }
+
+  .guide-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 22px 24px;
+    color: white;
+    background: #4a2438;
+  }
+
+  .guide-head span { color: #ffb8d7; font-family: ui-monospace, monospace; font-size: 9px; font-weight: 900; }
+  .guide-head h2 { margin: 6px 0 5px; font-size: 23px; }
+  .guide-head p { max-width: 760px; margin: 0; color: #ead5df; font-size: 11px; line-height: 1.6; }
+  .guide-count { flex: 0 0 auto; color: #ffb4d4; font-family: Georgia, serif; font-size: 34px; font-weight: 900; }
+
+  .guide-body { display: grid; grid-template-columns: 235px minmax(0, 1fr); min-height: 520px; }
+  .guide-steps { padding: 14px; background: #fff5f9; border-right: 2px solid var(--rose-line); }
+  .guide-step { width: 100%; display: grid; grid-template-columns: 30px 1fr; gap: 8px; align-items: center; margin-bottom: 6px; padding: 9px; color: var(--muted); background: white; border: 1px solid #f1cbdc; border-radius: 10px; text-align: left; cursor: pointer; }
+  .guide-step i { display: grid; place-items: center; width: 28px; height: 28px; color: var(--pink-deep); background: var(--pink-soft); border-radius: 8px; font-style: normal; font-size: 13px; }
+  .guide-step strong { display: block; color: var(--ink); font-size: 10px; }
+  .guide-step small { display: block; margin-top: 2px; font-size: 8px; }
+  .guide-step[aria-selected="true"] { color: white; background: var(--pink-deep); border-color: var(--pink-deep); }
+  .guide-step[aria-selected="true"] i { color: var(--pink-deep); background: white; }
+  .guide-step[aria-selected="true"] strong { color: white; }
+
+  .guide-detail { padding: 25px; }
+  .guide-stage-label { color: var(--pink-deep); font-family: ui-monospace, monospace; font-size: 9px; font-weight: 900; }
+  .guide-detail h3 { margin: 7px 0 8px; color: var(--ink); font-size: 25px; }
+  .guide-summary { max-width: 820px; margin: 0 0 19px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+  .guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .guide-fact { min-height: 106px; padding: 13px; background: #fff9fc; border: 1px solid #efd0de; border-radius: 11px; }
+  .guide-fact b { display: block; margin-bottom: 5px; color: var(--pink-deep); font-size: 9px; }
+  .guide-fact strong { display: block; margin-bottom: 4px; font-size: 11px; }
+  .guide-fact p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+  .guide-fact.error { background: var(--amber-soft); border-color: #efd39f; }
+  .guide-fact.output { background: var(--green-soft); border-color: #b7dcc7; }
+  .guide-actions { display: flex; justify-content: space-between; gap: 10px; margin-top: 16px; }
+  .guide-actions button { min-height: 36px; padding: 0 12px; color: var(--pink-deep); background: white; border: 2px solid var(--pink-deep); border-radius: 9px; font-size: 10px; font-weight: 900; cursor: pointer; }
+  .guide-actions button:last-child { color: white; background: var(--pink-deep); }
+  .guide-actions button:disabled { opacity: .35; cursor: not-allowed; }
+
+  .plain-language { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 0 24px 22px; }
+  .plain-language div { padding: 11px; color: var(--muted); background: #fff8fb; border: 1px dashed var(--rose-line); border-radius: 10px; font-size: 9px; line-height: 1.5; }
+  .plain-language strong { display: block; margin-bottom: 3px; color: var(--ink); font-size: 10px; }
+
   .flow-board {
     overflow: hidden;
     background: rgba(255,255,255,.92);
@@ -729,6 +783,10 @@
     .legend { justify-content: flex-start; }
     .support-flow { grid-template-columns: repeat(3, 1fr); }
     .support-stage:nth-child(3)::after { display: none; }
+    .guide-body { grid-template-columns: 1fr; }
+    .guide-steps { display: grid; grid-template-columns: repeat(5, minmax(130px, 1fr)); gap: 6px; overflow-x: auto; border-right: 0; border-bottom: 2px solid var(--rose-line); }
+    .guide-step { margin: 0; }
+    .plain-language { grid-template-columns: repeat(2, 1fr); }
   }
 
   @media (max-width: 560px) {
@@ -744,6 +802,12 @@
     .support-flow, .support-footer { grid-template-columns: 1fr; }
     .support-stage::after, .support-stage:nth-child(3)::after { content: '⌄'; display: block; top: auto; right: 50%; bottom: -19px; transform: translateX(50%); }
     .support-stage:last-child::after { display: none; }
+    .guide-head { align-items: flex-start; flex-direction: column; padding: 18px; }
+    .guide-count { font-size: 27px; }
+    .guide-detail { padding: 18px 14px; }
+    .guide-detail h3 { font-size: 21px; }
+    .guide-grid, .plain-language { grid-template-columns: 1fr; }
+    .plain-language { padding: 0 14px 16px; }
     .signature-card { grid-template-columns: 54px minmax(0, 1fr); gap: 12px; padding: 12px; border-radius: 18px; }
     .signature-mark { width: 54px; height: 54px; border-radius: 17px; font-size: 27px; }
     .signature-name { font-size: 23px; }
@@ -813,6 +877,31 @@
     <article class="overview-card"><div class="icon">🗂️</div><strong>管理端</strong><small>按 Platform Owner、Project Owner、Admin、Operator、Viewer 分级处理项目业务。</small></article>
     <article class="overview-card"><div class="icon">☁️</div><strong>Supabase</strong><small>保存 KOC、投稿、积分流水、兑换订单、活动规则与审计记录，并同步双端数据。</small></article>
     <article class="overview-card"><div class="icon">🤖</div><strong>Seraphina's Bot</strong><small>处理身份验证与业务通知，并结合知识库和创作者本人实时数据提供多轮 AI 客服。</small></article>
+  </section>
+
+  <section class="beginner-guide" aria-label="系统逐步运行教学">
+    <div class="guide-head">
+      <div><span>BEGINNER MODE · 先看这里</span><h2>如果你第一次接触这个系统，就按 1 到 10 一步一步看。</h2><p>下面每一步都解释：谁在操作、带着什么信息进来、系统内部做了什么、最后产出什么，以及哪里可能失败。看完以后，再看下方的专业全景图。</p></div>
+      <div class="guide-count"><span id="guideCurrent">01</span> / 10</div>
+    </div>
+    <div class="guide-body">
+      <nav class="guide-steps" id="guideSteps" aria-label="运行步骤"></nav>
+      <article class="guide-detail" aria-live="polite">
+        <span class="guide-stage-label" id="guideLabel"></span>
+        <h3 id="guideTitle"></h3>
+        <p class="guide-summary" id="guideSummary"></p>
+        <div class="guide-grid">
+          <div class="guide-fact"><b>👤 谁在做</b><strong id="guideActor"></strong><p id="guideActorDetail"></p></div>
+          <div class="guide-fact"><b>📥 带进来的信息</b><strong id="guideInput"></strong><p id="guideInputDetail"></p></div>
+          <div class="guide-fact"><b>⚙️ 系统内部动作</b><strong id="guideAction"></strong><p id="guideActionDetail"></p></div>
+          <div class="guide-fact output"><b>📤 这一步的结果</b><strong id="guideOutput"></strong><p id="guideOutputDetail"></p></div>
+          <div class="guide-fact"><b>🗃️ 写入哪里</b><strong id="guideData"></strong><p id="guideDataDetail"></p></div>
+          <div class="guide-fact error"><b>⚠️ 如果出错</b><strong id="guideError"></strong><p id="guideErrorDetail"></p></div>
+        </div>
+        <div class="guide-actions"><button id="guidePrev" disabled>← 上一步</button><button id="guideNext">下一步 →</button></div>
+      </article>
+    </div>
+    <div class="plain-language"><div><strong>Creator ID 是什么？</strong>每位创作者在平台里的永久编号。改 Discord 昵称、游戏昵称或社媒账号都不会改变它。</div><div><strong>活动月是什么？</strong>一次投稿、结算和兑换所属的业务月份，由规则配置决定，不会因为电脑日期变化自动跳月。</div><div><strong>积分流水是什么？</strong>每一次加分或扣分的账单。余额不是手填数字，而是全部账单相加后的结果。</div><div><strong>RLS 是什么？</strong>数据库门口的保安。即使有人绕过页面，也只能读取自己有权查看的数据。</div></div>
   </section>
 
   <div class="bottom-grid" aria-label="平台化项目初始化流程">
@@ -962,6 +1051,28 @@
     本图用于团队介绍、内部培训与全流程测试。项目上线顺序：复制/新建项目 → 完成配置 → 通过上线检查 → 开放独立门户；月度运营顺序：设置活动月与窗口 → 收集投稿 → 审核与算分 → 导入积分 → 开放兑换 → 奖励履约 → 数据复盘。
   </footer>
 </main>
-
+<script>
+(() => {
+  const stages = [
+    {icon:'📣',label:'STEP 01 · 招募与进入社群',title:'创作者先知道“这个计划是什么”',summary:'创作者通过官方招募、朋友推荐或社区活动进入 Discord。此时她还不是系统里的正式 KOC，也不能登录创作者门户。',actor:'潜在创作者',actorDetail:'看到招募信息并加入官方 Discord。',input:'Discord 账号',inputDetail:'系统能看到新成员的 Discord User ID、用户名和昵称。',action:'识别新加入成员',actionDetail:'Bot 只欢迎启用自动欢迎后新加入的人，避免给历史成员重复发送。',output:'收到欢迎与申请入口',outputDetail:'创作者知道规则、申请地址和下一步要做什么。',data:'Discord 事件记录',dataDetail:'此时不会直接创建已批准 KOC，也不会发放奖励。',error:'收不到私信',errorDetail:'通常是隐私设置或没有共同服务器；创作者仍可从公告进入申请页面。'},
+    {icon:'📝',label:'STEP 02 · 提交注册',title:'创作者把“我是谁”提交给系统',summary:'申请人填写 Discord、19 位 Account ID、Game UID、区服和详细收货信息。页面会明确提示：提交后必须等待管理员批准，不能立刻登录。',actor:'申请人',actorDetail:'在创作者门户填写注册表。',input:'身份与履约资料',inputDetail:'Discord 用户名、游戏账号、区服、国家、地址和联系方式。',action:'格式检查与待审保存',actionDetail:'检查必填项、Account ID 长度和地址完整性，申请状态记为 Pending。',output:'一条待审核申请',outputDetail:'页面显示已提交并等待审批，不会让申请人误以为已经加入。',data:'registration_requests',dataDetail:'申请资料与审核状态进入注册申请记录。',error:'资料缺失或重复',errorDetail:'页面阻止提交并指出缺少字段；已有账号不会重复建立身份。'},
+    {icon:'✅',label:'STEP 03 · 管理员审核',title:'管理员决定“这个人是否正式进入计划”',summary:'管理员核对申请信息并批准或拒绝。只有批准后，系统才建立正式 Creator ID，并把 Discord 身份、游戏账号和项目关系绑定起来。',actor:'有权限的管理员',actorDetail:'Project Owner、Admin 或具备审核权限的角色。',input:'Pending 注册申请',inputDetail:'申请人填写的身份、区服和履约信息。',action:'创建稳定身份',actionDetail:'批准时生成不可变 Creator ID，绑定 Project ID 与 Discord User ID，并检查冲突。',output:'正式 KOC 账号',outputDetail:'创作者收到审批结果；批准后才具备登录和投稿资格。',data:'kocs + identity links',dataDetail:'正式身份进入 KOC 信息库，申请状态同步更新。',error:'Discord 身份不明确',errorDetail:'同名或歧义记录不会自动猜测，必须人工确认唯一 User ID。'},
+    {icon:'🔐',label:'STEP 04 · 安全登录',title:'门户确认“正在登录的人就是她本人”',summary:'Game UID 和 Account ID 只能帮助系统找到账号，不能证明登录者身份。系统通过 Seraphina\'s Bot 向已绑定的 Discord 账号发送一次性验证码。',actor:'已批准创作者',actorDetail:'在门户输入账号信息并请求验证码。',input:'Game UID + Account ID',inputDetail:'用于定位 KOC 记录，不直接授予数据访问权。',action:'发送并校验 Discord OTP',actionDetail:'Bot 把短时有效验证码发给绑定的 Discord 用户；验证成功后建立本人会话。',output:'安全的本人会话',outputDetail:'创作者可以查看自己的投稿、积分和订单。',data:'auth session + login audit',dataDetail:'认证会话与登录尝试被记录，但验证码不会长期保存。',error:'401 或收不到验证码',errorDetail:'检查是否已批准、Discord User ID 是否绑定、Bot 是否能私信以及验证码是否过期。'},
+    {icon:'🔗',label:'STEP 05 · 提交作品',title:'作品进入“正确的人、正确的月份”',summary:'系统读取当前活动月、投稿开关和 UTC-7 截止时间。创作者粘贴作品链接后，可以在 My Submissions 立刻确认是否收录。',actor:'已登录创作者',actorDetail:'提交普通作品或指定的加分内容。',input:'作品链接与类型',inputDetail:'社媒 URL、内容类别和当前本人身份。',action:'检查窗口与归属',actionDetail:'确认投稿开放、未过截止时间，并把作品绑定 Creator ID、Project ID 和活动月。',output:'可追踪的投稿记录',outputDetail:'创作者和管理员看到同一条链接及 Pending 状态。',data:'submissions',dataDetail:'作品链接、月份、类型、状态和提交时间统一保存。',error:'窗口关闭或链接异常',errorDetail:'系统拒绝过期提交；被拒作品释放名额，创作者可以更正后重交。'},
+    {icon:'🔎',label:'STEP 06 · 审核与算分',title:'系统整理数据，但不替管理员“猜最终分数”',summary:'管理员先审核作品有效性，再由外部算分 Agent 抓取公开互动数据并按规则计算。私有指标需要创作者提交证据，最终结果仍由管理员确认。',actor:'管理员 + 算分 Agent',actorDetail:'Agent 负责采集和计算，管理员负责业务判断。',input:'当月有效作品',inputDetail:'作品链接、平台类型、互动数据和有效证据。',action:'审核、去重、计算、预览',actionDetail:'区分普通作品与加分内容，检查身份匹配、积分字段和异常结果。',output:'待导入的最终积分文件',outputDetail:'每个人的内容分、奖励分和说明都能被预览。',data:'审核状态 + score import preview',dataDetail:'原始输入和最终结果进入月度归档，便于日后追溯。',error:'链接失效或数据不可信',errorDetail:'标记异常并人工复核；系统不会把无法确认的数据自动当成有效分数。'},
+    {icon:'💎',label:'STEP 07 · 积分与等级',title:'确认后的分数变成“可解释的账单”',summary:'管理员确认导入后，系统写入积分流水并计算余额；内容分、推荐分和其他奖励分保持独立，等级只读取规则允许的分数。',actor:'管理员确认，系统执行',actorDetail:'管理员先预览，确认后才真正写入。',input:'最终积分结果',inputDetail:'Creator ID、活动月、各类积分和导入标识。',action:'幂等写入 point_logs',actionDetail:'同一导入不会重复加分；余额通过所有流水 change 求和。',output:'更新后的余额和等级',outputDetail:'创作者可以看到当月得分、历史余额及等级进度。',data:'point_logs + tier history',dataDetail:'每一笔加减分都带原因、月份和操作标识。',error:'身份未匹配或重复导入',errorDetail:'未匹配记录进入预览异常；相同操作标识会被防重复机制拦截。'},
+    {icon:'🎁',label:'STEP 08 · 奖励兑换',title:'创作者用余额创建“有状态的订单”',summary:'兑换开放后，创作者选择奖励。提交时立即占用积分；只要整组订单仍是 Pending，就能原子替换选择，进入 Processing 后不再允许修改。',actor:'创作者',actorDetail:'在兑换窗口内选择自己符合条件的奖励。',input:'奖励类型与数量',inputDetail:'系统同时读取当前余额、库存规则和兑换限制。',action:'校验并创建订单',actionDetail:'检查积分、窗口和数量后创建订单组，并写入对应扣分流水。',output:'Pending 兑换订单',outputDetail:'创作者在 My Orders 查看状态并在允许阶段修改。',data:'redemption_orders + point_logs',dataDetail:'订单和积分扣减通过同一业务动作保持一致。',error:'余额不足或重复提交',errorDetail:'数据库拒绝创建；替换订单失败时整组回滚，不会出现旧订单被删但新订单没建成。'},
+    {icon:'📦',label:'STEP 09 · 奖励履约',title:'管理员把订单变成真正发出的奖励',summary:'管理端按端内奖励、Google Play 礼品卡和实体周边分别处理。发放结果、物流号和失败原因都会回到同一订单。',actor:'管理员与协作同事',actorDetail:'核对区服、兑换码、地址或仓库物流信息。',input:'待处理订单',inputDetail:'订单内容、创作者身份及对应履约资料。',action:'处理并发布履约结果',actionDetail:'订单从 Pending 进入 Processing，再到 Completed 或 Cancelled。',output:'可查询的发奖结果',outputDetail:'创作者在门户看到状态、兑换码或物流信息。',data:'fulfillment + audit logs',dataDetail:'发放、取消、退款、补扣和物流发布均保留操作记录。',error:'无法配送或发放失败',errorDetail:'订单可取消并按规则恢复积分；补偿必须经人工决定，AI 客服不能自行承诺。'},
+    {icon:'🎧',label:'STEP 10 · 服务与复盘',title:'问题被回答，经验也会回到系统里',summary:'创作者可直接私聊 Seraphina\'s Bot。AI 先检索当前规则，再按 Discord User ID 查询她本人的实时状态；低置信度或高风险事项交给人工。',actor:'创作者 + AI + 管理员',actorDetail:'AI 处理常规问题，管理员只在必要时接管。',input:'自然语言问题',inputDetail:'例如登录失败、积分变化、订单状态或物流进度。',action:'检索、查库、判断风险',actionDetail:'组合 FAQ、处理流程、当前规则和本人实时数据生成回答。',output:'上下文一致的回复',outputDetail:'常规问题自动解决；人工接管后可释放回 AI。',data:'support conversations + knowledge',dataDetail:'对话状态、响应时间和经确认答案用于质量统计与知识更新。',error:'无法确定或涉及隐私',errorDetail:'安全升级到 FAQ、公开服务站或 Seraphina；不泄露他人数据，也不执行高风险修改。'}
+  ];
+  const steps=document.getElementById('guideSteps');
+  steps.innerHTML=stages.map((stage,index)=>`<button class="guide-step" data-index="${index}" aria-selected="${index===0}"><i>${stage.icon}</i><span><strong>${stage.label.replace(/STEP \d+ · /,'')}</strong><small>${String(index+1).padStart(2,'0')} / 10</small></span></button>`).join('');
+  const fields=['label','title','summary','actor','actorDetail','input','inputDetail','action','actionDetail','output','outputDetail','data','dataDetail','error','errorDetail'];
+  let active=0;
+  function show(index){active=Math.max(0,Math.min(index,stages.length-1));const stage=stages[active];fields.forEach(field=>document.getElementById(`guide${field[0].toUpperCase()}${field.slice(1)}`).textContent=stage[field]);document.getElementById('guideCurrent').textContent=String(active+1).padStart(2,'0');document.querySelectorAll('.guide-step').forEach((button,i)=>button.setAttribute('aria-selected',String(i===active)));document.getElementById('guidePrev').disabled=active===0;document.getElementById('guideNext').disabled=active===stages.length-1;document.getElementById('guideNext').textContent=active===stages.length-1?'已看完整流程':'下一步 →';}
+  steps.addEventListener('click',event=>{const button=event.target.closest('.guide-step');if(button)show(Number(button.dataset.index));});
+  document.getElementById('guidePrev').addEventListener('click',()=>show(active-1));document.getElementById('guideNext').addEventListener('click',()=>show(active+1));show(0);
+})();
+</script>
 </body>
 </html>
