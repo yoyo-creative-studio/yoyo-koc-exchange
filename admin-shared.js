@@ -1,3 +1,23 @@
+function xhrFetch(url, opts) {
+  opts = opts || {};
+  return new Promise(function(resolve, reject) {
+    var xhr = new XMLHttpRequest();
+    xhr.open(String(opts.method || 'GET').toUpperCase(), url, true);
+    Object.keys(opts.headers || {}).forEach(function(name) { xhr.setRequestHeader(name, opts.headers[name]); });
+    xhr.onload = function() {
+      resolve(new Response(xhr.responseText, {
+        status: xhr.status,
+        statusText: xhr.statusText,
+        headers: { 'Content-Type': xhr.getResponseHeader('Content-Type') || 'application/json' }
+      }));
+    };
+    xhr.onerror = function() { reject(new Error('XMLHttpRequest failed')); };
+    xhr.ontimeout = function() { reject(new Error('XMLHttpRequest timed out')); };
+    xhr.timeout = 15000;
+    xhr.send(opts.body || null);
+  });
+}
+
 function fetchWithNetworkRetry(url, opts, retries) {
   var remaining = Number(retries || 0);
   return fetch(url, opts).then(function(response) {
@@ -8,7 +28,7 @@ function fetchWithNetworkRetry(url, opts, retries) {
     }
     return response;
   }).catch(function(error) {
-    if (remaining <= 0) throw error;
+    if (remaining <= 0) return xhrFetch(url, opts);
     return new Promise(function(resolve) { setTimeout(resolve, 700); }).then(function() {
       return fetchWithNetworkRetry(url, opts, remaining - 1);
     });
