@@ -1579,7 +1579,7 @@ Bonuses and carry-over do not count. Existing tiers only move up.</textarea>
           <span>🎧 AI 客服工作台 <span id="support-case-count" style="font-size:12px;color:var(--text-light);"></span></span>
           <button class="btn btn-outline btn-sm" onclick="loadSupportConversations()">🔄 刷新</button>
         </div>
-        <div id="support-stats" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:12px;"></div>
+        <div id="support-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:12px;"></div>
         <div class="list-toolbar">
           <input type="search" id="support-search" placeholder="🔍 搜索创作者 / UID / 问题" oninput="renderSupportConversationList()">
           <select id="support-status-filter" onchange="loadSupportConversations()">
@@ -4662,7 +4662,9 @@ function renderSupportStats(stats) {
     ['处理中', Number(stats.open || 0), '#1565c0', '#e3f2fd'],
     ['已升级', Number(stats.escalated || 0), '#c62828', '#ffebee'],
     ['人工接管', Number(stats.human_takeover || 0), '#6a1b9a', '#f3e5f5'],
-    ['已解决', Number(stats.resolved || 0), '#2e7d32', '#e8f5e9']
+    ['已解决', Number(stats.resolved || 0), '#2e7d32', '#e8f5e9'],
+    ['AI 自动解决率', Number(stats.auto_resolution_rate || 0) + '%', '#00695c', '#e0f2f1'],
+    ['平均首次响应', Number(stats.avg_first_response_seconds || 0) + '秒', '#455a64', '#eceff1']
   ];
   root.innerHTML = cards.map(function(card) {
     return '<div style="padding:10px;border:1px solid ' + card[2] + '33;background:' + card[3] + ';"><div style="font-size:20px;font-weight:800;color:' + card[2] + ';">' + card[1] + '</div><div style="font-size:11px;color:' + card[2] + ';">' + card[0] + '</div></div>';
