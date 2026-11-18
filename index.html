@@ -378,6 +378,231 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
 }
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 </style>
+<style id="creator-portal-product-preview">
+/* Local-only visual prototype: clean creator product UI. */
+:root{
+  --portal-bg:#080a10;
+  --portal-panel:rgba(18,21,31,.92);
+  --portal-panel-2:#171b27;
+  --portal-line:rgba(255,255,255,.10);
+  --portal-line-strong:rgba(255,255,255,.18);
+  --portal-text:#f5f7fb;
+  --portal-muted:#9aa3b5;
+  --portal-accent:#8b7cff;
+  --portal-cyan:#5ed7f2;
+  --portal-pink:#f06dab;
+  --portal-green:#4fd1a1;
+  --portal-yellow:#f5c451;
+  --portal-radius:12px;
+}
+html{background:var(--portal-bg)!important;color-scheme:dark}
+body{
+  min-height:100vh!important;
+  color:var(--portal-text)!important;
+  background:
+    linear-gradient(135deg,rgba(88,101,242,.12),transparent 34%),
+    linear-gradient(225deg,rgba(240,109,171,.08),transparent 32%),
+    linear-gradient(180deg,#090b12 0%,#0b0e16 50%,#080a10 100%)!important;
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif!important;
+  letter-spacing:0!important;
+}
+body:before{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;opacity:.34;
+  background-image:radial-gradient(rgba(255,255,255,.28) .6px,transparent .6px);
+  background-size:28px 28px;
+  -webkit-mask-image:linear-gradient(to bottom,black,transparent 72%);
+  mask-image:linear-gradient(to bottom,black,transparent 72%);
+}
+.container{max-width:1180px!important;padding:20px 28px 60px!important}
+.header{
+  margin:0 0 22px!important;padding:14px 18px!important;min-height:64px!important;
+  display:flex!important;align-items:center!important;text-align:left!important;
+  background:rgba(12,15,23,.76)!important;border:1px solid var(--portal-line)!important;
+  border-radius:var(--portal-radius)!important;box-shadow:0 16px 50px rgba(0,0,0,.24)!important;
+  backdrop-filter:blur(20px) saturate(135%)!important;overflow:hidden!important;
+}
+.header:before{content:"YOYO  /  CREATOR"!important;position:static!important;display:block!important;padding:0!important;margin-right:auto!important;background:none!important;border:0!important;color:var(--portal-text)!important;box-shadow:none!important;font-size:12px!important;font-weight:800!important;letter-spacing:.12em!important;text-shadow:none!important}
+.header:after{content:"●  SYSTEM ONLINE"!important;position:static!important;color:var(--portal-green)!important;font-size:10px!important;font-weight:800!important;opacity:1!important;transform:none!important;filter:none!important}
+.creator-header-copy{display:none!important}
+.portal-theme-switch{display:flex;align-items:center;gap:4px;margin-left:16px;padding:4px;background:rgba(255,255,255,.06);border:1px solid var(--portal-line);border-radius:9px}
+.portal-theme-button{display:grid;place-items:center;width:34px;height:34px;padding:0;color:#aeb7ca;background:transparent;border:0;border-radius:6px;font-size:18px;cursor:pointer;transition:color .2s,background .2s,transform .2s}
+.portal-theme-button:hover{color:#fff;background:rgba(255,255,255,.08);transform:translateY(-1px)}
+.portal-theme-button.active{color:#fff;background:linear-gradient(135deg,#5865f2,#9a67dc);box-shadow:0 6px 16px rgba(88,101,242,.24)}
+#step-login{
+  max-width:620px!important;margin:46px auto 0!important;padding:76px 44px 38px!important;
+  display:block!important;background:linear-gradient(145deg,rgba(25,31,64,.97),rgba(41,24,58,.97))!important;
+  border:1px solid rgba(116,132,255,.58)!important;border-radius:14px!important;
+  box-shadow:0 28px 90px rgba(1,3,16,.52),0 0 48px rgba(88,101,242,.16)!important;
+  text-align:center!important;overflow:hidden!important;animation:portalEnter .65s cubic-bezier(.22,1,.36,1) both;
+}
+#step-login.hidden{display:none!important}
+#step-login:before{
+  content:"✦  YOYO CREATOR PORTAL  ✦"!important;position:absolute!important;left:0!important;right:0!important;top:0!important;
+  display:block!important;width:auto!important;max-width:none!important;margin:0!important;padding:16px 20px!important;min-height:0!important;
+  color:#fff!important;background:linear-gradient(100deg,#2831a8 0%,#5865f2 32%,#8256dc 58%,#c943a0 80%,#e45f82 100%)!important;
+  border:0!important;border-bottom:1px solid rgba(255,255,255,.22)!important;box-shadow:0 9px 34px rgba(26,22,88,.34)!important;
+  font-size:12px!important;font-weight:800!important;line-height:1.4!important;letter-spacing:.12em!important;white-space:normal!important;text-align:left!important;
+}
+#step-login>div[style*="position:absolute"],#step-login>div[style*="radial-gradient"]{display:none!important}
+#step-login>div[style*="font-size:80px"]{display:block!important;margin:0 0 8px!important;font-size:58px!important;filter:drop-shadow(0 8px 22px rgba(235,69,158,.28))!important}
+#portal-login-brand{display:block!important;margin:0 0 5px!important;color:#fff!important;font-size:32px!important;font-weight:780!important;line-height:1.25!important;letter-spacing:0!important;text-shadow:0 3px 18px rgba(88,101,242,.35)!important}
+#portal-login-tagline{display:block!important;margin:0 0 26px!important;color:#b9c5e7!important;font-size:14px!important;font-weight:550!important;line-height:1.5!important;letter-spacing:.02em!important}
+#step-login>div[style*="background:#fff8e1"],#step-login>div[style*="background:#f3e5f5"]{display:block!important;padding:15px 16px!important;text-align:left!important;font-size:13px!important;line-height:1.65!important}
+#step-login>div[style*="background:#fff8e1"] *,#step-login>div[style*="background:#f3e5f5"] *{color:#d9e0f0!important;font-size:13px!important;line-height:1.65!important}
+#step-login>div[style*="background:#fff8e1"]>div:first-child,#step-login>div[style*="background:#f3e5f5"]>div:first-child{color:#fff!important;font-size:14px!important}
+#entry-buttons,#new-creator-form,#existing-login-form{
+  margin:0!important;padding:0!important;border:0!important;
+  animation:portalPanelIn .48s cubic-bezier(.22,1,.36,1) both;
+}
+#entry-buttons:before{display:none!important}
+#entry-buttons{position:relative!important;padding-top:0!important}
+#entry-buttons:after{content:"";display:block;height:0}
+.card,.banner,.submission-item,.reward-row,#step-login>div[style*="background:#fff8e1"],#step-login>div[style*="background:#f3e5f5"],#existing-login-form>div[style*="background:#fff7fb"],#creator-tab-submit div[style*="background:#fff3e0"],#creator-tab-history div[style*="background:#faf5f7"]{
+  color:var(--portal-text)!important;background:var(--portal-panel)!important;border:1px solid var(--portal-line)!important;border-radius:var(--portal-radius)!important;box-shadow:0 14px 38px rgba(0,0,0,.18)!important;
+}
+.card{padding:24px!important;margin-bottom:18px!important}
+.card-title,.level-1-title{
+  margin:0 0 20px!important;padding:0 0 16px!important;color:var(--portal-text)!important;background:none!important;
+  border:0!important;border-bottom:1px solid var(--portal-line)!important;border-radius:0!important;box-shadow:none!important;
+  font-size:18px!important;font-weight:720!important;line-height:1.35!important;text-shadow:none!important;animation:none!important;
+}
+label{color:#cbd2df!important;font-size:12px!important;font-weight:650!important}
+#new-creator-form p,#new-creator-form span,#new-creator-form li,#existing-login-form p,#existing-login-form span{color:var(--portal-muted)!important}
+#new-creator-form strong,#existing-login-form strong{color:#e6e9f2!important}
+input[type="text"],textarea,select,#input-uid,#input-account-id{
+  min-height:48px!important;padding:13px 14px!important;color:var(--portal-text)!important;background:#0e111a!important;
+  border:1px solid var(--portal-line-strong)!important;border-radius:9px!important;box-shadow:none!important;
+  font-size:14px!important;transition:border-color .2s ease,background .2s ease,box-shadow .2s ease,transform .2s ease!important;
+}
+input::placeholder,textarea::placeholder{color:#687184!important}
+input[type="text"]:focus,textarea:focus,select:focus,#input-uid:focus,#input-account-id:focus{
+  color:var(--portal-text)!important;background:#111520!important;border-color:var(--portal-accent)!important;
+  box-shadow:0 0 0 4px rgba(139,124,255,.13)!important;transform:none!important;
+}
+.btn,#entry-buttons button,#btn-login,.nav-back,.btn-qty,.tab,a[style*="display:inline-block"]{
+  min-height:44px;border:1px solid transparent!important;border-radius:9px!important;box-shadow:none!important;
+  font-size:14px!important;font-weight:680!important;transition:transform .2s cubic-bezier(.22,1,.36,1),background .2s,border-color .2s,box-shadow .2s!important;
+}
+.btn,.btn-primary,#entry-buttons button:first-child,#btn-login{
+  color:#fff!important;background:linear-gradient(100deg,#6f72ed,#8b6be0 52%,#c65b9c)!important;
+  box-shadow:0 10px 28px rgba(100,94,224,.22)!important;animation:none!important;
+}
+.btn-outline,#entry-buttons button:last-child,.nav-back{color:#dce1eb!important;background:#181c28!important;border-color:var(--portal-line)!important}
+.btn:hover:not(:disabled),#entry-buttons button:hover,#btn-login:hover,.nav-back:hover,.tab:hover,a[style*="display:inline-block"]:hover{transform:translateY(-2px)!important;box-shadow:0 12px 30px rgba(0,0,0,.25)!important}
+.btn:active:not(:disabled),#entry-buttons button:active,#btn-login:active,.nav-back:active,.tab:active{transform:scale(.985)!important;box-shadow:none!important}
+.nav-bar{padding:10px 12px!important;background:rgba(17,20,30,.88)!important;border:1px solid var(--portal-line)!important;border-radius:10px!important;box-shadow:none!important}
+.nav-title{color:var(--portal-text)!important;font-size:13px!important;font-weight:680!important}
+.tabs{
+  position:sticky!important;top:12px;z-index:20;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px!important;
+  margin:16px 0 24px!important;padding:6px!important;background:rgba(14,17,26,.86)!important;border:1px solid var(--portal-line)!important;
+  border-radius:12px!important;box-shadow:0 16px 40px rgba(0,0,0,.22)!important;backdrop-filter:blur(18px)!important;
+}
+.tabs:before{display:none!important}
+.tab{min-height:48px!important;padding:10px!important;color:var(--portal-muted)!important;background:transparent!important;border:0!important;border-radius:8px!important;box-shadow:none!important;font-size:12px!important;animation:none!important}
+.tab:hover{color:var(--portal-text)!important;background:rgba(255,255,255,.05)!important;box-shadow:none!important;transform:none!important}
+.tab.active{color:#fff!important;background:linear-gradient(100deg,rgba(88,101,242,.94),rgba(139,92,246,.88))!important;box-shadow:0 7px 18px rgba(88,101,242,.20)!important;transform:none!important;animation:none!important}
+.tab.active:after{display:none!important}
+.creator-account-row{gap:14px;margin:0 0 16px!important}
+.creator-account-button{
+  flex:none;padding:9px 12px;color:#dce1eb;background:#181c28;border:1px solid var(--portal-line);
+  border-radius:8px;font:650 12px/1.2 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;
+  transition:background .2s,border-color .2s,transform .2s;
+}
+.creator-account-button:hover{background:#202534;border-color:rgba(139,124,255,.48);transform:translateY(-1px)}
+.tab-content:not(.hidden){animation:portalPanelIn .42s cubic-bezier(.22,1,.36,1) both}
+.community-milestone,.submission-progress-card,.submission-ranking-card{
+  color:var(--portal-text)!important;background:linear-gradient(120deg,rgba(88,101,242,.13),rgba(240,109,171,.08))!important;
+  border:1px solid rgba(139,124,255,.24)!important;border-radius:var(--portal-radius)!important;box-shadow:none!important;
+}
+.community-milestone-title,.community-milestone-count,.submission-ranking-title{color:#d9d4ff!important}
+.community-milestone-copy,.community-milestone-foot,.submission-ranking-note{color:var(--portal-muted)!important}
+.community-milestone-track,.submission-progress-track{height:7px!important;background:#0c0f17!important;border:0!important;border-radius:999px!important;overflow:hidden!important}
+.community-milestone-fill,.submission-progress-fill{border-radius:999px;background:linear-gradient(90deg,var(--portal-accent),var(--portal-cyan),var(--portal-pink))!important}
+.points-number{color:#fff!important;font-size:54px!important;font-weight:720!important;letter-spacing:0!important;text-shadow:none!important;animation:none!important}
+.points-label,.order-meta,.reward-desc{color:var(--portal-muted)!important}
+.reward-row,.submission-item,.submission-record-card,.submission-stat-card{background:var(--portal-panel-2)!important;border:1px solid var(--portal-line)!important;border-radius:10px!important;box-shadow:none!important}
+.reward-row:hover,.submission-record-card:hover{border-color:rgba(139,124,255,.45)!important;transform:translateY(-1px)}
+.badge,.submission-status{border-radius:999px!important;border-width:1px!important;box-shadow:none!important}
+.toast{border:1px solid var(--portal-line-strong)!important;border-radius:10px!important;box-shadow:0 18px 54px rgba(0,0,0,.34)!important;backdrop-filter:blur(18px)!important}
+@keyframes portalEnter{from{opacity:0;transform:translateY(18px) scale(.99)}to{opacity:1;transform:none}}
+@keyframes portalPanelIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media(max-width:760px){
+  .container{padding:12px 12px 88px!important}.header{min-height:54px!important;margin-bottom:12px!important}
+  #step-login{display:block!important;margin:18px auto 0!important;padding:70px 20px 28px!important;border-radius:14px!important}
+  #step-login.hidden{display:none!important}
+  #step-login:before{min-height:0!important;padding:14px 16px!important}
+  #entry-buttons,#new-creator-form,#existing-login-form{padding:0!important}
+  #entry-buttons{padding-top:0!important}
+  .tabs{position:fixed!important;left:10px;right:10px;bottom:10px;top:auto;grid-template-columns:repeat(4,1fr)!important;margin:0!important;padding:5px!important}
+  .tab{min-height:54px!important;padding:7px 3px!important;font-size:0!important}.tab:first-letter{font-size:20px!important}
+  .card{padding:18px!important}.points-number{font-size:44px!important}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+html[data-portal-theme="light"]{color-scheme:light}
+html[data-portal-theme="light"] body{
+  --portal-bg:#f4f6fb;--portal-panel:rgba(255,255,255,.94);--portal-panel-2:#f7f8fc;
+  --portal-line:rgba(54,64,88,.13);--portal-line-strong:rgba(54,64,88,.22);
+  --portal-text:#161a25;--portal-muted:#667085;
+  color:#161a25!important;background:linear-gradient(135deg,rgba(88,101,242,.08),transparent 34%),linear-gradient(225deg,rgba(240,109,171,.07),transparent 32%),#f4f6fb!important;
+}
+html[data-portal-theme="light"] .header{background:rgba(255,255,255,.82)!important;border-color:rgba(54,64,88,.13)!important}
+html[data-portal-theme="light"] .header:before{color:#1f2635!important}
+html[data-portal-theme="light"] .portal-theme-switch{background:#eef1f7;border-color:rgba(54,64,88,.14)}
+html[data-portal-theme="light"] .portal-theme-button{color:#687184}
+html[data-portal-theme="light"] .portal-theme-button:hover{color:#252b39;background:#fff}
+html[data-portal-theme="light"] #step-login{background:rgba(255,255,255,.95)!important;border-color:rgba(54,64,88,.13)!important;box-shadow:0 32px 90px rgba(54,64,88,.18)!important}
+html[data-portal-theme="light"] #entry-buttons:before{color:#182033}
+html[data-portal-theme="light"] .tabs,
+html[data-portal-theme="light"] .nav-bar{background:rgba(255,255,255,.88)!important;border-color:rgba(54,64,88,.13)!important}
+html[data-portal-theme="light"] .tab{color:#667085!important}
+html[data-portal-theme="light"] .tab:hover{color:#202636!important;background:#f0f2f8!important}
+html[data-portal-theme="light"] input[type="text"],
+html[data-portal-theme="light"] textarea,
+html[data-portal-theme="light"] select{color:#1d2432!important;-webkit-text-fill-color:#1d2432!important;background:#fff!important;border-color:#d2d7e2!important}
+html[data-portal-theme="light"] input::placeholder,
+html[data-portal-theme="light"] textarea::placeholder{color:#8a93a5!important;-webkit-text-fill-color:#8a93a5!important}
+</style>
+<script>
+function setPortalTheme(theme) {
+  var selected = theme === 'light' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-portal-theme', selected);
+  ['creator-portal-product-preview', 'creator-portal-dashboard-final-guard'].forEach(function(id) {
+    var style = document.getElementById(id);
+    if (style) style.disabled = selected === 'light';
+  });
+  try { localStorage.setItem('creator_portal_theme_v2', selected); } catch (error) {}
+  document.querySelectorAll('[data-theme-choice]').forEach(function(button) {
+    var active = button.getAttribute('data-theme-choice') === selected;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+}
+(function() {
+  var saved = 'dark';
+  try { saved = localStorage.getItem('creator_portal_theme_v2') || 'dark'; } catch (error) {}
+  document.documentElement.setAttribute('data-portal-theme', saved === 'light' ? 'light' : 'dark');
+  document.addEventListener('DOMContentLoaded', function() { setPortalTheme(saved); });
+})();
+</script>
+<style id="portal-theme-controls-persistent">
+.portal-theme-switch{display:flex;align-items:center;gap:5px;width:max-content;margin:0;padding:5px;background:rgba(255,255,255,.88);border:1px solid rgba(120,72,104,.24);border-radius:10px;position:fixed;right:20px;top:20px;bottom:auto;z-index:80;box-shadow:0 8px 22px rgba(85,36,66,.14)}
+.portal-theme-button{display:flex;align-items:center;justify-content:center;gap:6px;min-width:76px;height:38px;padding:0 10px;color:#70475b;background:transparent;border:1px solid transparent;border-radius:7px;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:12px;font-weight:750;line-height:1;cursor:pointer;transition:color .2s,background .2s,transform .2s,box-shadow .2s}
+.portal-theme-button>span:first-child{font-size:18px;line-height:1}
+.portal-theme-button:hover{color:#6d2448;background:rgba(255,255,255,.92);transform:translateY(-1px)}
+.portal-theme-button.active{color:#fff;background:linear-gradient(135deg,#5865f2,#9a67dc);border-color:rgba(255,255,255,.34);box-shadow:0 6px 16px rgba(88,101,242,.30)}
+html[data-portal-theme="dark"] .portal-theme-switch{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.10)}
+html[data-portal-theme="dark"] .portal-theme-switch{position:absolute;right:132px;top:50%;bottom:auto;transform:translateY(-50%);box-shadow:0 10px 28px rgba(0,0,0,.20)}
+html[data-portal-theme="dark"] .portal-theme-button{color:#c2cada}
+html[data-portal-theme="dark"] .portal-theme-button:hover{color:#fff;background:rgba(255,255,255,.08)}
+@media(max-width:620px){
+  .portal-theme-switch{right:10px;top:10px;bottom:auto;padding:4px}
+  .portal-theme-button{min-width:66px;width:auto;padding:0 8px;font-size:11px}
+  .portal-theme-button>span:first-child{font-size:19px}
+  html[data-portal-theme="dark"] .portal-theme-switch{right:10px;top:auto;bottom:8px;transform:none}
+  html[data-portal-theme="dark"] .header:after{display:none!important}
+}
+</style>
 <link rel="stylesheet" href="developer-credit.css">
 </head>
 <body>
@@ -389,6 +614,10 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
     <div class="creator-header-copy">
       <h1 id="portal-header-brand">💗🎀 Yoyo Town</h1>
       <p id="portal-header-tagline">Check your points &amp; redeem rewards</p>
+    </div>
+    <div class="portal-theme-switch" role="group" aria-label="Color theme">
+      <button type="button" class="portal-theme-button" data-theme-choice="light" onclick="setPortalTheme('light')" title="Light theme" aria-label="Use light theme"><span aria-hidden="true">☀</span><span>Light</span></button>
+      <button type="button" class="portal-theme-button" data-theme-choice="dark" onclick="setPortalTheme('dark')" title="Dark theme" aria-label="Use dark theme"><span aria-hidden="true">☾</span><span>Dark</span></button>
     </div>
   </div>
 
@@ -421,6 +650,7 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
     <div id="entry-buttons">
       <button class="btn btn-primary" onclick="showNewCreatorForm()" style="width:100%;padding:16px;font-size:16px;font-weight:700;border-radius:18px;margin-bottom:10px;background:linear-gradient(135deg,#f2a6c4,#d4749a,#e88dae);color:white;border:none;box-shadow:0 6px 24px rgba(212,116,154,0.35);cursor:pointer;">🆕 I'm a New Creator</button>
       <button class="btn btn-outline" onclick="showExistingLogin()" style="width:100%;padding:14px;font-size:15px;font-weight:600;border-radius:18px;border:2px solid #f8bbd0;background:rgba(255,255,255,0.85);color:#ad1457;cursor:pointer;">✅ I'm Already Registered</button>
+      <button class="btn btn-outline entry-address-button" onclick="showShippingLogin()" style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:18px;border:2px solid #ce93d8;background:rgba(255,255,255,0.85);color:#7b1fa2;cursor:pointer;margin-top:10px;">📦 Update Shipping Address</button>
     </div>
 
     <!-- New Creator Form (hidden) —  -->
@@ -532,14 +762,14 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
       <button class="tab active" onclick="switchCreatorTab('submit')">🎨 Submit Works</button>
       <button class="tab" onclick="switchCreatorTab('history')">📋 My Submissions</button>
       <button class="tab" onclick="switchCreatorTab('redeem')">🎁 Redeem Rewards</button>
-      <button class="tab" onclick="switchCreatorTab('profile')">📦 Shipping Info</button>
       <button class="tab" onclick="switchCreatorTab('faq')">❓ FAQ</button>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <div class="creator-account-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <span id="display-user" style="font-size:13px;font-weight:600;"></span>
+      <button type="button" class="creator-account-button" onclick="switchCreatorTab('profile')">Account &amp; Shipping</button>
     </div>
     <div id="community-milestone" class="community-milestone" aria-live="polite">
-      <div class="community-milestone-head"><span class="community-milestone-title">🎁 UNLOCK TWO REWARD TYPES</span><span id="community-milestone-count" class="community-milestone-count">— / 300</span></div>
+      <div class="community-milestone-head"><span class="community-milestone-title"><img class="community-milestone-icon" src="assets/game-ui/community-mail.png" alt="">UNLOCK TWO REWARD TYPES</span><span id="community-milestone-count" class="community-milestone-count">— / 300</span></div>
       <div id="community-milestone-copy" class="community-milestone-copy"><strong>Right now:</strong> choose 1 reward type per redemption.<br><strong>At 300 active creators:</strong> everyone can choose 2 different reward types per redemption.</div>
       <div class="community-milestone-track"><div id="community-milestone-fill" class="community-milestone-fill" style="width:0%"></div></div>
       <div class="community-milestone-foot"><span id="community-milestone-status">Loading community progress...</span><span class="community-milestone-refer">Inviting a friend? Ask them to enter your Discord username in the Google application form. <a href="https://forms.gle/1WuDNnVQs5FQr4aNA" target="_blank" rel="noopener noreferrer" style="color:#7b1fa2;font-weight:900;">Apply Now ↗</a></span></div>
@@ -574,8 +804,8 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
         <div id="display-tier"></div>
       </div>
 
-      <div class="card">
-        <div class="card-title">🎁 Select Your Reward</div>
+      <div class="card redeem-selection-card">
+        <div class="card-title redeem-selection-title"><span class="redeem-title-icon">🎁</span><span>Select Your Reward</span><span class="redeem-title-sparkles" aria-hidden="true">✦ ✧ ✦</span></div>
         <div id="options-container"></div>
         <div id="redeem-locked-msg" style="display:none;background:#fff3e0;border:1px solid #ffe082;border-radius:10px;padding:12px;text-align:center;font-size:13px;color:#e65100;margin-bottom:8px;">
           🔒 Redemption is not open yet<br><span style="font-size:11px;">Please wait for scoring to complete. You will be notified when redemption opens.</span>
@@ -680,7 +910,7 @@ button,.btn,.tab,.btn-qty,select,input,textarea,a{touch-action:manipulation;-web
         <!-- FAQ Tab -->
     <div id="creator-tab-faq" class="tab-content">
       <div class="nav-bar"><button class="nav-back" onclick="logout()">‹ Back</button><span class="nav-title">❓ FAQ</span></div>
-      <div style="background:linear-gradient(135deg,#fce4ec,#fff5f9);border:2px solid #f8bbd0;border-radius:16px;padding:16px;margin-bottom:12px;text-align:center;">
+      <div class="faq-support-card" style="background:linear-gradient(135deg,#fce4ec,#fff5f9);border:2px solid #f8bbd0;border-radius:16px;padding:16px;margin-bottom:12px;text-align:center;">
         <div style="font-size:14px;font-weight:700;color:#880e4f;margin-bottom:4px;">❓ Can't find your question?</div>
         <div style="font-size:12px;color:#ad1457;margin-bottom:10px;">Post in our Discord channel #town-service-station, and we'll reply ASAP</div>
         <a href="https://discord.com/channels/1263505733180854392/1458347958389965035" target="_blank" rel="noopener" style="display:inline-block;padding:10px 28px;background:#e88dae;color:white;border-radius:20px;font-size:14px;font-weight:600;text-decoration:none;box-shadow:0 4px 16px rgba(232,141,174,0.3);">📝 Post in #town-service-station</a>
@@ -965,7 +1195,7 @@ renderFAQ(EN_DATA);
 
     </div>
 
-<button class="btn" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--card);font-size:14px;color:var(--text-light);cursor:pointer;" onclick="logout()">← Switch Account</button>
+<button class="btn" style="width:100%;border:1px solid var(--border);border-radius:10px;padding:12px;background:var(--card);font-size:14px;color:var(--text-light);cursor:pointer;" onclick="logout()">Sign Out</button>
     <aside class="seraphina-card creator-account-credit" aria-label="System creator Seraphina, known to creators as YoYo assistant Mochi">
       <span class="seraphina-card-avatar" role="img" aria-label="Blonde woman">🙎🏼‍♀️</span>
       <span class="seraphina-card-copy">
@@ -1200,6 +1430,11 @@ var currentPeriod = '';
 let currentUser = null;
 let creatorAuthSession = null;
 let pendingLoginChallenge = null;
+let postLoginDestination = 'submit';
+
+function currentLoginButtonLabel() {
+  return postLoginDestination === 'profile' ? '🔐 Verify & Update Address' : '🔐 Login';
+}
 let redemptionOpen = false;
 let ordersLoadGeneration = 0;
 
@@ -1491,7 +1726,7 @@ async function login() {
     else if (e.message) errMsg = e.message;
     showToast(errMsg, 'error');
     var loginBtn = document.getElementById('btn-login');
-    if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = '🔐 Login'; }
+    if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = currentLoginButtonLabel(); }
     var loginStatus = document.getElementById('login-status');
     if (loginStatus) {
       if (e.code === 'CODE_NOT_DELIVERED') {
@@ -1508,7 +1743,7 @@ function resetCreatorCodeForm() {
   var codeForm = document.getElementById('creator-code-form');
   var loginButton = document.getElementById('btn-login');
   if (codeForm) codeForm.style.display = 'none';
-  if (loginButton) { loginButton.style.display = 'block'; loginButton.disabled = false; loginButton.textContent = '🔐 Login'; }
+  if (loginButton) { loginButton.style.display = 'block'; loginButton.disabled = false; loginButton.textContent = currentLoginButtonLabel(); }
   document.getElementById('input-uid').disabled = false;
   document.getElementById('input-account-id').disabled = false;
   document.getElementById('input-creator-code').value = '';
@@ -1723,7 +1958,11 @@ function showDashboard() {
     })();
   } catch(e) {}
   // Initialize submit tab with safety timeout for DOM transition
-  setTimeout(function() { switchCreatorTab('submit'); }, 50);
+  var destination = postLoginDestination === 'profile' ? 'profile' : 'submit';
+  setTimeout(function() {
+    switchCreatorTab(destination);
+    postLoginDestination = 'submit';
+  }, 50);
   renderOptions();
   loadOrders();
 }
@@ -2146,6 +2385,7 @@ function switchCreatorTab(name) {
     tabContent.classList.add('active');
     tabContent.style.display = 'block';
   }
+  if (window._localDashboardPreview) return;
   if (name === 'submit') { initSubmitTab(); loadMySubmissions(); }
   if (name === 'history') loadMySubmissions();
   if (name === 'profile') loadShippingProfileForm();
@@ -2270,6 +2510,16 @@ function lockRegistrationForm() {
   if (regBtn) { regBtn.disabled = true; regBtn.style.opacity = '0.5'; regBtn.style.cursor = 'not-allowed'; }
 }
 function showExistingLogin() {
+  postLoginDestination = 'submit';
+  openExistingLoginForm('🔑 Creator Login', '🔐 Login');
+}
+
+function showShippingLogin() {
+  postLoginDestination = 'profile';
+  openExistingLoginForm('📦 Verify to Update Shipping', '🔐 Verify & Update Address');
+}
+
+function openExistingLoginForm(title, buttonLabel) {
   document.getElementById('new-creator-form').style.display = 'none';
   document.getElementById('existing-login-form').style.display = 'block';
   document.getElementById('entry-buttons').style.display = 'none';
@@ -2281,6 +2531,10 @@ function showExistingLogin() {
   if (a) a.value = '';
   var st = document.getElementById('login-status');
   if (st) st.textContent = '';
+  var titleElement = document.querySelector('#existing-login-form > div:first-child span');
+  if (titleElement) titleElement.textContent = title;
+  var loginButton = document.getElementById('btn-login');
+  if (loginButton) loginButton.textContent = buttonLabel;
   renderPendingRegistrationNotice();
 }
 
@@ -2297,7 +2551,7 @@ function renderPendingRegistrationNotice() {
   loginButton.disabled = isPending;
   loginButton.style.opacity = isPending ? '0.45' : '';
   loginButton.style.cursor = isPending ? 'not-allowed' : 'pointer';
-  loginButton.textContent = isPending ? '⏳ Waiting for administrator approval' : '🔐 Login';
+  loginButton.textContent = isPending ? '⏳ Waiting for administrator approval' : currentLoginButtonLabel();
 }
 
 function confirmRegistrationApproved() {
@@ -2740,6 +2994,16 @@ function renderMonthView(ym, months, byMonth, ptLogs, container, countEl, period
 
   var rankingId = 'monthly-ranking-' + Date.now();
   html += '<div id="' + rankingId + '" class="submission-ranking-card"><div><div class="submission-ranking-title">🏆 ' + esc(monthLabel) + ' Point Ranking</div><div class="submission-ranking-note">Loading ranking...</div></div><strong>...</strong></div>';
+  if (window._localDashboardPreview) {
+    setTimeout(function() {
+      var previewCard = document.getElementById(rankingId);
+      if (!previewCard) return;
+      var previewNote = previewCard.querySelector('.submission-ranking-note');
+      var previewValue = previewCard.querySelector('strong');
+      if (previewNote) previewNote.textContent = 'Based on raw content points only · bonuses excluded · 174 creators scored';
+      if (previewValue) previewValue.textContent = '#12';
+    }, 0);
+  } else {
   (function(uid, month, elementId) {
     supabaseFetch(SUPABASE_URL + '/rest/v1/submissions?period=eq.' + encodeURIComponent(month) + '&status=eq.scored&select=uid,points_earned,submission_type')
       .then(function(response) { return response.ok ? response.json() : []; })
@@ -2769,22 +3033,24 @@ function renderMonthView(ym, months, byMonth, ptLogs, container, countEl, period
         if (card) { var note = card.querySelector('.submission-ranking-note'); if (note) note.textContent = 'Ranking temporarily unavailable'; }
       });
   })(currentUser.uid, ym, rankingId);
+  }
 
   html += '<div class="submission-summary-grid">';
-  html += '<div class="submission-stat-card"><div class="submission-stat-label">Valid Work Links</div><div class="submission-stat-value">' + totalLinks + '</div><div class="submission-stat-note">Unique links from non-rejected work</div></div>';
-  html += '<div class="submission-stat-card"><div class="submission-stat-label">Submission Batches</div><div class="submission-stat-value">' + validWorkSubs.length + '</div><div class="submission-stat-note">Work entries submitted this month</div></div>';
-  html += '<div class="submission-stat-card"><div class="submission-stat-label">Pending Review</div><div class="submission-stat-value">' + pendingWorkCount + '</div><div class="submission-stat-note">Waiting for admin review</div></div>';
-  html += '<div class="submission-stat-card"><div class="submission-stat-label">Scored Submissions</div><div class="submission-stat-value">' + scoredWorkCount + '</div><div class="submission-stat-note">Reviewed work entries</div></div>';
+  html += '<div class="submission-stat-card submission-stat-with-art"><img src="assets/game-ui/valid-collection.png" alt=""><div class="submission-stat-label">Valid Work Links</div><div class="submission-stat-value">' + totalLinks + '</div><div class="submission-stat-note">Unique links from non-rejected work</div></div>';
+  html += '<div class="submission-stat-card submission-stat-with-art"><img src="assets/game-ui/submission-calendar.png" alt=""><div class="submission-stat-label">Submission Batches</div><div class="submission-stat-value">' + validWorkSubs.length + '</div><div class="submission-stat-note">Work entries submitted this month</div></div>';
+  html += '<div class="submission-stat-card submission-stat-with-art"><img src="assets/game-ui/review-pending.png" alt=""><div class="submission-stat-label">Pending Review</div><div class="submission-stat-value">' + pendingWorkCount + '</div><div class="submission-stat-note">Waiting for admin review</div></div>';
+  html += '<div class="submission-stat-card submission-stat-with-art"><img src="assets/game-ui/achievement-complete.png" alt=""><div class="submission-stat-label">Scored Submissions</div><div class="submission-stat-value">' + scoredWorkCount + '</div><div class="submission-stat-note">Reviewed work entries</div></div>';
   html += '</div>';
 
   var platformOrder = ['Facebook', 'Instagram', 'TikTok', 'YouTube', 'Reddit', 'Pinterest', 'X', 'Other'];
   var platformHtml = platformOrder.filter(function(platform) { return platformCounts[platform]; }).map(function(platform) {
-    return '<span class="submission-platform-chip">' + platform + ' · ' + platformCounts[platform] + '</span>';
+    var platformIcons = { Facebook:'🔵', Instagram:'🟣', TikTok:'🎵', YouTube:'🔴', Reddit:'🟠', Pinterest:'📌', X:'✕', Other:'🔗' };
+    return '<span class="submission-platform-chip"><span aria-hidden="true">' + (platformIcons[platform] || '🔗') + '</span> ' + platform + ' · ' + platformCounts[platform] + '</span>';
   }).join('');
   if (platformHtml) html += '<div class="submission-platforms" aria-label="Submitted links by platform">' + platformHtml + '</div>';
 
   var ccPercent = Math.min(100, Math.round(totalLinks / 15 * 100));
-  html += '<div class="submission-progress-card"><div class="submission-progress-row"><span>🎮 Continuous Creation</span><span>' + totalLinks + ' / 15 links</span></div>';
+  html += '<div class="submission-progress-card submission-achievement-card"><img class="submission-achievement-icon" src="assets/game-ui/continuous-creator.png" alt=""><div class="submission-progress-row"><span>Continuous Creation</span><span>' + totalLinks + ' / 15 links</span></div>';
   html += '<div class="submission-progress-track cc-snail-track"><div class="submission-progress-fill" style="width:' + ccPercent + '%;"></div><img class="cc-snail-marker" src="assets/yoyo-snail-logo.webp" alt="Yoyo Town snail" style="left:clamp(21px,' + ccPercent + '%,calc(100% - 21px));"></div>';
   html += '<div class="submission-stat-note">' + (totalLinks >= 15 ? 'Goal reached. Reward awaits admin confirmation.' : (15 - totalLinks) + ' more valid links needed.') + '</div></div>';
 
@@ -2800,7 +3066,7 @@ function renderMonthView(ym, months, byMonth, ptLogs, container, countEl, period
     html += '<div class="submission-progress-card"><div class="submission-progress-row"><span>⭐ Gold Creator Progress</span><span>' + baseContentScore + ' scored base pts</span></div><div class="submission-stat-note">Pending submissions show 0 until monthly review is completed. This does not remove or reset your available point balance. ' + tierRuleText + ' Bonuses and carry-over do not count.</div></div>';
   } else if (currentTier === 'gold') {
     var platinumRuleText = 'Platinum requires 40+ pure content points for 3 consecutive months under the current rules.';
-    html += '<div class="submission-progress-card"><div class="submission-progress-row"><span>💎 Platinum Creator Progress</span><span>' + baseContentScore + ' scored base pts</span></div><div class="submission-stat-note">Pending submissions show 0 until monthly review is completed. This does not remove or reset your available point balance. ' + platinumRuleText + ' Bonuses and carry-over do not count.</div></div>';
+    html += '<div class="submission-progress-card submission-achievement-card"><img class="submission-achievement-icon" src="assets/game-ui/tier-40.png" alt=""><div class="submission-progress-row"><span>Platinum Creator Progress</span><span>' + baseContentScore + ' scored base pts</span></div><div class="submission-stat-note">Pending submissions show 0 until monthly review is completed. This does not remove or reset your available point balance. ' + platinumRuleText + ' Bonuses and carry-over do not count.</div></div>';
   }
 
   if (!subs.length) {
@@ -2809,7 +3075,7 @@ function renderMonthView(ym, months, byMonth, ptLogs, container, countEl, period
     html += '</div>';
   } else {
     html += '<div class="submission-records">';
-    subs.forEach(function(submission) {
+    subs.forEach(function(submission, submissionIndex) {
       var status = submission.status || 'pending';
       var statusLabel = status === 'scored' ? '✅ Scored' : (status === 'rejected' ? '❌ Rejected' : '⏳ Pending');
       var engagementCount = splitLinks(submission.links_engagement).length;
@@ -2818,7 +3084,9 @@ function renderMonthView(ym, months, byMonth, ptLogs, container, countEl, period
       var dateLabel = new Date(submission.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       var isShowcase = submission.submission_type === 'showcase';
       var title = isShowcase ? (getSubmissionPeriod(submission) >= '2026-09' ? '✨ Showcase Bonus' : '📸 Official Merch Showcase') : '🎨 Work Submission';
-      html += '<div class="submission-record-card"><div class="submission-record-head"><div><div class="submission-record-title">' + title + '</div>';
+      var workRecordIcons = ['assets/game-ui/design-master.png','assets/game-ui/work-color-master.png','assets/game-ui/work-building-expert.png'];
+      var recordIcon = isShowcase ? 'assets/game-ui/fashion-creator.png' : workRecordIcons[submissionIndex % workRecordIcons.length];
+      html += '<div class="submission-record-card submission-record-with-art"><img class="submission-record-art" src="' + recordIcon + '" alt=""><div class="submission-record-head"><div><div class="submission-record-title">' + title + '</div>';
       html += '<div class="submission-record-meta">' + esc(dateLabel) + ' · ' + linkCount + ' link' + (linkCount === 1 ? '' : 's') + (engagementCount && viewCount ? ' · ' + engagementCount + ' engagement / ' + viewCount + ' view' : '') + '</div>';
       if (status === 'scored' && !isShowcase) html += '<div class="submission-record-score">Base Content Score: +' + Number(submission.points_earned || 0) + '</div>';
       if (status === 'scored' && isShowcase) html += '<div class="submission-record-score">Showcase Bonus: +' + Number(submission.points_earned || 1) + '</div>';
@@ -2913,9 +3181,566 @@ initializeProjectContext().then(function() {
   showProjectLoadError(error);
 });
 
+// Local visual review only. Never enabled on the deployed portal URL.
+function openLocalDashboardPreview() {
+  var previewHosts = ['127.0.0.1', 'localhost', 'yoyo-koc-mobile-preview.vercel.app'];
+  if (previewHosts.indexOf(location.hostname) === -1) return;
+  if (new URLSearchParams(location.search).get('preview') !== 'dashboard') return;
+  if (!/^\d{4}-\d{2}$/.test(currentPeriod)) currentPeriod = '2026-11';
+  window._localDashboardPreview = true;
+  currentUser = {
+    uid: 'preview-creator',
+    discord_name: 'Seraphina Preview',
+    name: 'Preview Creator',
+    points: 38,
+    tier: 'gold',
+    notes: '',
+    address: '', city: '', state: '', postal_code: '', country: '', phone: ''
+  };
+  document.getElementById('step-login').classList.add('hidden');
+  document.getElementById('step-dashboard').classList.remove('hidden');
+  document.getElementById('display-user').textContent = 'Welcome, Seraphina Preview';
+  document.getElementById('display-user-redeem').textContent = 'Preview mode · no real creator data is being used.';
+  document.getElementById('display-points').textContent = '38';
+  document.getElementById('display-month-points').textContent = '+26';
+  document.getElementById('display-reserved-points').textContent = '10';
+  document.getElementById('display-carryover-balance').textContent = '22';
+  document.getElementById('display-redeemed-month').textContent = '12';
+  document.getElementById('submit-discord').value = 'seraphina.preview';
+  document.getElementById('community-milestone-count').textContent = '174 / 300';
+  document.getElementById('community-milestone-fill').style.width = '58%';
+  document.getElementById('community-milestone-status').textContent = '126 more active creators to unlock two reward types.';
+  renderCreatorTierPath('gold');
+  REWARDS = [
+    { id: 'diamonds', name: '💎 450 Diamonds', cost: 1, desc: '1 Point = 450 Diamonds', amount: '450 Diamonds' },
+    { id: 'gplay', name: '🎮 Google Play $10', cost: 2, desc: '2 Points = $10 Gift Card', amount: '$10 Google Play' },
+    { id: 'merch', name: '📦 Merch Pack', cost: 5, desc: '5 Points = 3 random items', amount: 'Random Merch ×3' }
+  ];
+  renderOptions({ diamonds: 1 });
+  var previewLinksA = [
+    'https://www.facebook.com/example/posts/101','https://www.facebook.com/example/posts/102','https://www.facebook.com/example/posts/103','https://www.facebook.com/example/posts/104','https://www.facebook.com/example/posts/105',
+    'https://www.instagram.com/p/example201','https://www.instagram.com/p/example202','https://www.instagram.com/p/example203','https://www.instagram.com/p/example204'
+  ];
+  var previewLinksB = [
+    'https://www.tiktok.com/@example/video/301','https://www.tiktok.com/@example/video/302','https://www.tiktok.com/@example/video/303','https://www.tiktok.com/@example/video/304','https://www.tiktok.com/@example/video/305','https://www.tiktok.com/@example/video/306',
+    'https://www.reddit.com/r/example/comments/401','https://www.reddit.com/r/example/comments/402','https://www.reddit.com/r/example/comments/403'
+  ];
+  var previewSubs = {};
+  previewSubs[currentPeriod] = [
+    { id:'preview-work-a', period:currentPeriod, submission_type:'work', status:'scored', points_earned:11, links_engagement:previewLinksA.join('\n'), links_views:'', created_at:currentPeriod + '-05T08:30:00Z' },
+    { id:'preview-work-b', period:currentPeriod, submission_type:'work', status:'scored', points_earned:15, links_engagement:previewLinksB.slice(6).join('\n'), links_views:previewLinksB.slice(0,6).join('\n'), created_at:currentPeriod + '-09T10:15:00Z' },
+    { id:'preview-showcase', period:currentPeriod, submission_type:'showcase', status:'scored', points_earned:1, links_engagement:'https://www.instagram.com/p/showcase501', links_views:'', created_at:currentPeriod + '-10T12:00:00Z' }
+  ];
+  window._mySubMonths = [currentPeriod];
+  window._mySubsByMonth = previewSubs;
+  window._myPtLogs = [];
+  renderMonthView(currentPeriod, [currentPeriod], previewSubs, [], document.getElementById('submissions-list'), document.getElementById('submission-count'), document.getElementById('sub-period-label'));
+  document.querySelectorAll('#step-dashboard .tab-content').forEach(function(panel) {
+    panel.style.display = 'none';
+    panel.classList.remove('active');
+  });
+  document.querySelectorAll('#step-dashboard .tab').forEach(function(tab) { tab.classList.remove('active'); });
+  var requestedPreviewTab = new URLSearchParams(location.search).get('preview-tab');
+  var previewTabName = ['submit','history','redeem','faq','profile'].indexOf(requestedPreviewTab) >= 0 ? requestedPreviewTab : 'redeem';
+  var previewTab = document.getElementById('creator-tab-' + previewTabName);
+  if (previewTab) { previewTab.style.display = 'block'; previewTab.classList.add('active'); }
+  var previewButton = document.querySelector('#step-dashboard .tab[onclick*="' + previewTabName + '"]');
+  if (previewButton) previewButton.classList.add('active');
+  ['btn-submit','btn-feedback-submit','btn-showcase-submit','btn-redeem','btn-save-shipping'].forEach(function(id) {
+    var button = document.getElementById(id);
+    if (button) {
+      button.disabled = true;
+      button.title = 'Disabled in local visual preview';
+    }
+  });
+}
+setTimeout(openLocalDashboardPreview, 650);
+
 </script>
 
-
+<style id="creator-portal-dashboard-final-guard">
+body #step-dashboard{color:var(--portal-text)!important}
+body #step-dashboard{font-size:15px!important;line-height:1.6!important}
+body #step-dashboard p,
+body #step-dashboard li,
+body #step-dashboard label,
+body #step-dashboard .community-milestone-copy,
+body #step-dashboard .community-milestone-foot,
+body #step-dashboard .submission-stat-note,
+body #step-dashboard .submission-record-meta,
+body #step-dashboard .reward-desc,
+body #step-dashboard .order-meta{font-size:14px!important;line-height:1.6!important;color:#cbd3e2!important}
+body #step-dashboard [style*="font-size:10px"],
+body #step-dashboard [style*="font-size:11px"],
+body #step-dashboard [style*="font-size:12px"]{font-size:13px!important;line-height:1.55!important}
+body #step-dashboard a{color:#8eddf3!important;text-decoration-color:rgba(142,221,243,.46)!important;text-underline-offset:3px}
+body #step-dashboard strong{color:#f4f6fb}
+body #step-dashboard .card,
+body #step-dashboard .banner,
+body #step-dashboard .submission-item,
+body #step-dashboard .submission-record-card,
+body #step-dashboard .submission-stat-card,
+body #step-dashboard .reward-row,
+body #step-dashboard #creator-feedback-card,
+body #step-dashboard #showcase-card{
+  color:var(--portal-text)!important;background:var(--portal-panel)!important;
+  border:1px solid var(--portal-line)!important;border-radius:var(--portal-radius)!important;
+  box-shadow:0 14px 38px rgba(0,0,0,.18)!important;
+}
+body #step-dashboard .card-title,
+body #step-dashboard .level-1-title{
+  color:var(--portal-text)!important;background:none!important;background-image:none!important;
+  border:0!important;border-bottom:1px solid var(--portal-line)!important;border-radius:0!important;
+  box-shadow:none!important;text-shadow:none!important;animation:none!important;font-size:19px!important;
+}
+body #step-dashboard input[type="text"],
+body #step-dashboard textarea,
+body #step-dashboard select{
+  color:var(--portal-text)!important;-webkit-text-fill-color:var(--portal-text)!important;
+  background:#0e111a!important;border:1px solid var(--portal-line-strong)!important;
+  border-radius:9px!important;box-shadow:none!important;font-size:15px!important;line-height:1.5!important;
+}
+body #step-dashboard input::placeholder,
+body #step-dashboard textarea::placeholder{color:#687184!important;-webkit-text-fill-color:#687184!important}
+body #step-dashboard [style*="background:#fff"],
+body #step-dashboard [style*="background: #fff"],
+body #step-dashboard [style*="background:white"]{
+  color:#cbd2df!important;background:#151925!important;border-color:var(--portal-line)!important;
+  border-radius:10px!important;box-shadow:none!important;
+}
+body #step-dashboard [style*="color:#5e3377"],
+body #step-dashboard [style*="color:#2e7d32"],
+body #step-dashboard [style*="color:#6d4c00"],
+body #step-dashboard [style*="color:#558b2f"],
+body #step-dashboard [style*="color:#d84315"],
+body #step-dashboard [style*="color:#ad1457"]{color:#b8c1d2!important}
+body #step-dashboard #submit-form-area>div,
+body #step-dashboard #creator-feedback-card>div:not(.card-title),
+body #step-dashboard #showcase-description,
+body #step-dashboard #creator-tab-profile .card>div{font-size:14px!important;line-height:1.65!important;color:#cbd3e2!important}
+body #step-dashboard .tab{font-size:13px!important;color:#b8c1d2!important}
+body #step-dashboard .tab.active{color:#fff!important}
+body #step-dashboard .nav-title,
+body #step-dashboard .nav-back,
+body #step-dashboard .creator-account-button{font-size:13px!important}
+body #step-dashboard .community-milestone-title{font-size:13px!important;color:#eceaff!important}
+body #step-dashboard .community-milestone-count{font-size:20px!important;color:#fff!important}
+body #step-dashboard .community-milestone-refer{color:#cbd3e2!important}
+body #step-dashboard .card-title:after,
+body #step-dashboard .card:before{display:none!important}
+body #step-dashboard .btn-primary:not(:disabled){
+  color:#fff!important;background:linear-gradient(100deg,#6f72ed,#8b6be0 52%,#c65b9c)!important;
+  border:1px solid transparent!important;box-shadow:0 10px 28px rgba(100,94,224,.22)!important;animation:none!important;
+}
+body #step-dashboard .redeem-balance-hero{
+  position:relative!important;color:var(--portal-text)!important;
+  background:linear-gradient(125deg,rgba(88,101,242,.25),rgba(18,22,38,.96) 32%,rgba(139,92,246,.18) 66%,rgba(240,109,171,.17))!important;
+  border:1px solid rgba(158,146,255,.46)!important;border-radius:12px!important;
+  box-shadow:0 22px 54px rgba(16,12,56,.28),inset 0 1px 0 rgba(255,255,255,.08)!important;animation:none!important;overflow:hidden!important;
+}
+body #step-dashboard .redeem-balance-hero:before{height:4px!important;background:linear-gradient(90deg,#5865f2,#5ed7f2,#a66cff,#f06dab,#f5c451)!important;background-size:220% 100%!important;animation:rewardSpectrum 8s linear infinite!important}
+body #step-dashboard .redeem-balance-title{color:#bbc3d6!important}
+body #step-dashboard .redeem-balance-primary .points-number{
+  color:transparent!important;-webkit-text-fill-color:transparent!important;
+  background:linear-gradient(180deg,#fff 0%,#d7f7ff 28%,#aeb6ff 56%,#f4a7d0 82%,#ffd88a 100%)!important;
+  background-clip:text!important;-webkit-background-clip:text!important;filter:drop-shadow(0 0 18px rgba(139,124,255,.30));
+}
+body #step-dashboard .redeem-balance-item{
+  color:var(--portal-text)!important;background:linear-gradient(145deg,rgba(10,13,21,.78),rgba(30,35,57,.74))!important;
+  border:1px solid rgba(157,169,226,.20)!important;border-radius:9px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04)!important;animation:none!important;
+}
+body #step-dashboard .redeem-balance-item:after{display:none!important}
+body #step-dashboard .redeem-balance-item strong{color:#fff!important;text-shadow:none!important}
+body #step-dashboard .redeem-balance-item span{margin-top:8px!important;color:var(--portal-muted)!important;font-size:13px!important;line-height:1.35!important;font-weight:650!important}
+body #step-dashboard .tier-path,
+body #step-dashboard .tier-path.tier-path-v2{
+  position:relative!important;overflow:hidden!important;color:var(--portal-text)!important;
+  background:radial-gradient(circle at 18% 0,rgba(76,215,166,.12),transparent 28%),radial-gradient(circle at 52% 0,rgba(245,196,81,.15),transparent 31%),radial-gradient(circle at 86% 0,rgba(183,140,255,.16),transparent 30%),linear-gradient(125deg,rgba(14,19,32,.99),rgba(34,24,50,.97))!important;
+  border:1px solid rgba(192,140,255,.42)!important;border-radius:12px!important;
+  box-shadow:0 20px 46px rgba(8,9,24,.30),inset 0 1px 0 rgba(255,255,255,.06)!important;animation:none!important;
+}
+body #step-dashboard #creator-tab-redeem .tier-path-title{position:relative!important;z-index:2!important;color:#fff!important;text-shadow:0 0 18px rgba(184,166,255,.34)!important;font-size:13px!important;letter-spacing:.06em!important}
+body #step-dashboard #creator-tab-redeem .tier-path-stars{color:#d8d0ff!important;opacity:.72!important;text-shadow:0 0 10px #8b7cff!important}
+body #step-dashboard #creator-tab-redeem .tier-path-list{position:relative!important;z-index:2!important;margin-top:18px!important}
+body #step-dashboard #creator-tab-redeem .tier-path-list:before{
+  content:""!important;position:absolute!important;z-index:-1!important;left:10%!important;right:10%!important;top:50%!important;height:3px!important;transform:translateY(-50%)!important;
+  background:linear-gradient(90deg,#4fd1a1,#8eddf3 28%,#f5c451 52%,#d98cff 76%,#b78cff)!important;box-shadow:0 0 14px rgba(139,124,255,.54)!important;
+}
+body #step-dashboard #creator-tab-redeem .tier-step,
+body #step-dashboard #creator-tab-redeem .tier-step.reached{
+  position:relative!important;min-height:64px!important;color:#eef2fb!important;background:#161b2b!important;border:1px solid #3c4661!important;border-radius:10px!important;
+  box-shadow:0 12px 25px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.10)!important;opacity:1!important;
+}
+body #step-dashboard #creator-tab-redeem .tier-step-certified.reached{background:linear-gradient(145deg,#1e4639,#11251f 68%,#183128)!important;border-color:#4fd1a1!important;box-shadow:0 12px 26px rgba(21,109,79,.22),inset 0 1px 0 rgba(158,255,219,.18)!important}
+body #step-dashboard #creator-tab-redeem .tier-step-gold.reached{background:linear-gradient(145deg,#5a4315,#2c2412 64%,#3c2e10)!important;border-color:#f5c451!important;box-shadow:0 12px 28px rgba(154,104,12,.24),inset 0 1px 0 rgba(255,239,169,.20)!important}
+body #step-dashboard #creator-tab-redeem .tier-step-platinum.reached{background:linear-gradient(145deg,#493478,#211b35 65%,#302249)!important;border-color:#b78cff!important;box-shadow:0 12px 28px rgba(82,52,145,.26),inset 0 1px 0 rgba(229,213,255,.18)!important}
+body #step-dashboard #creator-tab-redeem .tier-step.current{transform:translateY(-5px) scale(1.05)!important;box-shadow:0 0 0 3px rgba(255,255,255,.07),0 16px 34px rgba(0,0,0,.36),0 0 24px rgba(245,196,81,.22)!important;animation:none!important}
+body #step-dashboard #creator-tab-redeem .tier-step.current:before{color:#1c1507!important;background:linear-gradient(90deg,#f4c34d,#ffeaa1,#f4c34d)!important;border:0!important;box-shadow:0 5px 16px rgba(245,196,81,.25)!important;animation:none!important}
+body #step-dashboard #creator-tab-redeem .tier-step-icon{font-size:22px!important;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35))!important}
+body #step-dashboard #creator-tab-redeem .tier-step.current .tier-step-icon,
+body #step-dashboard #creator-tab-redeem .tier-step.current .tier-step-name,
+body #step-dashboard #creator-tab-redeem .tier-path-stars{animation:none!important}
+body #step-dashboard #creator-tab-redeem .tier-path:before,
+body #step-dashboard #creator-tab-redeem .tier-path:after,
+body #step-dashboard #creator-tab-redeem .tier-step:after,
+body #step-dashboard #creator-tab-redeem .tier-path-arrow:before{animation:none!important}
+body #step-dashboard #creator-tab-redeem .tier-step-name{color:#edf1fb!important;-webkit-text-fill-color:#edf1fb!important;background:none!important;filter:none!important;text-shadow:0 2px 8px rgba(0,0,0,.34)!important;animation:none!important;font-size:13px!important}
+body #step-dashboard #creator-tab-redeem .tier-step.current.tier-step-gold .tier-step-name{color:#ffe39a!important;-webkit-text-fill-color:#ffe39a!important}
+body #step-dashboard #creator-tab-redeem .tier-path-arrow{color:#fff3ba!important;font-size:22px!important;text-shadow:0 0 10px #f5c451!important}
+body #step-dashboard #creator-tab-redeem .tier-requirements{gap:10px!important;margin-top:18px!important}
+body #step-dashboard #creator-tab-redeem .tier-requirement{color:#cbd3e2!important;background:linear-gradient(135deg,#151a29,#1d1a2b)!important;border:1px solid #3c4661!important;border-radius:9px!important;box-shadow:0 9px 22px rgba(0,0,0,.18)!important}
+body #step-dashboard #creator-tab-redeem .tier-requirement:first-child{border-top:3px solid #f5c451!important}
+body #step-dashboard #creator-tab-redeem .tier-requirement:last-child{border-top:3px solid #b78cff!important}
+body #step-dashboard #creator-tab-redeem .tier-requirement-icon{font-size:21px!important}
+body #step-dashboard #creator-tab-redeem .tier-requirement strong{color:#fff!important;-webkit-text-fill-color:#fff!important}
+body #step-dashboard #creator-tab-redeem .tier-requirement span{color:#aeb8ca!important}
+body #step-dashboard #creator-tab-redeem .tier-path-note{margin-top:12px!important;padding:11px 12px 0!important;color:#aeb8ca!important;border-top:1px solid #343e57!important;font-size:11px!important;line-height:1.55!important}
+body #step-dashboard #creator-tab-redeem .balance-help summary{color:#bfc8ff!important;font-size:13px!important}
+body #step-dashboard #display-user-redeem{color:#b7c0d3!important;font-size:13px!important}
+body #step-dashboard #creator-tab-history #submission-month-select{
+  color:#f3f5ff!important;-webkit-text-fill-color:#f3f5ff!important;background:#151a29!important;border:1px solid #6f65b8!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)!important;
+}
+body #step-dashboard #creator-tab-history #submission-count{color:#b8c1d3!important;-webkit-text-fill-color:#b8c1d3!important}
+body #step-dashboard #creator-tab-history .submission-record-title{color:#f2f4ff!important;-webkit-text-fill-color:#f2f4ff!important}
+body #step-dashboard #creator-tab-history .submission-record-meta{color:#aeb8ca!important;-webkit-text-fill-color:#aeb8ca!important}
+body #step-dashboard #creator-tab-history .submission-platform-chip{color:#dfe4f3!important;-webkit-text-fill-color:#dfe4f3!important;background:#1c2232!important;border:1px solid #46516d!important;box-shadow:none!important}
+body #step-dashboard #creator-tab-history .submission-record-score{color:#ffe39a!important;-webkit-text-fill-color:#ffe39a!important;background:#312817!important;border-color:#8a6a24!important}
+body #step-dashboard .community-milestone{position:relative!important;isolation:isolate!important;overflow:hidden!important}
+body #step-dashboard .community-milestone:before{
+  content:""!important;position:absolute!important;z-index:-1!important;inset:0 0 0 54%!important;
+  background:linear-gradient(90deg,rgba(21,20,42,0),rgba(21,20,42,.28)),url("assets/game-ui/milestone-star-garden.jpg") center/cover no-repeat!important;
+  opacity:.22!important;filter:saturate(.86)!important;pointer-events:none!important;
+}
+@media(min-width:761px){
+  body #step-dashboard .community-milestone:before{
+    inset:0!important;
+    background:
+      linear-gradient(90deg,transparent 0 58%,rgba(21,20,42,.18) 100%),
+      url("assets/game-ui/milestone-star-garden.jpg") right center/auto 100% no-repeat!important;
+  }
+}
+body #step-dashboard .community-milestone-title{display:inline-flex!important;align-items:center!important;gap:8px!important}
+body #step-dashboard .community-milestone-icon{width:34px!important;height:34px!important;object-fit:contain!important;filter:drop-shadow(0 5px 8px rgba(0,0,0,.24))!important}
+body #step-dashboard #creator-tab-history .submission-stat-with-art{position:relative!important;min-height:126px!important;padding:15px 72px 15px 14px!important;overflow:hidden!important}
+body #step-dashboard #creator-tab-history .submission-stat-with-art>img{position:absolute!important;right:8px!important;bottom:8px!important;width:58px!important;height:58px!important;object-fit:contain!important;opacity:.94!important;filter:drop-shadow(0 7px 10px rgba(0,0,0,.25))!important}
+body #step-dashboard #creator-tab-history .submission-ranking-card>strong{
+  position:relative!important;min-width:84px!important;height:76px!important;padding:5px 8px 0!important;color:#fff!important;-webkit-text-fill-color:#fff!important;
+  background:transparent url("assets/game-ui/ranking-leader.png") center/contain no-repeat!important;border:0!important;clip-path:none!important;box-shadow:none!important;
+  font-size:34px!important;font-weight:900!important;text-shadow:0 2px 2px #6b3d24,0 0 10px rgba(255,226,139,.72)!important;
+}
+body #step-dashboard #creator-tab-history .submission-ranking-card:before{right:96px!important}
+body #step-dashboard #creator-tab-history .submission-achievement-card{position:relative!important;min-height:104px!important;padding:18px 16px 16px 88px!important;overflow:hidden!important}
+body #step-dashboard #creator-tab-history .submission-achievement-icon{position:absolute!important;left:13px!important;top:50%!important;width:62px!important;height:62px!important;object-fit:contain!important;transform:translateY(-50%)!important;filter:drop-shadow(0 8px 12px rgba(0,0,0,.30))!important}
+body #step-dashboard #creator-tab-history .submission-record-with-art{position:relative!important;min-height:104px!important;padding-left:86px!important;overflow:hidden!important}
+body #step-dashboard #creator-tab-history .submission-record-art{position:absolute!important;left:13px!important;top:50%!important;width:58px!important;height:58px!important;object-fit:contain!important;transform:translateY(-50%)!important;filter:drop-shadow(0 7px 10px rgba(0,0,0,.24))!important}
+body #step-dashboard #creator-tab-redeem>.card{
+  background:linear-gradient(145deg,rgba(17,21,34,.98),rgba(25,22,42,.96))!important;
+  border-color:rgba(139,124,255,.24)!important;
+}
+body #step-dashboard #creator-tab-redeem .redeem-selection-card{
+  position:relative!important;overflow:hidden!important;padding-top:24px!important;
+  background:
+    radial-gradient(circle at 9% 2%,rgba(94,215,242,.13),transparent 25%),
+    radial-gradient(circle at 88% 4%,rgba(240,109,171,.14),transparent 28%),
+    linear-gradient(145deg,rgba(17,21,34,.99),rgba(28,22,45,.98))!important;
+  box-shadow:0 24px 60px rgba(7,8,20,.32),inset 0 1px 0 rgba(255,255,255,.05)!important;
+}
+body #step-dashboard #creator-tab-redeem .redeem-selection-card:before{
+  content:""!important;display:block!important;position:absolute!important;z-index:2!important;left:0!important;right:0!important;top:0!important;height:3px!important;pointer-events:none!important;
+  background:linear-gradient(90deg,transparent,#5ed7f2,#8b7cff,#f06dab,#f5c451,transparent)!important;background-size:45% 100%!important;background-repeat:no-repeat!important;
+  filter:drop-shadow(0 0 8px rgba(139,124,255,.85))!important;animation:rewardLightRun 2.8s linear infinite!important;
+}
+body #step-dashboard #creator-tab-redeem .redeem-selection-card:after{
+  content:""!important;display:block!important;position:absolute!important;inset:0!important;pointer-events:none!important;
+  background-image:radial-gradient(circle,#fff 0 1px,transparent 1.7px),radial-gradient(circle,#9beaff 0 1px,transparent 1.7px),radial-gradient(circle,#ff9dcc 0 1px,transparent 1.7px)!important;
+  background-position:8% 16%,72% 9%,94% 28%!important;background-size:83px 83px,117px 117px,151px 151px!important;
+  opacity:.22!important;animation:rewardStarsDrift 16s linear infinite!important;
+}
+body #step-dashboard #creator-tab-redeem .redeem-selection-title{
+  position:relative!important;z-index:1!important;display:flex!important;align-items:center!important;gap:10px!important;
+  margin-bottom:18px!important;padding:0 0 15px!important;color:#fff!important;-webkit-text-fill-color:#fff!important;
+  border-bottom:1px solid rgba(157,141,255,.28)!important;font-size:20px!important;font-weight:800!important;
+}
+body #step-dashboard #creator-tab-redeem .redeem-selection-title:after{
+  content:""!important;display:block!important;position:absolute!important;left:0!important;bottom:-1px!important;width:42%!important;height:2px!important;
+  background:linear-gradient(90deg,transparent,#5ed7f2,#8b7cff,#f06dab,#f5c451,transparent)!important;background-size:55% 100%!important;background-repeat:no-repeat!important;
+  box-shadow:0 0 16px rgba(139,124,255,.65)!important;animation:rewardLightRun 2.4s linear infinite!important;
+}
+body #step-dashboard #creator-tab-redeem .redeem-title-icon{display:inline-grid!important;place-items:center!important;width:38px!important;height:38px!important;background:linear-gradient(145deg,rgba(94,215,242,.18),rgba(139,124,255,.24),rgba(240,109,171,.20))!important;border:1px solid rgba(180,170,255,.38)!important;border-radius:10px!important;box-shadow:0 0 24px rgba(139,124,255,.18)!important;animation:rewardGiftFloat 3.2s ease-in-out infinite!important}
+body #step-dashboard #creator-tab-redeem .redeem-title-sparkles{margin-left:auto!important;color:#b9adff!important;-webkit-text-fill-color:#b9adff!important;font-size:13px!important;letter-spacing:5px!important;animation:rewardSparkle 2.4s ease-in-out infinite!important}
+body #step-dashboard #creator-tab-redeem #options-container{position:relative!important;z-index:1!important}
+body #step-dashboard #creator-tab-redeem .reward-row{
+  position:relative!important;isolation:isolate!important;overflow:hidden!important;
+  background:linear-gradient(110deg,#171c2b,#1b2033 58%,#211b31)!important;
+  border:1px solid #38435f!important;border-left:4px solid #8b7cff!important;
+  box-shadow:0 12px 28px rgba(0,0,0,.18)!important;
+  transition:transform .22s cubic-bezier(.22,1,.36,1),border-color .22s,box-shadow .22s!important;
+  animation:rewardCardEnter .52s cubic-bezier(.22,1,.36,1) both!important;
+}
+body #step-dashboard #creator-tab-redeem .reward-row:nth-child(2){animation-delay:.08s!important}
+body #step-dashboard #creator-tab-redeem .reward-row:nth-child(3){animation-delay:.16s!important}
+body #step-dashboard #creator-tab-redeem .reward-row[data-reward-id="diamonds"]{border-left-color:#5ed7f2!important}
+body #step-dashboard #creator-tab-redeem .reward-row[data-reward-id="gplay"]{border-left-color:#a77cff!important}
+body #step-dashboard #creator-tab-redeem .reward-row[data-reward-id="merch"]{border-left-color:#f06dab!important}
+body #step-dashboard #creator-tab-redeem .reward-row:hover{transform:translateY(-2px)!important;border-color:#6d78a4!important;box-shadow:0 18px 36px rgba(0,0,0,.26)!important}
+body #step-dashboard #creator-tab-redeem .reward-row.selected{
+  background:linear-gradient(105deg,rgba(88,101,242,.22),rgba(139,92,246,.17),rgba(240,109,171,.14))!important;
+  border-color:#9d8dff!important;box-shadow:0 0 0 3px rgba(139,124,255,.12),0 20px 42px rgba(40,28,103,.28)!important;
+}
+body #step-dashboard #creator-tab-redeem .reward-row.selected:after{
+  content:""!important;display:block!important;position:absolute!important;z-index:3!important;inset:-1px!important;padding:2px!important;border-radius:inherit!important;pointer-events:none!important;
+  background:conic-gradient(from var(--reward-flow-angle),transparent 0 12%,#5ed7f2 18%,#8b7cff 27%,#f06dab 36%,transparent 45% 100%)!important;
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0)!important;-webkit-mask-composite:xor!important;mask-composite:exclude!important;
+  filter:drop-shadow(0 0 5px rgba(139,124,255,.75))!important;animation:rewardBorderOrbit 2.6s linear infinite!important;
+}
+body #step-dashboard #creator-tab-redeem .reward-row.selected:before{
+  content:""!important;position:absolute!important;inset:0!important;z-index:-1!important;
+  background:linear-gradient(105deg,transparent 20%,rgba(255,255,255,.10) 48%,transparent 74%)!important;
+  background-size:220% 100%!important;animation:rewardSelectedSweep 3.8s ease-in-out infinite!important;
+}
+body #step-dashboard #creator-tab-redeem .reward-name{color:#f4f6ff!important;-webkit-text-fill-color:#f4f6ff!important;font-size:16px!important;font-weight:750!important;text-shadow:none!important}
+body #step-dashboard #creator-tab-redeem .reward-row[data-reward-id="diamonds"] .reward-name{color:#9beaff!important;-webkit-text-fill-color:#9beaff!important}
+body #step-dashboard #creator-tab-redeem .reward-row[data-reward-id="gplay"] .reward-name{color:#c6adff!important;-webkit-text-fill-color:#c6adff!important}
+body #step-dashboard #creator-tab-redeem .reward-row[data-reward-id="merch"] .reward-name{color:#ff9dcc!important;-webkit-text-fill-color:#ff9dcc!important}
+body #step-dashboard #creator-tab-redeem .reward-desc{color:#c7cfdf!important;-webkit-text-fill-color:#c7cfdf!important;font-size:13px!important}
+body #step-dashboard #creator-tab-redeem .qty-selector{color:#edf1fb!important}
+body #step-dashboard #creator-tab-redeem .qty-value{color:#fff!important;-webkit-text-fill-color:#fff!important;font-size:17px!important;font-weight:750!important}
+body #step-dashboard #creator-tab-redeem .btn-qty{
+  color:#fff!important;-webkit-text-fill-color:#fff!important;background:#262d43!important;border:1px solid #56627f!important;
+  box-shadow:none!important;
+}
+body #step-dashboard #creator-tab-redeem .btn-qty:not(:disabled):hover{background:#343d5a!important;border-color:#8b7cff!important;transform:translateY(-1px)!important}
+body #step-dashboard #creator-tab-redeem #sel-footer{
+  padding:13px 15px!important;color:#e9edf8!important;background:#121725!important;border:1px solid #343e57!important;border-radius:9px!important;
+}
+body #step-dashboard #creator-tab-redeem #sel-footer>div{color:#cbd3e2!important;-webkit-text-fill-color:#cbd3e2!important}
+body #step-dashboard #creator-tab-redeem #sel-footer>div:first-child{color:#fff!important;-webkit-text-fill-color:#fff!important}
+body #step-dashboard #creator-tab-redeem #sel-footer span{color:#8eddf3!important;-webkit-text-fill-color:#8eddf3!important}
+body #step-dashboard #creator-tab-redeem #btn-redeem:not(:disabled){
+  background:linear-gradient(100deg,#5865f2,#8b5cf6 48%,#eb459e,#f3a950)!important;background-size:180% 100%!important;
+  box-shadow:0 14px 34px rgba(108,78,221,.28)!important;animation:rewardSpectrum 7s linear infinite!important;
+}
+@keyframes rewardSpectrum{0%{background-position:0 0}100%{background-position:220% 0}}
+@keyframes rewardSelectedSweep{0%,35%{background-position:180% 0}75%,100%{background-position:-80% 0}}
+@keyframes rewardCardEnter{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes rewardGiftFloat{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-4px) rotate(2deg)}}
+@keyframes rewardSparkle{0%,100%{opacity:.48;filter:drop-shadow(0 0 0 transparent)}50%{opacity:1;filter:drop-shadow(0 0 8px #9d8dff)}}
+@keyframes rewardStarsDrift{from{background-position:8% 16%,72% 9%,94% 28%}to{background-position:8% 99%,72% 92%,94% 111%}}
+@keyframes rewardLightRun{from{background-position:-90% 0}to{background-position:210% 0}}
+@property --reward-flow-angle{syntax:"<angle>";initial-value:0deg;inherits:false}
+@keyframes rewardBorderOrbit{to{--reward-flow-angle:360deg}}
+body #step-dashboard .faq-support-card{
+  margin-bottom:20px!important;padding:20px!important;color:#e8edf7!important;
+  background:linear-gradient(120deg,rgba(88,101,242,.13),rgba(139,92,246,.09))!important;
+  border:1px solid rgba(139,124,255,.30)!important;border-radius:12px!important;box-shadow:none!important;text-align:left!important;
+}
+body #step-dashboard .faq-support-card>div:first-child{margin-bottom:7px!important;color:#fff!important;-webkit-text-fill-color:#fff!important;font-size:18px!important;font-weight:750!important}
+body #step-dashboard .faq-support-card>div:nth-child(2){margin-bottom:15px!important;color:#d5dbea!important;-webkit-text-fill-color:#d5dbea!important;font-size:15px!important;line-height:1.6!important}
+body #step-dashboard .faq-support-card>a{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:44px!important;padding:10px 16px!important;
+  color:#fff!important;-webkit-text-fill-color:#fff!important;background:linear-gradient(100deg,#5865f2,#7c67df)!important;
+  border:1px solid rgba(255,255,255,.12)!important;border-radius:8px!important;box-shadow:0 9px 24px rgba(88,101,242,.20)!important;
+  font-size:14px!important;font-weight:700!important;text-decoration:none!important;
+}
+body #step-dashboard .faq-support-card>div:last-child{margin-top:10px!important;color:#9fa9bd!important;-webkit-text-fill-color:#9fa9bd!important;font-size:13px!important;line-height:1.5!important}
+body #step-dashboard .seraphina-card.creator-account-credit{
+  position:relative!important;isolation:isolate!important;overflow:hidden!important;grid-template-columns:64px minmax(0,1fr)!important;gap:16px!important;width:min(520px,100%)!important;
+  margin:36px auto 20px!important;padding:20px!important;color:var(--portal-text)!important;
+  background:
+    radial-gradient(ellipse at 13% 48%,#020308 0 8%,rgba(7,5,18,.98) 9%,rgba(48,25,88,.68) 15%,rgba(243,115,193,.22) 20%,transparent 34%),
+    radial-gradient(circle at 76% 18%,rgba(94,215,242,.16),transparent 24%),
+    radial-gradient(circle at 92% 84%,rgba(139,92,246,.19),transparent 26%),
+    linear-gradient(128deg,#090b13,#171426 58%,#201329)!important;
+  border:1px solid rgba(177,148,255,.58)!important;border-radius:14px!important;
+  box-shadow:0 20px 60px rgba(0,0,0,.42),0 0 30px rgba(107,75,203,.11),0 0 0 1px rgba(255,255,255,.025) inset!important;
+}
+body #step-dashboard .seraphina-card.creator-account-credit:before{
+  content:"✦  SYSTEM CREATOR  ·  VERIFIED"!important;position:static!important;grid-column:2!important;grid-row:1!important;align-self:end!important;
+  width:max-content!important;margin:0 0 -1px!important;padding:5px 9px!important;color:#d9d4ff!important;background:rgba(111,103,225,.16)!important;border:1px solid rgba(165,149,255,.34)!important;border-radius:999px!important;box-shadow:0 0 18px rgba(139,124,255,.12)!important;
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;font-size:10px!important;font-weight:800!important;letter-spacing:.08em!important;
+}
+body #step-dashboard .seraphina-card.creator-account-credit:after{
+  content:""!important;display:block!important;position:absolute!important;z-index:-1!important;inset:0!important;pointer-events:none!important;
+  background-image:radial-gradient(circle,#fff 0 1px,transparent 1.5px),radial-gradient(circle,#9beaff 0 1px,transparent 1.6px),radial-gradient(circle,#d9b4ff 0 1px,transparent 1.5px)!important;
+  background-size:79px 79px,113px 113px,149px 149px!important;background-position:8% 18%,62% 12%,88% 67%!important;opacity:.28!important;animation:none!important;
+}
+body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-avatar{
+  position:relative!important;isolation:isolate!important;grid-column:1!important;grid-row:1 / span 2!important;width:64px!important;height:64px!important;
+  color:#fff!important;background:radial-gradient(circle,#05050a 0 36%,#151123 38% 48%,transparent 50%)!important;border:0!important;border-radius:50%!important;
+  box-shadow:0 0 12px 3px rgba(4,3,12,.95),0 0 28px rgba(139,92,246,.36),0 0 42px rgba(240,109,171,.18)!important;font-size:32px!important;
+}
+body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-avatar:before{
+  content:""!important;position:absolute!important;z-index:-2!important;inset:-10px!important;border-radius:50%!important;
+  background:linear-gradient(90deg,transparent 3%,rgba(94,215,242,.18) 18%,#8b7cff 38%,#f06dab 51%,#f5c451 62%,rgba(139,124,255,.22) 82%,transparent 97%)!important;
+  transform:scaleX(1.38) scaleY(.20) rotate(-9deg)!important;filter:blur(.5px) drop-shadow(0 0 7px rgba(188,126,255,.58))!important;opacity:.72!important;animation:none!important;
+}
+body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-avatar:after{
+  content:""!important;position:absolute!important;z-index:-1!important;inset:8px!important;border-radius:50%!important;
+  background:radial-gradient(circle at 42% 38%,#11131e 0,#020207 58%,#000 72%)!important;box-shadow:inset 0 0 10px #000,0 0 8px 3px rgba(0,0,0,.95)!important;
+}
+body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-copy{grid-column:2!important;grid-row:2!important}
+body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-label{display:none!important}
+body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-name{
+  margin:0!important;color:transparent!important;-webkit-text-fill-color:transparent!important;
+  background:linear-gradient(100deg,#fff 0%,#d8f8ff 28%,#cdbdff 58%,#ffb4dc 100%)!important;background-clip:text!important;-webkit-background-clip:text!important;
+  font-family:Georgia,"Times New Roman",serif!important;font-size:27px!important;font-style:italic!important;font-weight:700!important;line-height:1.2!important;letter-spacing:.02em!important;
+  text-shadow:0 8px 24px rgba(139,124,255,.18)!important;
+}
+body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-name:after{
+  content:" · YoYo assistant Mochi"!important;color:#c2cada!important;-webkit-text-fill-color:#c2cada!important;
+  display:inline-block!important;margin-left:9px!important;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;font-size:11px!important;font-style:normal!important;font-weight:650!important;letter-spacing:.03em!important;text-shadow:none!important;
+}
+body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-meta{
+  gap:6px 12px!important;margin-top:9px!important;padding-top:9px!important;color:#aeb7ca!important;border-top:1px solid #353e53!important;
+  font-size:12px!important;font-weight:600!important;
+}
+body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-meta strong{color:#8eddf3!important}
+@media (prefers-reduced-motion:reduce){
+  body #step-dashboard #creator-tab-redeem .redeem-selection-card:after,
+  body #step-dashboard #creator-tab-redeem .redeem-selection-card:before,
+  body #step-dashboard #creator-tab-redeem .redeem-selection-title:after,
+  body #step-dashboard #creator-tab-redeem .redeem-title-icon,
+  body #step-dashboard #creator-tab-redeem .redeem-title-sparkles,
+  body #step-dashboard #creator-tab-redeem .reward-row,
+  body #step-dashboard #creator-tab-redeem .reward-row.selected:after,
+  body #step-dashboard .seraphina-card.creator-account-credit:after,
+  body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-avatar:before{animation:none!important}
+}
+@media (max-width:560px){
+  body #step-dashboard #creator-tab-redeem .redeem-balance-item{min-height:88px!important;padding:11px 8px!important}
+  body #step-dashboard #creator-tab-redeem .redeem-balance-item span{font-size:12px!important;line-height:1.3!important}
+  body #step-dashboard .seraphina-card.creator-account-credit{grid-template-columns:40px minmax(0,1fr)!important;gap:10px!important;width:calc(100% - 40px)!important;margin:22px auto 14px!important;padding:11px 12px!important;border-radius:10px!important}
+  body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-avatar{width:40px!important;height:40px!important;border-radius:50%!important;font-size:23px!important}
+  body #step-dashboard .seraphina-card.creator-account-credit:before{padding:3px 7px!important;font-size:7px!important;letter-spacing:.04em!important}
+  body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-name{font-size:18px!important}
+  body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-name:after{display:inline-block!important;margin:0 0 0 5px!important;font-size:9px!important}
+  body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-meta{gap:4px 8px!important;margin-top:5px!important;padding-top:5px!important;font-size:9px!important}
+  body #step-dashboard .creator-account-credit+div{font-size:11px!important}
+  body #step-dashboard #creator-tab-redeem .redeem-selection-title{font-size:18px!important}
+  body #step-dashboard #creator-tab-redeem .redeem-title-sparkles{font-size:11px!important;letter-spacing:2px!important}
+  body #step-dashboard #creator-tab-redeem .tier-path.tier-path-v2{padding:17px 8px 12px!important}
+  body #step-dashboard #creator-tab-redeem .tier-path-title{font-size:11px!important;letter-spacing:.02em!important}
+  body #step-dashboard #creator-tab-redeem .tier-path-list:before{display:none!important}
+  body #step-dashboard #creator-tab-redeem .tier-step{min-height:54px!important;padding:7px 3px!important;transform:none!important;animation:none!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.10)!important}
+  body #step-dashboard #creator-tab-redeem .tier-step.current{transform:none!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.14)!important}
+  body #step-dashboard #creator-tab-redeem .tier-step.current:before{top:-10px!important;padding:2px 5px!important;font-size:6px!important;box-shadow:none!important}
+  body #step-dashboard #creator-tab-redeem .tier-step-icon{font-size:17px!important}
+  body #step-dashboard #creator-tab-redeem .tier-step-name{font-size:9px!important}
+  body #step-dashboard #creator-tab-redeem .tier-path-arrow{font-size:16px!important;text-shadow:none!important}
+  body #step-dashboard #creator-tab-redeem .tier-path-arrow:before{display:none!important}
+  body #step-dashboard #creator-tab-redeem .tier-requirement{padding:10px!important}
+  body #step-dashboard #creator-tab-redeem .tier-requirement strong{font-size:11px!important}
+  body #step-dashboard #creator-tab-redeem .tier-requirement span{font-size:10px!important;line-height:1.45!important}
+  body #step-dashboard #creator-tab-redeem .tier-path-note{font-size:10px!important}
+}
+body #step-dashboard .creator-account-credit+div{color:#aeb7ca!important;font-size:13px!important;line-height:1.6!important}
+html[data-portal-theme="light"] body #step-dashboard{color:#182033!important}
+html[data-portal-theme="light"] body #step-dashboard .card,
+html[data-portal-theme="light"] body #step-dashboard .banner,
+html[data-portal-theme="light"] body #step-dashboard .submission-item,
+html[data-portal-theme="light"] body #step-dashboard .submission-record-card,
+html[data-portal-theme="light"] body #step-dashboard .submission-stat-card,
+html[data-portal-theme="light"] body #step-dashboard .reward-row,
+html[data-portal-theme="light"] body #step-dashboard #creator-feedback-card,
+html[data-portal-theme="light"] body #step-dashboard #showcase-card{color:#182033!important;background:#fff!important;border-color:#d9deea!important;box-shadow:0 12px 30px rgba(54,64,88,.08)!important}
+html[data-portal-theme="light"] body #step-dashboard .card-title,
+html[data-portal-theme="light"] body #step-dashboard .level-1-title{color:#182033!important;border-bottom-color:#e1e5ed!important}
+html[data-portal-theme="light"] body #step-dashboard #submit-form-area>div[style*="background:#fff3e0"],
+html[data-portal-theme="light"] body #step-dashboard #creator-feedback-card>div[style*="background:#f3e5f5"],
+html[data-portal-theme="light"] body #step-dashboard #showcase-description{color:#2c3445!important;-webkit-text-fill-color:#2c3445!important;background:#f5f7fb!important;border-color:#d8deea!important}
+html[data-portal-theme="light"] body #step-dashboard #submit-form-area>div[style*="background:#fff3e0"] *,
+html[data-portal-theme="light"] body #step-dashboard #creator-feedback-card>div[style*="background:#f3e5f5"] *,
+html[data-portal-theme="light"] body #step-dashboard #showcase-description *{color:#2c3445!important;-webkit-text-fill-color:#2c3445!important}
+html[data-portal-theme="light"] body #step-dashboard .community-milestone{background:linear-gradient(120deg,#eef0ff,#fff1f8)!important;border-color:#d7d9f2!important}
+html[data-portal-theme="light"] body #step-dashboard .community-milestone-copy,
+html[data-portal-theme="light"] body #step-dashboard .community-milestone-foot,
+html[data-portal-theme="light"] body #step-dashboard .community-milestone-refer{color:#4f596d!important}
+html[data-portal-theme="light"] body #step-dashboard .community-milestone-title,
+html[data-portal-theme="light"] body #step-dashboard .community-milestone-count{color:#22293a!important;-webkit-text-fill-color:#22293a!important}
+html[data-portal-theme="light"] body #step-dashboard .community-milestone-track,
+html[data-portal-theme="light"] body #step-dashboard .submission-progress-track{background:#dfe3ec!important}
+html[data-portal-theme="light"] body #step-dashboard label,
+html[data-portal-theme="light"] body #step-dashboard p,
+html[data-portal-theme="light"] body #step-dashboard li,
+html[data-portal-theme="light"] body #step-dashboard .points-label,
+html[data-portal-theme="light"] body #step-dashboard .order-meta,
+html[data-portal-theme="light"] body #step-dashboard .reward-desc{color:#4f596d!important;-webkit-text-fill-color:#4f596d!important}
+html[data-portal-theme="light"] body #step-dashboard strong{color:#1d2432!important;-webkit-text-fill-color:#1d2432!important}
+html[data-portal-theme="light"] body #step-dashboard .nav-title{color:#252d3e!important}
+html[data-portal-theme="light"] body #step-dashboard .creator-account-button,
+html[data-portal-theme="light"] body #step-dashboard .nav-back{color:#fff!important;background:#1c2230!important;border-color:#1c2230!important}
+html[data-portal-theme="light"] body #step-dashboard .faq-support-card{background:linear-gradient(120deg,#eef0ff,#f7f1ff)!important;border-color:#d7d9f2!important}
+html[data-portal-theme="light"] body #step-dashboard .faq-support-card>div:first-child{color:#182033!important;-webkit-text-fill-color:#182033!important}
+html[data-portal-theme="light"] body #step-dashboard .faq-support-card>div:nth-child(2),
+html[data-portal-theme="light"] body #step-dashboard .faq-support-card>div:last-child{color:#566176!important;-webkit-text-fill-color:#566176!important}
+html[data-portal-theme="light"] body #step-dashboard .seraphina-card.creator-account-credit{color:#182033!important;background:#fff!important;border-color:#d8deea!important;box-shadow:0 12px 30px rgba(54,64,88,.10)!important}
+html[data-portal-theme="light"] body #step-dashboard .seraphina-card.creator-account-credit .seraphina-card-name{color:#182033!important;-webkit-text-fill-color:#182033!important}
+body #step-dashboard #submit-form-area>div[style*="background:#fff3e0"],
+body #step-dashboard #creator-feedback-card>div[style*="background:#f3e5f5"],
+body #step-dashboard #showcase-description{
+  margin-bottom:18px!important;padding:16px 18px!important;
+  color:#e8edf7!important;-webkit-text-fill-color:#e8edf7!important;
+  background:#171c29!important;background-image:none!important;
+  border:1px solid #3a4358!important;border-radius:10px!important;box-shadow:none!important;
+  font-size:15px!important;font-weight:450!important;line-height:1.75!important;letter-spacing:0!important;
+}
+body #step-dashboard #submit-form-area>div[style*="background:#fff3e0"] *,
+body #step-dashboard #creator-feedback-card>div[style*="background:#f3e5f5"] *,
+body #step-dashboard #showcase-description *{
+  color:#e8edf7!important;-webkit-text-fill-color:#e8edf7!important;
+  font-size:15px!important;line-height:1.75!important;letter-spacing:0!important;
+}
+body #step-dashboard #submit-form-area>div[style*="background:#fff3e0"]>div:first-child,
+body #step-dashboard #showcase-description>strong:first-child,
+body #step-dashboard #showcase-description span strong{
+  color:#fff!important;-webkit-text-fill-color:#fff!important;font-size:16px!important;font-weight:750!important;
+}
+body #step-dashboard #showcase-description a{
+  color:#8eddf3!important;-webkit-text-fill-color:#8eddf3!important;font-weight:700!important;text-decoration:underline!important;
+}
+body #step-dashboard #showcase-description strong[style*="text-align:center"]{
+  margin:8px 0!important;color:#f6a8d0!important;-webkit-text-fill-color:#f6a8d0!important;font-size:14px!important;
+}
+body #step-dashboard #showcase-description span:last-child{
+  display:block!important;margin-top:10px!important;color:#ffd98a!important;-webkit-text-fill-color:#ffd98a!important;
+}
+@media(max-width:760px){
+  body #step-dashboard{font-size:14px!important}
+  body #step-dashboard .tabs{
+    left:8px!important;right:8px!important;bottom:max(8px,env(safe-area-inset-bottom))!important;gap:4px!important;padding:7px!important;
+    background:rgba(12,15,25,.96)!important;border:1px solid rgba(145,130,255,.68)!important;border-radius:14px!important;
+    box-shadow:0 -8px 34px rgba(7,8,20,.48),0 0 0 1px rgba(255,255,255,.04) inset,0 0 22px rgba(111,92,246,.16)!important;
+  }
+  body #step-dashboard .tabs:before{content:"MENU"!important;display:block!important;position:absolute!important;left:50%!important;top:-18px!important;transform:translateX(-50%)!important;padding:2px 10px!important;color:#d8d2ff!important;background:#171b2a!important;border:1px solid rgba(145,130,255,.56)!important;border-radius:999px!important;font-size:8px!important;font-weight:800!important;letter-spacing:.12em!important;box-shadow:0 0 12px rgba(139,124,255,.22)!important}
+  body #step-dashboard .tab{min-width:0!important;min-height:57px!important;padding:8px 3px!important;color:#c9d0df!important;background:transparent!important;border:1px solid transparent!important;border-radius:9px!important;font-size:10px!important;line-height:1.25!important;white-space:normal!important}
+  body #step-dashboard .tab:first-letter{font-size:18px!important}
+  body #step-dashboard .tab.active{color:#fff!important;background:linear-gradient(145deg,#5865f2,#8b5cf6 58%,#c65b9c)!important;border-color:rgba(255,255,255,.16)!important;box-shadow:0 7px 18px rgba(88,101,242,.32)!important}
+  body #step-dashboard .creator-account-row{align-items:center!important}
+  body #step-dashboard #display-user{font-size:13px!important;min-width:0}
+  body #step-dashboard .creator-account-button{padding:9px!important;font-size:11px!important}
+  body #step-dashboard .community-milestone{padding:14px!important}
+  body #step-dashboard .community-milestone-head{align-items:flex-start!important}
+  body #step-dashboard .community-milestone-count{font-size:17px!important}
+  body #step-dashboard .card{padding:16px!important}
+  body #step-dashboard #submit-form-area>div[style*="background:#fff3e0"],
+  body #step-dashboard #creator-feedback-card>div[style*="background:#f3e5f5"],
+  body #step-dashboard #showcase-description{padding:14px!important;font-size:14px!important;line-height:1.7!important}
+  body #step-dashboard #submit-form-area>div[style*="background:#fff3e0"] *,
+  body #step-dashboard #creator-feedback-card>div[style*="background:#f3e5f5"] *,
+  body #step-dashboard #showcase-description *{font-size:14px!important;line-height:1.7!important}
+  body #step-dashboard [style*="display:flex"][style*="gap:8px"]{flex-wrap:wrap!important}
+  body #step-dashboard #creator-tab-history .submission-ranking-card>strong{min-width:72px!important;height:66px!important;font-size:29px!important}
+  body #step-dashboard .community-milestone-icon{width:30px!important;height:30px!important}
+  body #step-dashboard #creator-tab-history .submission-stat-with-art{min-height:132px!important;padding:13px 54px 13px 11px!important}
+  body #step-dashboard #creator-tab-history .submission-stat-with-art>img{right:5px!important;bottom:7px!important;width:48px!important;height:48px!important}
+  body #step-dashboard #creator-tab-history .submission-achievement-card{min-height:92px!important;padding:14px 12px 14px 72px!important}
+  body #step-dashboard #creator-tab-history .submission-achievement-icon{left:10px!important;width:52px!important;height:52px!important}
+  body #step-dashboard #creator-tab-history .submission-record-with-art{min-height:94px!important;padding-left:72px!important}
+  body #step-dashboard #creator-tab-history .submission-record-art{left:9px!important;width:50px!important;height:50px!important}
+}
+</style>
+<script>setPortalTheme(document.documentElement.getAttribute('data-portal-theme') || 'dark');</script>
 
 </body>
 </html>
