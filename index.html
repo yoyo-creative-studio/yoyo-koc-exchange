@@ -457,6 +457,10 @@ body:before{
 #entry-buttons:before{display:none!important}
 #entry-buttons{position:relative!important;padding-top:0!important}
 #entry-buttons:after{content:"";display:block;height:0}
+.account-services{margin-top:24px;padding-top:18px;border-top:1px solid var(--portal-line);text-align:left}
+.account-services-label{display:block;margin-bottom:9px;color:var(--portal-muted);font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.account-services-button{width:100%;min-height:44px;padding:11px 13px;color:#cbd3e2;background:rgba(255,255,255,.035);border:1px solid var(--portal-line);border-radius:9px;font-size:13px;font-weight:650;text-align:left;cursor:pointer;transition:background .2s,border-color .2s,transform .2s}
+.account-services-button:hover{color:#fff;background:rgba(139,124,255,.10);border-color:rgba(139,124,255,.42);transform:translateY(-1px)}
 .card,.banner,.submission-item,.reward-row,#step-login>div[style*="background:#fff8e1"],#step-login>div[style*="background:#f3e5f5"],#existing-login-form>div[style*="background:#fff7fb"],#creator-tab-submit div[style*="background:#fff3e0"],#creator-tab-history div[style*="background:#faf5f7"]{
   color:var(--portal-text)!important;background:var(--portal-panel)!important;border:1px solid var(--portal-line)!important;border-radius:var(--portal-radius)!important;box-shadow:0 14px 38px rgba(0,0,0,.18)!important;
 }
@@ -553,6 +557,10 @@ html[data-portal-theme="light"] .portal-theme-button{color:#687184}
 html[data-portal-theme="light"] .portal-theme-button:hover{color:#252b39;background:#fff}
 html[data-portal-theme="light"] #step-login{background:rgba(255,255,255,.95)!important;border-color:rgba(54,64,88,.13)!important;box-shadow:0 32px 90px rgba(54,64,88,.18)!important}
 html[data-portal-theme="light"] #entry-buttons:before{color:#182033}
+html[data-portal-theme="light"] .account-services{border-top-color:rgba(54,64,88,.13)}
+html[data-portal-theme="light"] .account-services-label{color:#7a8498}
+html[data-portal-theme="light"] .account-services-button{color:#4f596d;background:#f7f8fc;border-color:#d8dde8}
+html[data-portal-theme="light"] .account-services-button:hover{color:#31394a;background:#eef0fb;border-color:#a8aee0}
 html[data-portal-theme="light"] .tabs,
 html[data-portal-theme="light"] .nav-bar{background:rgba(255,255,255,.88)!important;border-color:rgba(54,64,88,.13)!important}
 html[data-portal-theme="light"] .tab{color:#667085!important}
@@ -650,7 +658,10 @@ html[data-portal-theme="dark"] .portal-theme-button:hover{color:#fff;background:
     <div id="entry-buttons">
       <button class="btn btn-primary" onclick="showNewCreatorForm()" style="width:100%;padding:16px;font-size:16px;font-weight:700;border-radius:18px;margin-bottom:10px;background:linear-gradient(135deg,#f2a6c4,#d4749a,#e88dae);color:white;border:none;box-shadow:0 6px 24px rgba(212,116,154,0.35);cursor:pointer;">🆕 I'm a New Creator</button>
       <button class="btn btn-outline" onclick="showExistingLogin()" style="width:100%;padding:14px;font-size:15px;font-weight:600;border-radius:18px;border:2px solid #f8bbd0;background:rgba(255,255,255,0.85);color:#ad1457;cursor:pointer;">✅ I'm Already Registered</button>
-      <button class="btn btn-outline entry-address-button" onclick="showShippingLogin()" style="width:100%;padding:14px;font-size:15px;font-weight:700;border-radius:18px;border:2px solid #ce93d8;background:rgba(255,255,255,0.85);color:#7b1fa2;cursor:pointer;margin-top:10px;">📦 Update Shipping Address</button>
+    </div>
+    <div id="account-services" class="account-services">
+      <span class="account-services-label">Account Services</span>
+      <button type="button" class="account-services-button" onclick="showShippingLogin()">📦 Update Shipping Address</button>
     </div>
 
     <!-- New Creator Form (hidden) —  -->
@@ -2475,6 +2486,7 @@ function showEntryScreen() {
   document.getElementById('new-creator-form').style.display = 'none';
   document.getElementById('existing-login-form').style.display = 'none';
   document.getElementById('entry-buttons').style.display = 'block';
+  document.getElementById('account-services').style.display = 'block';
   document.querySelector('.header').style.display = 'block';
 }
 function showNewCreatorForm() {
@@ -2494,6 +2506,7 @@ function showNewCreatorForm() {
   form.style.display = 'block';
   document.getElementById('existing-login-form').style.display = 'none';
   document.getElementById('entry-buttons').style.display = 'none';
+  document.getElementById('account-services').style.display = 'none';
   document.querySelector('.header').style.display = 'none';
 }
 
@@ -2523,6 +2536,7 @@ function openExistingLoginForm(title, buttonLabel) {
   document.getElementById('new-creator-form').style.display = 'none';
   document.getElementById('existing-login-form').style.display = 'block';
   document.getElementById('entry-buttons').style.display = 'none';
+  document.getElementById('account-services').style.display = 'none';
   document.querySelector('.header').style.display = 'none';
   // Always start with empty login fields — users type their own Game UID + System ID.
   var u = document.getElementById('input-uid');
@@ -3143,6 +3157,7 @@ async function logout() {
   document.getElementById('new-creator-form').style.display = 'none';
   document.getElementById('existing-login-form').style.display = 'none';
   document.getElementById('entry-buttons').style.display = 'block';
+  document.getElementById('account-services').style.display = 'block';
   document.querySelector('.header').style.display = 'block';
 }
 
