@@ -3210,11 +3210,14 @@ initializeProjectContext().then(function() {
   showProjectLoadError(error);
 });
 
-// Local visual review only. Never enabled on the deployed portal URL.
+// Visual review only. Public preview uses mock data and blocks all mutations.
 function openLocalDashboardPreview() {
+  var previewParams = new URLSearchParams(location.search);
   var previewHosts = ['127.0.0.1', 'localhost', 'yoyo-koc-mobile-preview.vercel.app'];
-  if (previewHosts.indexOf(location.hostname) === -1) return;
-  if (new URLSearchParams(location.search).get('preview') !== 'dashboard') return;
+  var isLocalPreview = previewHosts.indexOf(location.hostname) !== -1;
+  var isPublicDesignPreview = location.hostname === 'yoyo-creative-studio.github.io' && previewParams.get('design-preview') === 'seraphina';
+  if (!isLocalPreview && !isPublicDesignPreview) return;
+  if (previewParams.get('preview') !== 'dashboard') return;
   if (!/^\d{4}-\d{2}$/.test(currentPeriod)) currentPeriod = '2026-11';
   window._localDashboardPreview = true;
   currentUser = {
@@ -3269,7 +3272,7 @@ function openLocalDashboardPreview() {
     panel.classList.remove('active');
   });
   document.querySelectorAll('#step-dashboard .tab').forEach(function(tab) { tab.classList.remove('active'); });
-  var requestedPreviewTab = new URLSearchParams(location.search).get('preview-tab');
+  var requestedPreviewTab = previewParams.get('preview-tab');
   var previewTabName = ['submit','history','redeem','faq','profile'].indexOf(requestedPreviewTab) >= 0 ? requestedPreviewTab : 'redeem';
   var previewTab = document.getElementById('creator-tab-' + previewTabName);
   if (previewTab) { previewTab.style.display = 'block'; previewTab.classList.add('active'); }
@@ -3279,8 +3282,14 @@ function openLocalDashboardPreview() {
     var button = document.getElementById(id);
     if (button) {
       button.disabled = true;
-      button.title = 'Disabled in local visual preview';
+      button.title = 'Disabled in visual preview';
     }
+  });
+  document.querySelectorAll('#step-dashboard form').forEach(function(form) {
+    form.addEventListener('submit', function(event) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }, true);
   });
 }
 setTimeout(openLocalDashboardPreview, 650);
