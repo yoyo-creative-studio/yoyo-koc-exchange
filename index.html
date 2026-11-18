@@ -461,6 +461,13 @@ body:before{
 .account-services-label{display:block;margin-bottom:9px;color:var(--portal-muted);font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
 .account-services-button{width:100%;min-height:44px;padding:11px 13px;color:#cbd3e2;background:rgba(255,255,255,.035);border:1px solid var(--portal-line);border-radius:9px;font-size:13px;font-weight:650;text-align:left;cursor:pointer;transition:background .2s,border-color .2s,transform .2s}
 .account-services-button:hover{color:#fff;background:rgba(139,124,255,.10);border-color:rgba(139,124,255,.42);transform:translateY(-1px)}
+.shipping-requirements{padding:15px 16px!important;color:#d8dfef!important;background:#121725!important;border:1px solid #46516d!important;font-size:14px!important;line-height:1.7!important}
+.shipping-requirements>div:first-child{color:#fff!important;font-size:15px!important;font-weight:850!important}
+.shipping-requirements strong{color:#fff!important;font-weight:850!important}
+.shipping-requirements li{margin:5px 0;color:#d8dfef!important;font-size:14px!important;line-height:1.65!important}
+.shipping-requirements>div:last-child{color:#ffe0ec!important;font-size:14px!important;font-weight:750!important;line-height:1.7!important}
+.shipping-confirmation{color:#d8dfef!important;background:#121725!important;border-color:#46516d!important;font-size:14px!important;line-height:1.6!important}
+.shipping-confirmation span{color:#d8dfef!important;font-size:14px!important;line-height:1.6!important}
 .card,.banner,.submission-item,.reward-row,#step-login>div[style*="background:#fff8e1"],#step-login>div[style*="background:#f3e5f5"],#existing-login-form>div[style*="background:#fff7fb"],#creator-tab-submit div[style*="background:#fff3e0"],#creator-tab-history div[style*="background:#faf5f7"]{
   color:var(--portal-text)!important;background:var(--portal-panel)!important;border:1px solid var(--portal-line)!important;border-radius:var(--portal-radius)!important;box-shadow:0 14px 38px rgba(0,0,0,.18)!important;
 }
@@ -561,6 +568,13 @@ html[data-portal-theme="light"] .account-services{border-top-color:rgba(54,64,88
 html[data-portal-theme="light"] .account-services-label{color:#7a8498}
 html[data-portal-theme="light"] .account-services-button{color:#4f596d;background:#f7f8fc;border-color:#d8dde8}
 html[data-portal-theme="light"] .account-services-button:hover{color:#31394a;background:#eef0fb;border-color:#a8aee0}
+html[data-portal-theme="light"] .shipping-requirements{color:#5f4653!important;background:#fff7f9!important;border-color:#f3c4d4!important}
+html[data-portal-theme="light"] .shipping-requirements>div:first-child{color:#ad1457!important}
+html[data-portal-theme="light"] .shipping-requirements strong{color:#6e2848!important}
+html[data-portal-theme="light"] .shipping-requirements li{color:#5f4653!important}
+html[data-portal-theme="light"] .shipping-requirements>div:last-child{color:#8f3153!important}
+html[data-portal-theme="light"] .shipping-confirmation{color:#5f4653!important;background:#fff!important;border-color:#f3c4d4!important}
+html[data-portal-theme="light"] .shipping-confirmation span{color:#5f4653!important}
 html[data-portal-theme="light"] .tabs,
 html[data-portal-theme="light"] .nav-bar{background:rgba(255,255,255,.88)!important;border-color:rgba(54,64,88,.13)!important}
 html[data-portal-theme="light"] .tab{color:#667085!important}
@@ -692,7 +706,7 @@ html[data-portal-theme="dark"] .portal-theme-button:hover{color:#fff;background:
       </select>
       
       <label style="margin-top:8px;">📦 Shipping Address</label>
-      <div style="font-size:12px;color:#70475a;line-height:1.55;margin:0 0 10px;padding:11px 12px;background:#fff7f9;border:1px solid #f3c4d4;border-radius:10px;text-align:left;">
+      <div class="shipping-requirements" style="font-size:12px;color:#70475a;line-height:1.55;margin:0 0 10px;padding:11px 12px;background:#fff7f9;border:1px solid #f3c4d4;border-radius:10px;text-align:left;">
         <div style="font-weight:800;color:#ad1457;margin-bottom:5px;">Important delivery requirements</div>
         <div>Physical rewards may be delivered by <strong>USPS or another local postal service</strong>, not only by UPS, FedEx, or DHL. Enter an address that can receive regular postal mail.</div>
         <ul style="margin:7px 0 0 18px;padding:0;">
@@ -713,7 +727,7 @@ html[data-portal-theme="dark"] .portal-theme-button:hover{color:#fff;background:
         <input type="text" id="reg-country" placeholder="Country *" style="flex:1;">
       </div>
       <input type="text" id="reg-phone" placeholder="Phone Number *" style="margin-bottom:12px;">
-      <label style="display:flex;align-items:flex-start;gap:8px;margin:0 0 14px;padding:10px 11px;background:#fff;border:1px solid #f3c4d4;border-radius:10px;cursor:pointer;font-size:12px;line-height:1.45;color:#70475a;text-align:left;">
+      <label class="shipping-confirmation" style="display:flex;align-items:flex-start;gap:8px;margin:0 0 14px;padding:10px 11px;background:#fff;border:1px solid #f3c4d4;border-radius:10px;cursor:pointer;font-size:12px;line-height:1.45;color:#70475a;text-align:left;">
         <input type="checkbox" id="reg-mail-confirm" style="width:18px;height:18px;flex:0 0 18px;margin:1px 0 0;accent-color:#d4749a;">
         <span>I confirm that this address is complete, accurate, and able to receive regular postal mail. I understand that an international package returned because of my address information cannot be handled or resent by the Creator Program team.</span>
       </label>
