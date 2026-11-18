@@ -1,10 +1,16 @@
 {
   "redirects": [
-    { "source": "/", "destination": "/admin-console.html", "permanent": false }
+    { "source": "/", "destination": "/index.html", "permanent": false }
   ],
   "headers": [
     {
-      "source": "/admin-console.html",
+      "source": "/index.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, max-age=0" }
+      ]
+    },
+    {
+      "source": "/annual-report-template.html",
       "headers": [
         { "key": "Cache-Control", "value": "no-store, max-age=0" }
       ]
