@@ -472,6 +472,17 @@ body:before{
   color:var(--portal-text)!important;background:var(--portal-panel)!important;border:1px solid var(--portal-line)!important;border-radius:var(--portal-radius)!important;box-shadow:0 14px 38px rgba(0,0,0,.18)!important;
 }
 .card{padding:24px!important;margin-bottom:18px!important}
+#creator-tab-profile .card{max-width:860px!important;margin:0 auto 24px!important;padding:32px!important}
+#creator-tab-profile .card-title{font-size:24px!important;margin-bottom:22px!important;padding-bottom:18px!important}
+#creator-tab-profile label{display:block!important;margin:18px 0 7px!important;font-size:14px!important;color:#e1e6f2!important}
+#creator-tab-profile input[type="text"],#creator-tab-profile textarea{min-height:56px!important;font-size:15px!important;padding:15px 16px!important}
+#creator-tab-profile textarea{min-height:96px!important;resize:vertical!important}
+#creator-tab-profile .shipping-update-guide{padding:18px 20px!important;margin:0 0 24px!important;color:#dce4f4!important;background:#111827!important;border:1px solid #46516d!important;border-radius:10px!important;font-size:14px!important;line-height:1.7!important;text-align:left!important}
+#creator-tab-profile .shipping-update-guide strong{color:#fff!important}
+#creator-tab-profile .shipping-update-guide li{margin:6px 0!important}
+#creator-tab-profile .shipping-field-group{padding:16px 18px 18px!important;margin:20px 0!important;border:1px solid #46516d!important;border-radius:10px!important;background:rgba(255,255,255,.025)!important}
+#creator-tab-profile .shipping-field-group-title{font-size:15px!important;font-weight:750!important;color:#fff!important;margin-bottom:4px!important}
+#creator-tab-profile .shipping-field-group-note{font-size:12px!important;color:#aeb9ce!important;line-height:1.55!important}
 .card-title,.level-1-title{
   margin:0 0 20px!important;padding:0 0 16px!important;color:var(--portal-text)!important;background:none!important;
   border:0!important;border-bottom:1px solid var(--portal-line)!important;border-radius:0!important;box-shadow:none!important;
@@ -929,21 +940,37 @@ html[data-portal-theme="dark"] .portal-theme-button:hover{color:#fff;background:
     <div id="creator-tab-profile" class="tab-content">
       <div class="nav-bar"><button class="nav-back" onclick="logout()">‹ Back</button><span class="nav-title">📦 Shipping Information</span></div>
       <div class="card">
-        <div class="card-title">📦 Update Shipping Information</div>
-        <div style="background:#fff8e1;border:2px solid #ffb74d;padding:12px;margin-bottom:14px;color:#6d4300;font-size:12px;line-height:1.6;">
-          Saving updates your creator profile and any <strong>Pending or Processing</strong> merchandise orders. It does not change rewards that have already been shipped. Enter an address that can receive regular postal mail.
+        <div class="card-title">📦 Update Your Shipping Address</div>
+        <div class="shipping-update-guide">
+          <strong>Please review every field carefully before saving.</strong>
+          <ul>
+            <li>This update applies to pending or processing merchandise orders.</li>
+            <li>Orders that have already shipped cannot be changed here.</li>
+            <li>Use your full legal name, a complete postal address, and a phone number that can receive delivery or customs calls.</li>
+            <li>For Philippines addresses, complete the separate <strong>Barangay</strong> and locality fields below. Do not combine them into one line.</li>
+          </ul>
         </div>
-        <label>Full Legal Name *</label><input type="text" id="profile-name" placeholder="Full legal name">
+        <div class="shipping-field-group">
+          <div class="shipping-field-group-title">Recipient</div>
+          <div class="shipping-field-group-note">Use the name shown on your official identification and the phone number used for delivery.</div>
+          <label>Full Legal Name *</label><input type="text" id="profile-name" placeholder="Full legal name">
+          <label>Phone Number *</label><input type="text" id="profile-phone" placeholder="Include country code, e.g. +63...">
+        </div>
+        <div class="shipping-field-group">
+          <div class="shipping-field-group-title">Address</div>
+          <div class="shipping-field-group-note">Enter the full address used by your local postal service. Include apartment, unit, building, or lot details.</div>
         <label>Street Address / P.O. Box / Apt / Suite / Unit *</label><textarea id="profile-address" rows="3" placeholder="Complete street address"></textarea>
         <div id="profile-ph-address-fields" style="display:none;">
+          <div class="shipping-field-group-title" style="margin-top:14px;">Philippines address details</div>
+          <div class="shipping-field-group-note">These fields help local delivery. Barangay is required for Philippines addresses.</div>
           <label>House / Unit / Lot number</label><input type="text" id="profile-unit">
           <label>Subdivision / Village / Compound</label><input type="text" id="profile-subdivision">
-          <label>Barangay</label><input type="text" id="profile-barangay">
+          <label>Barangay *</label><input type="text" id="profile-barangay" placeholder="e.g. Barangay Cuyab">
           <label>Nearby landmark (optional)</label><input type="text" id="profile-landmark">
         </div>
         <div style="display:flex;gap:8px;"><div style="flex:1;"><label>City *</label><input type="text" id="profile-city"></div><div style="flex:1;"><label>State / Province *</label><input type="text" id="profile-state"></div></div>
         <div style="display:flex;gap:8px;"><div style="flex:1;"><label>Postal Code *</label><input type="text" id="profile-postal"></div><div style="flex:1;"><label>Country *</label><input type="text" id="profile-country"></div></div>
-        <label>Phone Number *</label><input type="text" id="profile-phone" placeholder="Include country code">
+        </div>
         <label style="display:flex;align-items:flex-start;gap:8px;margin:10px 0 14px;font-size:12px;line-height:1.5;cursor:pointer;"><input type="checkbox" id="profile-confirm" style="width:18px;height:18px;flex:0 0 18px;margin-top:1px;"><span>I confirm that this address is complete, accurate, and able to receive regular postal mail.</span></label>
         <button class="btn btn-primary" id="btn-save-shipping" onclick="saveShippingProfile()">Save Shipping Information</button>
         <div id="profile-status" style="margin-top:10px;font-size:12px;min-height:18px;text-align:center;color:var(--text-light);"></div>
@@ -2494,6 +2521,11 @@ async function saveShippingProfile() {
   var status = document.getElementById('profile-status');
   if ([profile.name, profile.address, profile.city, profile.state, profile.postal_code, profile.country, profile.phone].some(function(value) { return !value; }) || !profile.confirmed) {
     status.textContent = 'Complete every field and confirm the address before saving.';
+    status.style.color = '#c62828';
+    return;
+  }
+  if (/philippines/i.test(profile.country) && !String(profile.barangay || '').trim()) {
+    status.textContent = 'Please enter your Barangay for Philippines delivery.';
     status.style.color = '#c62828';
     return;
   }
