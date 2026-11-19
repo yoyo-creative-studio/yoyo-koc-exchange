@@ -526,11 +526,14 @@ input[type="text"]:focus,textarea:focus,select:focus,#input-uid:focus,#input-acc
 .tab.active:after{display:none!important}
 .creator-account-row{gap:14px;margin:0 0 16px!important}
 .creator-account-button{
-  flex:none;padding:9px 12px;color:#dce1eb;background:#181c28;border:1px solid var(--portal-line);
-  border-radius:8px;font:650 12px/1.2 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;
-  transition:background .2s,border-color .2s,transform .2s;
+  flex:none;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:11px 16px;
+  color:#fff;background:linear-gradient(105deg,#5865f2,#8267e8 55%,#c65b9c);border:1px solid rgba(255,255,255,.22);
+  border-radius:10px;font:800 13px/1.2 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;cursor:pointer;
+  box-shadow:0 9px 24px rgba(88,101,242,.28),0 0 0 1px rgba(255,255,255,.06) inset;
+  transition:filter .2s,border-color .2s,transform .2s,box-shadow .2s;
 }
-.creator-account-button:hover{background:#202534;border-color:rgba(139,124,255,.48);transform:translateY(-1px)}
+.creator-account-button:hover{filter:brightness(1.1);border-color:rgba(255,255,255,.38);transform:translateY(-1px);box-shadow:0 12px 28px rgba(88,101,242,.36)}
+.creator-account-button-icon{font-size:18px;line-height:1}
 .tab-content:not(.hidden){animation:portalPanelIn .42s cubic-bezier(.22,1,.36,1) both}
 .community-milestone,.submission-progress-card,.submission-ranking-card{
   color:var(--portal-text)!important;background:linear-gradient(120deg,rgba(88,101,242,.13),rgba(240,109,171,.08))!important;
@@ -751,9 +754,11 @@ html[data-portal-theme="dark"] .portal-theme-button:hover{color:#fff;background:
         <span>I confirm that this address is complete, accurate, and able to receive regular postal mail. I understand that an international package returned because of my address information cannot be handled or resent by the Creator Program team.</span>
       </label>
 
-      <label>Referral Invite Code <span style="font-weight:500;">(optional)</span></label>
-      <input type="text" id="reg-referral-code" placeholder="Example: MLT-AB12CD34" autocomplete="off" style="margin-bottom:6px;text-transform:uppercase;">
-      <span style="font-size:11px;color:var(--text-light);display:block;margin-bottom:14px;text-align:left;line-height:1.5;">Use the unique code sent to you by an eligible Gold or Platinum creator. Each code has limited places and is only valid for first-time applicants through December 10, 2026.</span>
+      <div id="referral-registration-field" style="display:none;">
+        <label>Referral Invite Code <span style="font-weight:500;">(optional)</span></label>
+        <input type="text" id="reg-referral-code" placeholder="Example: MLT-AB12CD34" autocomplete="off" style="margin-bottom:6px;text-transform:uppercase;">
+        <span style="font-size:11px;color:var(--text-light);display:block;margin-bottom:14px;text-align:left;line-height:1.5;">Use the unique code sent to you by an eligible Gold or Platinum creator.</span>
+      </div>
       
       <button class="btn btn-primary" id="btn-register" onclick="registerCreator()">📝 Submit Application</button>
       <div id="reg-status" style="margin-top:8px;font-size:12px;color:var(--text-light);text-align:center;min-height:18px;"></div>
@@ -814,13 +819,13 @@ html[data-portal-theme="dark"] .portal-theme-button:hover{color:#fff;background:
     </div>
     <div class="creator-account-row" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <span id="display-user" style="font-size:13px;font-weight:600;"></span>
-      <button type="button" class="creator-account-button" onclick="switchCreatorTab('profile')">Account &amp; Shipping</button>
+      <button type="button" class="creator-account-button" onclick="switchCreatorTab('profile')"><span class="creator-account-button-icon" aria-hidden="true">📦</span><span>Update Shipping Address</span></button>
     </div>
     <div id="community-milestone" class="community-milestone" aria-live="polite">
       <div class="community-milestone-head"><span class="community-milestone-title">UNLOCK TWO REWARD TYPES</span><span id="community-milestone-count" class="community-milestone-count">— / 300</span></div>
       <div id="community-milestone-copy" class="community-milestone-copy"><strong>Right now:</strong> choose 1 reward type per redemption.<br><strong>At 300 active creators:</strong> everyone can choose 2 different reward types per redemption.</div>
       <div class="community-milestone-track"><div id="community-milestone-fill" class="community-milestone-fill" style="width:0%"></div></div>
-      <div class="community-milestone-foot"><span id="community-milestone-status">Loading community progress...</span><span class="community-milestone-refer">The final referral round uses personal invite codes for eligible Gold and Platinum creators and closes December 10, 2026.</span></div>
+      <div class="community-milestone-foot"><span id="community-milestone-status">Loading community progress...</span><span class="community-milestone-refer">Creator activities and deadlines follow the latest official Discord announcement.</span></div>
     </div>
     <!-- Redeem Tab -->
     <div id="creator-tab-redeem" class="tab-content">
@@ -1067,7 +1072,7 @@ const EN_DATA = [{"name":"📌 1. Getting Started","icon":"🌟","items":[{"id":
 
 EN_DATA.forEach(function(category) {
   category.items.forEach(function(item) {
-    if (item.id === 'Q37') item.a = 'The final referral round closes on **December 10, 2026** and uses a unique invite code for each eligible Gold or Platinum creator. Platinum creators may invite up to 4 first-time applicants and receive **+1 Point for every 2 approved referrals**, up to +2 Points. Gold creators may invite up to 2 first-time applicants; Gold referrals do not award points.\n\nA place is counted only after the applicant passes administrator review and officially joins. Rejected, duplicate, repeat, or incomplete applications do not consume a place. Invite codes cannot be transferred.';
+    if (item.id === 'Q37') item.a = 'Referral activities are not currently open. If a new referral round is approved, eligible creators will receive the official rules and any personal invite code directly from the Creator Program team. Please follow the latest announcement in `📢｜yoyo-bulletin-board`.';
   });
 });
 
@@ -3829,7 +3834,7 @@ html[data-portal-theme="light"] body #step-dashboard .order-meta,
 html[data-portal-theme="light"] body #step-dashboard .reward-desc{color:#4f596d!important;-webkit-text-fill-color:#4f596d!important}
 html[data-portal-theme="light"] body #step-dashboard strong{color:#1d2432!important;-webkit-text-fill-color:#1d2432!important}
 html[data-portal-theme="light"] body #step-dashboard .nav-title{color:#252d3e!important}
-html[data-portal-theme="light"] body #step-dashboard .creator-account-button,
+html[data-portal-theme="light"] body #step-dashboard .creator-account-button{color:#fff!important;background:linear-gradient(105deg,#5865f2,#8267e8 55%,#c65b9c)!important;border-color:rgba(75,72,190,.24)!important}
 html[data-portal-theme="light"] body #step-dashboard .nav-back{color:#fff!important;background:#1c2230!important;border-color:#1c2230!important}
 html[data-portal-theme="light"] body #step-dashboard .faq-support-card{background:linear-gradient(120deg,#eef0ff,#f7f1ff)!important;border-color:#d7d9f2!important}
 html[data-portal-theme="light"] body #step-dashboard .faq-support-card>div:first-child{color:#182033!important;-webkit-text-fill-color:#182033!important}
@@ -3877,9 +3882,9 @@ body #step-dashboard #showcase-description span:last-child{
   body #step-dashboard .tab{min-width:0!important;min-height:57px!important;padding:8px 3px!important;color:#c9d0df!important;background:transparent!important;border:1px solid transparent!important;border-radius:9px!important;font-size:10px!important;line-height:1.25!important;white-space:normal!important}
   body #step-dashboard .tab:first-letter{font-size:18px!important}
   body #step-dashboard .tab.active{color:#fff!important;background:linear-gradient(145deg,#5865f2,#8b5cf6 58%,#c65b9c)!important;border-color:rgba(255,255,255,.16)!important;box-shadow:0 7px 18px rgba(88,101,242,.32)!important}
-  body #step-dashboard .creator-account-row{align-items:center!important}
+  body #step-dashboard .creator-account-row{align-items:stretch!important;flex-direction:column!important;gap:9px!important}
   body #step-dashboard #display-user{font-size:13px!important;min-width:0}
-  body #step-dashboard .creator-account-button{padding:9px!important;font-size:11px!important}
+  body #step-dashboard .creator-account-button{width:100%!important;min-height:48px!important;padding:11px 14px!important;font-size:13px!important}
   body #step-dashboard .community-milestone{padding:14px!important}
   body #step-dashboard .community-milestone-head{align-items:flex-start!important}
   body #step-dashboard .community-milestone-count{font-size:17px!important}
