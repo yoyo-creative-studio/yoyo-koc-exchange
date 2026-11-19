@@ -604,7 +604,14 @@ function setPortalTheme(theme) {
   var saved = 'dark';
   try { saved = localStorage.getItem('creator_portal_theme_v2') || 'dark'; } catch (error) {}
   document.documentElement.setAttribute('data-portal-theme', saved === 'light' ? 'light' : 'dark');
-  document.addEventListener('DOMContentLoaded', function() { setPortalTheme(saved); });
+  document.addEventListener('DOMContentLoaded', function() {
+    setPortalTheme(saved);
+    var countryInput = document.getElementById('reg-country');
+    if (countryInput) countryInput.addEventListener('input', function() {
+      var fields = document.getElementById('reg-ph-address-fields');
+      if (fields) fields.style.display = /philippines/i.test(countryInput.value) ? 'block' : 'none';
+    });
+  });
 })();
 </script>
 <style id="portal-theme-controls-persistent">
@@ -673,11 +680,6 @@ html[data-portal-theme="dark"] .portal-theme-button:hover{color:#fff;background:
       <button class="btn btn-primary" onclick="showNewCreatorForm()" style="width:100%;padding:16px;font-size:16px;font-weight:700;border-radius:18px;margin-bottom:10px;background:linear-gradient(135deg,#f2a6c4,#d4749a,#e88dae);color:white;border:none;box-shadow:0 6px 24px rgba(212,116,154,0.35);cursor:pointer;">🆕 I'm a New Creator</button>
       <button class="btn btn-outline" onclick="showExistingLogin()" style="width:100%;padding:14px;font-size:15px;font-weight:600;border-radius:18px;border:2px solid #f8bbd0;background:rgba(255,255,255,0.85);color:#ad1457;cursor:pointer;">✅ I'm Already Registered</button>
     </div>
-    <div id="account-services" class="account-services">
-      <span class="account-services-label">Account Services</span>
-      <button type="button" class="account-services-button" onclick="showShippingLogin()">📦 Update Shipping Address</button>
-    </div>
-
     <!-- New Creator Form (hidden) —  -->
     <div id="new-creator-form" style="display:none;margin-top:16px;padding-top:16px;border-top:2px solid var(--border);">
       <div class="nav-bar"><button class="nav-back" onclick="showEntryScreen()">‹ Back</button><span class="nav-title">🆕 New Registration</span></div>
@@ -718,6 +720,12 @@ html[data-portal-theme="dark"] .portal-theme-button:hover{color:#fff;background:
       </div>
       
       <input type="text" id="reg-street" placeholder="Street Address / P.O. Box / Apt / Suite / Unit *" style="margin-bottom:6px;">
+      <div id="reg-ph-address-fields" style="display:none;">
+        <input type="text" id="reg-unit" placeholder="House / Unit / Lot number" style="margin-bottom:6px;">
+        <input type="text" id="reg-subdivision" placeholder="Subdivision / Village / Compound" style="margin-bottom:6px;">
+        <input type="text" id="reg-barangay" placeholder="Barangay" style="margin-bottom:6px;">
+        <input type="text" id="reg-landmark" placeholder="Nearby landmark (optional)" style="margin-bottom:6px;">
+      </div>
       <div style="display:flex;gap:6px;margin-bottom:6px;">
         <input type="text" id="reg-city" placeholder="City *" style="flex:1;">
         <input type="text" id="reg-state" placeholder="State / Province *" style="flex:1;">
@@ -927,6 +935,12 @@ html[data-portal-theme="dark"] .portal-theme-button:hover{color:#fff;background:
         </div>
         <label>Full Legal Name *</label><input type="text" id="profile-name" placeholder="Full legal name">
         <label>Street Address / P.O. Box / Apt / Suite / Unit *</label><textarea id="profile-address" rows="3" placeholder="Complete street address"></textarea>
+        <div id="profile-ph-address-fields" style="display:none;">
+          <label>House / Unit / Lot number</label><input type="text" id="profile-unit">
+          <label>Subdivision / Village / Compound</label><input type="text" id="profile-subdivision">
+          <label>Barangay</label><input type="text" id="profile-barangay">
+          <label>Nearby landmark (optional)</label><input type="text" id="profile-landmark">
+        </div>
         <div style="display:flex;gap:8px;"><div style="flex:1;"><label>City *</label><input type="text" id="profile-city"></div><div style="flex:1;"><label>State / Province *</label><input type="text" id="profile-state"></div></div>
         <div style="display:flex;gap:8px;"><div style="flex:1;"><label>Postal Code *</label><input type="text" id="profile-postal"></div><div style="flex:1;"><label>Country *</label><input type="text" id="profile-country"></div></div>
         <label>Phone Number *</label><input type="text" id="profile-phone" placeholder="Include country code">
@@ -2439,12 +2453,18 @@ function loadShippingProfileForm() {
     'profile-state': currentUser.state,
     'profile-postal': currentUser.postal_code,
     'profile-country': currentUser.country,
-    'profile-phone': currentUser.phone
+    'profile-phone': currentUser.phone,
+    'profile-unit': currentUser.unit_or_house,
+    'profile-subdivision': currentUser.subdivision_village_compound,
+    'profile-barangay': currentUser.barangay,
+    'profile-landmark': currentUser.landmark
   };
   Object.keys(values).forEach(function(id) {
     var element = document.getElementById(id);
     if (element) element.value = values[id] || '';
   });
+  var phFields = document.getElementById('profile-ph-address-fields');
+  if (phFields) phFields.style.display = /philippines/i.test(currentUser.country || '') ? 'block' : 'none';
   var confirmed = document.getElementById('profile-confirm');
   if (confirmed) confirmed.checked = false;
   var status = document.getElementById('profile-status');
@@ -2457,10 +2477,17 @@ async function saveShippingProfile() {
     project_key: PROJECT_KEY,
     name: document.getElementById('profile-name').value.trim(),
     address: document.getElementById('profile-address').value.trim(),
+    unit_or_house: (document.getElementById('profile-unit') || {}).value || '',
+    street_address: document.getElementById('profile-address').value.trim(),
+    subdivision_village_compound: (document.getElementById('profile-subdivision') || {}).value || '',
+    barangay: (document.getElementById('profile-barangay') || {}).value || '',
+    city_municipality: document.getElementById('profile-city').value.trim(),
     city: document.getElementById('profile-city').value.trim(),
+    province: document.getElementById('profile-state').value.trim(),
     state: document.getElementById('profile-state').value.trim(),
     postal_code: document.getElementById('profile-postal').value.trim(),
     country: document.getElementById('profile-country').value.trim(),
+    landmark: (document.getElementById('profile-landmark') || {}).value || '',
     phone: document.getElementById('profile-phone').value.trim(),
     confirmed: document.getElementById('profile-confirm').checked
   };
@@ -2510,7 +2537,6 @@ function showEntryScreen() {
   document.getElementById('new-creator-form').style.display = 'none';
   document.getElementById('existing-login-form').style.display = 'none';
   document.getElementById('entry-buttons').style.display = 'block';
-  document.getElementById('account-services').style.display = 'block';
   document.querySelector('.header').style.display = 'block';
 }
 function showNewCreatorForm() {
@@ -2530,7 +2556,6 @@ function showNewCreatorForm() {
   form.style.display = 'block';
   document.getElementById('existing-login-form').style.display = 'none';
   document.getElementById('entry-buttons').style.display = 'none';
-  document.getElementById('account-services').style.display = 'none';
   document.querySelector('.header').style.display = 'none';
 }
 
@@ -2551,16 +2576,10 @@ function showExistingLogin() {
   openExistingLoginForm('🔑 Creator Login', '🔐 Login');
 }
 
-function showShippingLogin() {
-  postLoginDestination = 'profile';
-  openExistingLoginForm('📦 Verify to Update Shipping', '🔐 Verify & Update Address');
-}
-
 function openExistingLoginForm(title, buttonLabel) {
   document.getElementById('new-creator-form').style.display = 'none';
   document.getElementById('existing-login-form').style.display = 'block';
   document.getElementById('entry-buttons').style.display = 'none';
-  document.getElementById('account-services').style.display = 'none';
   document.querySelector('.header').style.display = 'none';
   // Always start with empty login fields — users type their own Game UID + System ID.
   var u = document.getElementById('input-uid');
@@ -2635,6 +2654,13 @@ async function registerCreator() {
       state: state,
       zip: zip,
       country: country,
+      unit_or_house: document.getElementById('reg-unit').value.trim(),
+      street_address: street,
+      subdivision_village_compound: document.getElementById('reg-subdivision').value.trim(),
+      barangay: document.getElementById('reg-barangay').value.trim(),
+      city_municipality: city,
+      province: state,
+      landmark: document.getElementById('reg-landmark').value.trim(),
       phone: phone,
       postal_mail_confirmed: true
     };
@@ -2647,10 +2673,17 @@ async function registerCreator() {
       account_id: accountId,
       server: server,
       address: street,
+      unit_or_house: document.getElementById('reg-unit').value.trim(),
+      street_address: street,
+      subdivision_village_compound: document.getElementById('reg-subdivision').value.trim(),
+      barangay: document.getElementById('reg-barangay').value.trim(),
       city: city,
+      city_municipality: city,
       state: state,
+      province: state,
       postal_code: zip,
       country: country,
+      landmark: document.getElementById('reg-landmark').value.trim(),
       phone: phone,
       referral_code: referralCode,
       notes: JSON.stringify(notesObj)
@@ -3184,7 +3217,6 @@ async function logout() {
   document.getElementById('new-creator-form').style.display = 'none';
   document.getElementById('existing-login-form').style.display = 'none';
   document.getElementById('entry-buttons').style.display = 'block';
-  document.getElementById('account-services').style.display = 'block';
   document.querySelector('.header').style.display = 'block';
 }
 
