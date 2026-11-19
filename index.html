@@ -3294,7 +3294,8 @@ function openLocalDashboardPreview() {
   var isLocalPreview = previewHosts.indexOf(location.hostname) !== -1;
   var isPublicDesignPreview = location.hostname === 'yoyo-creative-studio.github.io' && previewParams.get('design-preview') === 'seraphina';
   if (!isLocalPreview && !isPublicDesignPreview) return;
-  if (previewParams.get('preview') !== 'dashboard') return;
+  var previewMode = previewParams.get('preview');
+  if (previewMode !== 'dashboard' && previewMode !== 'profile') return;
   if (!/^\d{4}-\d{2}$/.test(currentPeriod)) currentPeriod = '2026-11';
   window._localDashboardPreview = true;
   currentUser = {
@@ -3349,7 +3350,7 @@ function openLocalDashboardPreview() {
     panel.classList.remove('active');
   });
   document.querySelectorAll('#step-dashboard .tab').forEach(function(tab) { tab.classList.remove('active'); });
-  var requestedPreviewTab = previewParams.get('preview-tab');
+  var requestedPreviewTab = previewMode === 'profile' ? 'profile' : previewParams.get('preview-tab');
   var previewTabName = ['submit','history','redeem','faq','profile'].indexOf(requestedPreviewTab) >= 0 ? requestedPreviewTab : 'redeem';
   var previewTab = document.getElementById('creator-tab-' + previewTabName);
   if (previewTab) { previewTab.style.display = 'block'; previewTab.classList.add('active'); }
